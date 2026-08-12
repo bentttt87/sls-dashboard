@@ -2080,7 +2080,11 @@ function exportPDF(){
 }
 document.getElementById('downloadPdfBtn').addEventListener('click', exportPDF);
 
-function exportExcel(){
+async function exportExcel(){
+  const btn = document.getElementById('downloadExcelBtn');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Menyiapkan...'; btn.disabled = true;
+  try{
   const wb = XLSX.utils.book_new();
   const rdcNames = Object.keys(RDC).filter(n=>n!=='Semua');
 
@@ -2099,6 +2103,54 @@ function exportExcel(){
   });
   const wsTrend = XLSX.utils.aoa_to_sheet(trendRows);
   XLSX.utils.book_append_sheet(wb, wsTrend, 'Tren Bulanan');
+
+  // Ambil riwayat harian real dari rdc_snapshot_log untuk rekap Harian/Mingguan/Bulanan
+  let snapRows = [];
+  try{
+    const q = CURRENT_RDC_SCOPE ? `&rdc_name=eq.${encodeURIComponent(CURRENT_RDC_SCOPE)}&order=snapshot_date.asc` : '&order=snapshot_date.asc';
+    snapRows = await sbSelect('rdc_snapshot_log', q);
+  }catch(e){ snapRows = []; }
+
+  const dailyRows = [['RDC','Tanggal','Occupancy %','Stock (box)','Kapasitas (box)','Breakage %','Total SDM','Diupdate Oleh']];
+  snapRows.forEach(r=>{
+    dailyRows.push([r.rdc_name, r.snapshot_date, r.occ_pct??'-', r.stock_current_box??'-', r.kapasitas_box??'-', r.pecah_ratio!=null?(Number(r.pecah_ratio)*100).toFixed(3):'-', r.total_sdm??'-', r.updated_by??'-']);
+  });
+  if(dailyRows.length===1) dailyRows.push(['(Belum ada riwayat harian tercatat — riwayat baru mulai terkumpul sejak fitur ini aktif; akan makin lengkap seiring waktu)']);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dailyRows), 'Rekap Harian');
+
+  function isoWeekLabel(dateStr){
+    const d = new Date(dateStr+'T00:00:00');
+    const day = d.getDay()||7;
+    const monday = new Date(d); monday.setDate(d.getDate()-day+1);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    const fmt = x=>x.toISOString().slice(0,10);
+    return `${fmt(monday)} s/d ${fmt(sunday)}`;
+  }
+  function aggregateBy(labelFn){
+    const map = {};
+    snapRows.forEach(r=>{
+      const label = labelFn(r.snapshot_date);
+      const key = r.rdc_name+'|'+label;
+      if(!map[key]) map[key] = {rdc:r.rdc_name, label, occSum:0, occN:0, pecahSum:0, pecahN:0, lastStock:null, lastDate:''};
+      const e = map[key];
+      if(r.occ_pct!=null){ e.occSum+=Number(r.occ_pct); e.occN++; }
+      if(r.pecah_ratio!=null){ e.pecahSum+=Number(r.pecah_ratio); e.pecahN++; }
+      if(r.snapshot_date>=e.lastDate){ e.lastDate=r.snapshot_date; e.lastStock=r.stock_current_box; }
+    });
+    return Object.values(map).sort((a,b)=> a.rdc.localeCompare(b.rdc) || a.label.localeCompare(b.label));
+  }
+
+  const weekly = aggregateBy(isoWeekLabel);
+  const weeklyRows = [['RDC','Minggu','Rata-rata Occupancy %','Rata-rata Breakage %','Stock Terakhir Minggu Itu (box)']];
+  weekly.forEach(e=>{ weeklyRows.push([e.rdc, e.label, e.occN?Math.round(e.occSum/e.occN*10)/10:'-', e.pecahN?((e.pecahSum/e.pecahN)*100).toFixed(3):'-', e.lastStock??'-']); });
+  if(weeklyRows.length===1) weeklyRows.push(['(Belum ada riwayat harian tercatat — riwayat baru mulai terkumpul sejak fitur ini aktif; akan makin lengkap seiring waktu)']);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(weeklyRows), 'Rekap Mingguan');
+
+  const monthly = aggregateBy(d=>d.slice(0,7));
+  const monthlyRows2 = [['RDC','Bulan','Rata-rata Occupancy % (log harian)','Rata-rata Breakage % (log harian)','Stock Akhir Bulan (box)']];
+  monthly.forEach(e=>{ monthlyRows2.push([e.rdc, e.label, e.occN?Math.round(e.occSum/e.occN*10)/10:'-', e.pecahN?((e.pecahSum/e.pecahN)*100).toFixed(3):'-', e.lastStock??'-']); });
+  if(monthlyRows2.length===1) monthlyRows2.push(['(Belum ada riwayat harian tercatat — untuk histori bulanan yang sudah ada sebelumnya, lihat sheet "Tren Bulanan")']);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(monthlyRows2), 'Rekap Bulanan (Log Harian)');
 
   // Detail: Ukuran Gudang & Kapasitas
   const gudangRows = [['RDC','Luas Gudang (m2)','Luas Efektif (m2)','Kapasitas (box)','Stock Saat Ini (box)','Stock Rata-rata (box)','Occupancy %','Capacity Remaining (box)']];
@@ -2166,6 +2218,9 @@ function exportExcel(){
 
   const fname = `SLS_Dashboard_${CURRENT_RDC_SCOPE||'Semua'}_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSX.writeFile(wb, fname);
+  } finally {
+    btn.textContent = origText; btn.disabled = false;
+  }
 }
 document.getElementById('downloadExcelBtn').addEventListener('click', exportExcel);
 </script>
