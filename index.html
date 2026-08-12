@@ -2100,6 +2100,47 @@ function exportExcel(){
   const wsTrend = XLSX.utils.aoa_to_sheet(trendRows);
   XLSX.utils.book_append_sheet(wb, wsTrend, 'Tren Bulanan');
 
+  // Detail: Ukuran Gudang & Kapasitas
+  const gudangRows = [['RDC','Luas Gudang (m2)','Luas Efektif (m2)','Kapasitas (box)','Stock Saat Ini (box)','Stock Rata-rata (box)','Occupancy %','Capacity Remaining (box)']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{}; const d = RDC[n];
+    gudangRows.push([n, m.luas_gudang_m2??'-', m.luas_efektif_m2??'-', m.kapasitas_box??'-', m.stock_current_box??'-', m.stock_ratarata_box??'-', d.occ_now, d.caprem]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(gudangRows), 'Detail Gudang');
+
+  // Detail: SDM & Aset
+  const sdmRows = [['RDC','Supervisor','Staff','Admin','Helper','Operator','Driver','Security','Total SDM','Forklift','Truk Sendiri','Vendor Ekspedisi']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{};
+    sdmRows.push([n, m.sdm_spv??'-', m.sdm_staff??'-', m.sdm_admin??'-', m.sdm_helper??'-', m.sdm_operator??'-', m.sdm_driver??'-', m.sdm_security??'-', m.total_sdm??'-', m.forklift??'-', m.own_truck??'-', m.ekspedisi_vendor_count??'-']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sdmRows), 'Detail SDM & Aset');
+
+  // Detail: Breakage per Kategori
+  const pecahRows = [['RDC','Granit - Stock Out (box)','Granit - Pecah (box)','Granit - Rasio Pecah %','Roman - Stock Out (box)','Roman - Pecah (box)','Roman - Rasio Pecah %']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{};
+    pecahRows.push([n, m.stockout_granit_box??'-', m.pecah_granit_box??'-', m.pecah_granit_pct!=null?(m.pecah_granit_pct*100).toFixed(3):'-', m.stockout_roman_box??'-', m.pecah_roman_box??'-', m.pecah_roman_pct!=null?(m.pecah_roman_pct*100).toFixed(3):'-']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pecahRows), 'Detail Breakage');
+
+  // Detail: Pengiriman per Channel
+  const delivRows = [['RDC','Toko (box)','HOR (box)','Project (box)','Toped (box)','Total (box)']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{};
+    const toko=m.deliv_toko_box||0, hor=m.deliv_hor_box||0, proj=m.deliv_project_box||0, toped=m.deliv_toped_box||0;
+    delivRows.push([n, m.deliv_toko_box??'-', m.deliv_hor_box??'-', m.deliv_project_box??'-', m.deliv_toped_box??'-', toko+hor+proj+toped]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(delivRows), 'Detail Pengiriman');
+
+  // Detail: Rimpil (untuk pengecekan lebih lanjut)
+  const rimpilRows = [['RDC','Rimpil (box)','Rasio Rimpil %','Pengeluaran Total (box)']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{};
+    rimpilRows.push([n, m.rimpil_box??'-', m.rimpil_ratio!=null?(m.rimpil_ratio*100).toFixed(3):'-', m.pengeluaran_total??'-']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rimpilRows), 'Detail Rimpil');
+
   if(CURRENT_ROLE==='master'){
     const issueRows = [['RDC','Status','Isu','Current','Target','Gap','Business Impact','Rekomendasi Aksi']];
     calcAllIssues().forEach(iss=>{
@@ -2107,7 +2148,21 @@ function exportExcel(){
     });
     const wsIssues = XLSX.utils.aoa_to_sheet(issueRows);
     XLSX.utils.book_append_sheet(wb, wsIssues, 'Business Impact');
+
+    const actionRows = [['Issue','RDC','Rekomendasi Aksi','Owner','Deadline','Status','Dibuat Oleh','Dibuat Pada','Diupdate Oleh','Diupdate Pada']];
+    (ACTION_TRACKER||[]).forEach(a=>{
+      actionRows.push([a.issue, a.rdc_name||'-', a.recommended_action||'-', a.owner||'-', a.deadline||'-', a.status||'-', a.created_by||'-', a.created_at?new Date(a.created_at).toLocaleString('id-ID'):'-', a.updated_by||'-', a.updated_at?new Date(a.updated_at).toLocaleString('id-ID'):'-']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(actionRows), 'Action Tracker');
   }
+
+  // Data Freshness & Sumber (semua role)
+  const freshRows = [['RDC','Data As Of','Diupload Oleh','Sumber']];
+  rdcNames.forEach(n=>{
+    const m = RDC_MASTER[n]||{};
+    freshRows.push([n, m.updated_at ? new Date(m.updated_at).toLocaleString('id-ID') : '-', m.last_updated_by||'-', 'Supabase (Upload/Kelola RDC)']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(freshRows), 'Data Freshness');
 
   const fname = `SLS_Dashboard_${CURRENT_RDC_SCOPE||'Semua'}_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSX.writeFile(wb, fname);
