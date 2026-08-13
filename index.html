@@ -596,12 +596,14 @@ function renderPulse(selected){
 }
 
 const KPI_EMPTY_BASIC = [
-  {label:'OTIF', need:'data kelengkapan qty ("in full")'},
+  {label:'OTIF', need:'data kelengkapan qty ("in full") — Delivery Speed di bawah ini BUKAN OTIF, baru komponen "on-time"-nya saja'},
   {label:'Inventory Accuracy', need:'data stock opname vs sistem'},
   {label:'Dead Stock', need:'data stock per SKU + tanggal keluar terakhir'},
   {label:'Logistics Cost', need:'data biaya pengiriman (Rupiah)'},
   {label:'Cost Saving', need:'baseline Logistics Cost'},
 ];
+
+let DELIVERY_LEADTIME = {};
 
 function invDaysStatus(invdays){
   if(invdays < CONFIG.invdays_minimum) return {cls:'crit', label:'STOCKOUT RISK'};
@@ -609,6 +611,25 @@ function invDaysStatus(invdays){
   if(invdays <= CONFIG.invdays_watch) return {cls:'warn', label:'WATCH'};
   if(invdays <= CONFIG.invdays_critical) return {cls:'crit', label:'AMBER'};
   return {cls:'crit', label:'CRITICAL'};
+}
+
+function renderDeliverySpeedCard(rdcName){
+  const lt = DELIVERY_LEADTIME[rdcName];
+  if(!lt || !lt.total_so){
+    return `<div class="kpi-card empty">
+      <div class="kpi-top"><div class="kpi-label">Delivery Speed</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Perlu data lead time pengiriman (hari dari RDC ke Customer) per RDC.</div>
+    </div>`;
+  }
+  const fast = (lt.d0||0)+(lt.d1||0)+(lt.d2||0)+(lt.d3||0);
+  const pct = Math.round(fast/lt.total_so*1000)/10;
+  const cls = pct>=80 ? '' : pct>=60 ? 'warn' : 'crit';
+  return `<div class="kpi-card ${cls}">
+    <div class="kpi-top"><div class="kpi-label">Delivery Speed (≤3 Hari)</div>${statusBadgeHtml('calculated','Source: file Leadtimes (Monthly Report), Juli 2026. Formula: (SO 0+1+2+3 hari) ÷ Total SO. Definisi "≤3 hari" ditetapkan internal untuk konsistensi — BUKAN kolom ringkasan bawaan file sumber, karena kolom itu ditemukan tidak konsisten/salah rumus antar-RDC saat divalidasi.')}</div>
+    <div class="kpi-value">${pct}<span class="unit">%</span></div>
+    <div class="kpi-sowhat">${fast.toLocaleString('id-ID')} dari ${lt.total_so.toLocaleString('id-ID')} SO terkirim ≤3 hari, Juli 2026. <span class="detail-link" onclick="openDetail(event,'leadtime')">Rincian per hari →</span></div>
+  </div>`;
 }
 
 function renderKPI(rdcName){
@@ -625,6 +646,7 @@ function renderKPI(rdcName){
       <div class="kpi-sowhat">${k.sowhat(d)}</div>
     </div>`;
   }).join('');
+  html += renderDeliverySpeedCard(rdcName);
   html += KPI_EMPTY_BASIC.map(k=>`
     <div class="kpi-card empty">
       <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml('required')}</div>
@@ -1470,7 +1492,7 @@ function openDetail(evt, type){
 
   if(type==='deliv'){
     titleEl.textContent = 'Rincian Pengiriman per Channel';
-    subEl.textContent = `${displayName(rdcName)} — Juni 2026`;
+    subEl.textContent = `${displayName(rdcName)} — Juli 2026`;
     const rows = [
       ['Toko', m.deliv_toko_box], ['HOR', m.deliv_hor_box], ['Project', m.deliv_project_box], ['Toped', m.deliv_toped_box],
     ];
@@ -1478,6 +1500,24 @@ function openDetail(evt, type){
     html += '<div class="detail-section-title">Volume per Channel (Box)</div>';
     html += rows.map(([label,val])=>`<div class="detail-row"><span class="label">${label}</span><span class="value">${val==null?'-':fmtNum(val)}</span></div>`).join('');
     html += `<div class="detail-row total"><span class="label">Total</span><span class="value">${fmtNum(total)} box</span></div>`;
+  }
+
+  if(type==='leadtime'){
+    titleEl.textContent = 'Rincian Lead Time Pengiriman';
+    subEl.textContent = `${displayName(rdcName)} — Juli 2026, dari RDC ke Customer`;
+    const lt = DELIVERY_LEADTIME[rdcName];
+    if(!lt || !lt.total_so){
+      html += '<div class="detail-row"><span class="label">Data belum tersedia untuk RDC ini.</span></div>';
+    } else {
+      const buckets = [['0 Hari',lt.d0],['1 Hari',lt.d1],['2 Hari',lt.d2],['3 Hari',lt.d3],['4 Hari',lt.d4],['5 Hari',lt.d5],['>5 Hari',lt.d5plus]];
+      html += '<div class="detail-section-title">Breakdown Jumlah SO per Lead Time</div>';
+      html += buckets.map(([label,val])=>{
+        const pct = val!=null ? (val/lt.total_so*100).toFixed(1) : '-';
+        return `<div class="detail-row"><span class="label">${label}</span><span class="value">${val==null?'-':fmtNum(val)} SO (${pct}%)</span></div>`;
+      }).join('');
+      html += `<div class="detail-row total"><span class="label">Total SO</span><span class="value">${fmtNum(lt.total_so)}</span></div>`;
+      html += `<div style="font-size:10.5px;color:var(--stone);margin-top:10px;line-height:1.5;">Source: file Leadtimes (Monthly Report SAP), Juli 2026. Kolom ringkasan "0&lt;3 hari" bawaan file tidak dipakai karena ditemukan tidak konsisten antar-RDC saat validasi — angka di atas dihitung langsung dari bucket harian mentah yang sudah diverifikasi konsisten.</div>`;
+    }
   }
 
   bodyEl.innerHTML = html;
@@ -2021,6 +2061,11 @@ async function bootDashboard(){
 
   buildNationalAggregate();
   await loadActionTracker();
+  try{
+    const ltRows = await sbSelect('delivery_leadtime', '&order=period.desc');
+    DELIVERY_LEADTIME = {};
+    ltRows.forEach(r=>{ if(!DELIVERY_LEADTIME[r.rdc_name]) DELIVERY_LEADTIME[r.rdc_name] = r; });
+  }catch(e){ DELIVERY_LEADTIME = {}; }
   saveOfflineCache();
 
   render(CURRENT_RDC_SCOPE || 'Jakarta');
