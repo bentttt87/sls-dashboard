@@ -309,6 +309,9 @@
       <div class="trend-grid" id="trendGrid"></div>
       <div id="forecastCard" style="margin-top:12px;"></div>
 
+      <div class="section-label">Breakdown Breakage Lebih Detail</div>
+      <div id="breakageDetailSection"></div>
+
       <div class="level-label l4">Level 4 — Detail</div>
       <div class="section-label" style="margin-top:6px;">Klik kartu KPI di atas untuk rincian SDM, ukuran gudang, breakage per kategori, dan pengiriman per channel.</div>
 
@@ -782,6 +785,52 @@ function renderForecast(rdcName){
   </div>`;
 }
 
+async function renderBreakageDetail(rdcName){
+  const el = document.getElementById('breakageDetailSection');
+  if(!el) return;
+  el.innerHTML = `<div class="warn-box info">Memuat tren harian...</div>`;
+
+  if(rdcName==='Semua'){
+    el.innerHTML = `<div class="warn-box info">Pilih satu RDC spesifik untuk melihat tren harian breakage per kategori.</div>`;
+    return;
+  }
+
+  let rows = [];
+  try{
+    rows = await sbSelect('rdc_snapshot_log', `&rdc_name=eq.${encodeURIComponent(rdcName)}&order=snapshot_date.asc&limit=60`);
+  }catch(e){ rows = []; }
+  const withData = rows.filter(r=>r.pecah_granit_pct!=null || r.pecah_roman_pct!=null);
+
+  let trendHtml;
+  if(withData.length<2){
+    trendHtml = `<div class="trend-card"><div class="trend-label">TREN HARIAN BREAKAGE — GRANIT VS ROMAN</div>
+      <div style="font-size:12px;color:var(--stone);margin-top:8px;">Belum cukup riwayat harian untuk grafik tren (minimal 2 hari). Riwayat mulai terkumpul otomatis setiap kali RDC ini upload data — akan makin lengkap seiring waktu.</div></div>`;
+  } else {
+    const granitVals = withData.map(r=>r.pecah_granit_pct!=null?Number(r.pecah_granit_pct)*100:0);
+    const romanVals = withData.map(r=>r.pecah_roman_pct!=null?Number(r.pecah_roman_pct)*100:0);
+    const labels = withData.map(r=>r.snapshot_date.slice(5));
+    trendHtml = `<div class="trend-card">
+      <div class="trend-top"><div class="trend-label">TREN HARIAN BREAKAGE — GRANIT VS ROMAN</div>${statusBadgeHtml('real','Source: rdc_snapshot_log, tercatat otomatis dari data yang diupload RDC setiap kali ada perubahan.')}</div>
+      <div style="display:flex;gap:6px;margin:6px 0;font-size:11px;"><span style="color:#B45309;">● Granit ${granitVals[granitVals.length-1].toFixed(3)}%</span><span style="color:#DC2626;">● Roman ${romanVals[romanVals.length-1].toFixed(3)}%</span></div>
+      <div class="trend-svg-wrap">${buildSVG(granitVals, '#B45309')}</div>
+      <div class="trend-svg-wrap" style="margin-top:-10px;">${buildSVG(romanVals, '#DC2626')}</div>
+      <div class="trend-months">${labels.map(l=>`<span>${l}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = trendHtml + `
+    <div class="kpi-card empty" style="margin-top:12px;">
+      <div class="kpi-top"><div class="kpi-label">Breakdown Jenis Kerusakan</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value" style="font-size:16px;">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Perlu data kategori kerusakan per unit (mis. pecah saat handling, cacat produksi, pecah saat transport) dari tim gudang/SAP — saat ini sumber data hanya mencatat total pecah per Granit/Roman, belum per jenis kerusakan.</div>
+    </div>
+    <div class="kpi-card empty" style="margin-top:12px;">
+      <div class="kpi-top"><div class="kpi-label">Breakdown per Jenis Produk (mis. Granit Quadra)</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value" style="font-size:16px;">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Katalog produk sudah ada (27 tipe dari brosur SRKI/RCI), tapi data pecah/reject belum tercatat per SKU/tipe produk — saat ini hanya per brand (Granit/Roman). Perlu data pecah per SKU dari SAP.</div>
+    </div>`;
+}
+
 function renderTrend(rdcName){
   const grid = document.getElementById('trendGrid');
   const d = RDC[rdcName];
@@ -1177,6 +1226,7 @@ function render(rdcName){
   renderKPI(rdcName);
   renderBenchmark(rdcName);
   renderTrend(rdcName);
+  renderBreakageDetail(rdcName);
   renderDataFreshness(rdcName);
   document.getElementById('periodLine').textContent = `Ringkasan operasional ${displayName(rdcName)} — Juli 2026 (data real, live dari Supabase)`;
 }
@@ -1605,7 +1655,7 @@ const UPLOAD_FIELD_MAP = {
   'stocksaatinibox':'stock_current_box','stockratarabox':'stock_ratarata_box','stockratarabox2':'stock_ratarata_box',
   'stockratarata_box':'stock_ratarata_box','stockratarabox3':'stock_ratarata_box',
   'rimpilbox':'rimpil_box','rimpilratio':'rimpil_ratio','pecahbox':'pecah_box','pecahratio':'pecah_ratio',
-  'totalsdm':'total_sdm','pengeluarantotal':'pengeluaran_total',
+  'totalsdm':'total_sdm','pengeluarantotal':'pengeluaran_total','pengeluarantotalbulanan':'pengeluaran_total','pengeluaranharian':'pengeluaran_harian',
   'sdmsupervisor':'sdm_spv','sdmstaff':'sdm_staff','sdmadmin':'sdm_admin','sdmhelper':'sdm_helper',
   'sdmoperator':'sdm_operator','sdmdriver':'sdm_driver','sdmsecurity':'sdm_security',
   'forklift':'forklift','truksendiri':'own_truck','vendorekspedisi':'ekspedisi_vendor_count',
@@ -1617,7 +1667,7 @@ const FIELD_LABELS = {
   kapasitas_box:'Kapasitas (box)', luas_gudang_m2:'Luas Gudang (m²)', luas_efektif_m2:'Luas Efektif (m²)',
   stock_current_box:'Stock Saat Ini (box)', stock_ratarata_box:'Stock Rata-rata (box)',
   rimpil_box:'Rimpil (box)', rimpil_ratio:'Rimpil Ratio', pecah_box:'Pecah (box)', pecah_ratio:'Pecah Ratio',
-  total_sdm:'Total SDM', pengeluaran_total:'Pengeluaran Total',
+  total_sdm:'Total SDM', pengeluaran_total:'Pengeluaran Total (Bulanan)', pengeluaran_harian:'Pengeluaran Harian',
   sdm_spv:'SDM Supervisor', sdm_staff:'SDM Staff', sdm_admin:'SDM Admin', sdm_helper:'SDM Helper',
   sdm_operator:'SDM Operator', sdm_driver:'SDM Driver', sdm_security:'SDM Security',
   forklift:'Forklift', own_truck:'Truk Sendiri', ekspedisi_vendor_count:'Vendor Ekspedisi',
@@ -1631,14 +1681,14 @@ function normalizeHeader(h){ return String(h).trim().toLowerCase().replace(/[^a-
 
 function downloadTemplate(){
   const headers = ['RDC','Kapasitas_Box','Luas_Gudang_M2','Luas_Efektif_M2','Stock_Saat_Ini_Box','Stock_RataRata_Box',
-    'Rimpil_Box','Rimpil_Ratio','Pecah_Box','Pecah_Ratio','Total_SDM','Pengeluaran_Total',
+    'Rimpil_Box','Rimpil_Ratio','Pecah_Box','Pecah_Ratio','Total_SDM','Pengeluaran_Total_Bulanan','Pengeluaran_Harian',
     'SDM_Supervisor','SDM_Staff','SDM_Admin','SDM_Helper','SDM_Operator','SDM_Driver','SDM_Security',
     'Forklift','Truk_Sendiri','Vendor_Ekspedisi',
     'Pecah_Granit_Box','Pecah_Granit_Pct','StockOut_Granit_Box','Pecah_Roman_Box','Pecah_Roman_Pct','StockOut_Roman_Box',
     'Deliv_Toko_Box','Deliv_HOR_Box','Deliv_Project_Box','Deliv_Toped_Box'];
   const rdcNames = CURRENT_RDC_SCOPE ? [CURRENT_RDC_SCOPE] : Object.keys(RDC_MASTER).filter(n=>n!=='Semua');
-  const aoa = [headers];
-  rdcNames.forEach(n=>{ aoa.push([n,'','','','','','','','','','','','','','','','','','','','','','','','','','','','','','']); });
+  const aoa = [headers, ['','','','','','','','','','','','⚠ ISI BULANAN, JANGAN HARIAN','⚠ ISI HARIAN (opsional, untuk tren harian)','','','','','','','','','','','','','','','','','','','']];
+  rdcNames.forEach(n=>{ aoa.push([n,'','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','']); });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
