@@ -791,8 +791,31 @@ async function renderBreakageDetail(rdcName){
   el.innerHTML = `<div class="warn-box info">Memuat tren harian...</div>`;
 
   if(rdcName==='Semua'){
-    el.innerHTML = `<div class="warn-box info">Pilih satu RDC spesifik untuk melihat tren harian breakage per kategori.</div>`;
+    el.innerHTML = `<div class="warn-box info">Pilih satu RDC spesifik untuk melihat breakdown per kategori.</div>`;
     return;
+  }
+
+  // Delivery by Brand — REAL, dihitung dari stockout_granit_box/stockout_roman_box yang sudah ada di database
+  const m = RDC_MASTER[rdcName]||{};
+  const gBox = Number(m.stockout_granit_box)||0, rBox = Number(m.stockout_roman_box)||0;
+  const totalBox = gBox+rBox;
+  const gPct = totalBox ? (gBox/totalBox*100) : null;
+  const rPct = totalBox ? (rBox/totalBox*100) : null;
+  let deliveryBrandHtml = '';
+  if(totalBox>0){
+    deliveryBrandHtml = `<div class="trend-card" style="margin-bottom:12px;">
+      <div class="trend-top"><div class="trend-label">PERSENTASE PENGIRIMAN PER BRAND</div>${statusBadgeHtml('calculated','Dihitung dari Stock Out Granit ÷ (Stock Out Granit + Roman). Source: DATA_STOCK_OUT_PECAH, sama seperti perhitungan Breakage Rate.')}</div>
+      <div style="display:flex;gap:24px;margin-top:10px;">
+        <div><div style="font-size:10px;color:var(--stone);text-transform:uppercase;">Granit</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#B45309;">${gPct.toFixed(1)}%</div><div style="font-size:10.5px;color:var(--stone);">${gBox.toLocaleString('id-ID')} box</div></div>
+        <div><div style="font-size:10px;color:var(--stone);text-transform:uppercase;">Roman</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#DC2626;">${rPct.toFixed(1)}%</div><div style="font-size:10.5px;color:var(--stone);">${rBox.toLocaleString('id-ID')} box</div></div>
+      </div>
+      <div style="margin-top:8px;height:10px;border-radius:5px;overflow:hidden;display:flex;">
+        <div style="width:${gPct}%;background:#B45309;"></div>
+        <div style="width:${rPct}%;background:#DC2626;"></div>
+      </div>
+    </div>`;
+  } else {
+    deliveryBrandHtml = `<div class="kpi-card empty" style="margin-bottom:12px;"><div class="kpi-top"><div class="kpi-label">Persentase Pengiriman per Brand</div>${statusBadgeHtml('required')}</div><div class="kpi-value" style="font-size:16px;">Data Belum Tersedia</div><div class="kpi-sowhat">Perlu data Stock Out Granit dan Roman untuk RDC ini.</div></div>`;
   }
 
   let rows = [];
@@ -818,17 +841,51 @@ async function renderBreakageDetail(rdcName){
     </div>`;
   }
 
-  el.innerHTML = trendHtml + `
+  // Breakdown Jenis Kerusakan — input form fungsional (Master atau RDC untuk RDC-nya sendiri) + daftar entri yang sudah ada
+  let damageRows = [];
+  try{ damageRows = await sbSelect('breakage_damage_type', `&rdc_name=eq.${encodeURIComponent(rdcName)}&order=period.desc&limit=20`); }catch(e){ damageRows = []; }
+  const canInput = CURRENT_ROLE==='master' || CURRENT_RDC_SCOPE===rdcName;
+  const damageListHtml = damageRows.length ? `
+    <table class="admin-table" style="margin-top:10px;"><thead><tr><th>Periode</th><th>Jenis Kerusakan</th><th>Qty (box)</th></tr></thead><tbody>
+      ${damageRows.map(r=>`<tr><td>${r.period}</td><td>${r.damage_type}</td><td>${r.qty_box}</td></tr>`).join('')}
+    </tbody></table>` : `<div style="font-size:11.5px;color:var(--stone);margin-top:8px;">Belum ada data jenis kerusakan tercatat untuk ${rdcName}.</div>`;
+  const damageFormHtml = canInput ? `
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div><label style="font-size:10px;color:var(--stone);text-transform:uppercase;">Tanggal</label><br><input type="date" id="damageDate" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;"></div>
+      <div><label style="font-size:10px;color:var(--stone);text-transform:uppercase;">Jenis Kerusakan</label><br><input type="text" id="damageType" placeholder="mis. Pecah saat handling" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:180px;"></div>
+      <div><label style="font-size:10px;color:var(--stone);text-transform:uppercase;">Qty (box)</label><br><input type="number" id="damageQty" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:80px;"></div>
+      <button class="btn-small btn-save" id="saveDamageBtn">+ Catat</button>
+    </div>
+    <div class="admin-msg" id="damageMsg"></div>` : '';
+
+  el.innerHTML = deliveryBrandHtml + trendHtml + `
     <div class="kpi-card empty" style="margin-top:12px;">
-      <div class="kpi-top"><div class="kpi-label">Breakdown Jenis Kerusakan</div>${statusBadgeHtml('required')}</div>
-      <div class="kpi-value" style="font-size:16px;">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Perlu data kategori kerusakan per unit (mis. pecah saat handling, cacat produksi, pecah saat transport) dari tim gudang/SAP — saat ini sumber data hanya mencatat total pecah per Granit/Roman, belum per jenis kerusakan.</div>
+      <div class="kpi-top"><div class="kpi-label">Breakdown Jenis Kerusakan</div>${statusBadgeHtml(damageRows.length?'real':'required')}</div>
+      <div class="kpi-value" style="font-size:16px;">${damageRows.length?`${damageRows.length} entri tercatat`:'Data Belum Tersedia'}</div>
+      <div class="kpi-sowhat">Belum ada sumber otomatis dari SAP untuk ini — tapi ${canInput?'Anda bisa mulai mencatat manual di bawah ini':'RDC/Master bisa mulai mencatat manual'} setiap kali ada kejadian, supaya datanya terkumpul dari sekarang.</div>
+      ${damageListHtml}
+      ${damageFormHtml}
     </div>
     <div class="kpi-card empty" style="margin-top:12px;">
-      <div class="kpi-top"><div class="kpi-label">Breakdown per Jenis Produk (mis. Granit Quadra)</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-top"><div class="kpi-label">Breakdown per SKU/Tipe Produk</div>${statusBadgeHtml('required')}</div>
       <div class="kpi-value" style="font-size:16px;">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Katalog produk sudah ada (27 tipe dari brosur SRKI/RCI), tapi data pecah/reject belum tercatat per SKU/tipe produk — saat ini hanya per brand (Granit/Roman). Perlu data pecah per SKU dari SAP.</div>
+      <div class="kpi-sowhat">Katalog produk sudah ada (27 tipe dari brosur SRKI/RCI), tapi data pecah/reject belum tercatat per SKU/tipe produk — saat ini hanya per brand (Granit/Roman, lihat kartu di atas). Perlu data pecah per SKU dari SAP.</div>
     </div>`;
+
+  if(canInput){
+    document.getElementById('saveDamageBtn').addEventListener('click', async ()=>{
+      const date = document.getElementById('damageDate').value;
+      const type = document.getElementById('damageType').value.trim();
+      const qty = parseFloat(document.getElementById('damageQty').value);
+      const msg = document.getElementById('damageMsg');
+      if(!date || !type || isNaN(qty)){ msg.textContent = 'Isi tanggal, jenis kerusakan, dan qty terlebih dahulu.'; msg.className='admin-msg err'; return; }
+      try{
+        await sbRpc('upsert_breakage_damage_type', {input_password:CURRENT_PASSWORD, p_rdc_name:rdcName, p_period:date, p_product_type:null, p_damage_type:type, p_qty_box:qty});
+        msg.textContent = '✓ Tercatat.'; msg.className='admin-msg ok';
+        renderBreakageDetail(rdcName);
+      }catch(e){ msg.textContent = `Gagal: ${e.message}`; msg.className='admin-msg err'; }
+    });
+  }
 }
 
 function renderTrend(rdcName){
