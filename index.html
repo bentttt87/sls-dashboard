@@ -153,10 +153,13 @@
   .locked-note{background:var(--panel);border:1px dashed var(--stone);border-radius:12px;padding:24px;text-align:center;color:var(--stone);font-size:13px;}
 
   .export-btn{margin-top:8px;background:rgba(255,255,255,0.08);color:#fff;border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;width:100%;display:flex;align-items:center;gap:7px;}
+  .mlabel{font-size:10px;font-weight:700;color:var(--stone);text-transform:uppercase;}
+  .minput{padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;}
+  .manual-tab{transition:all .15s;}
   .export-btn:hover{background:rgba(255,255,255,0.14);}
   .offline-banner{background:#7A5300;color:#fff;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
   @media print{
-    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, #semuaCheckWrap, #rangePickerBox, #rangePickerLabel { display:none !important; }
+    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #semuaCheckWrap, #rangePickerBox, #rangePickerLabel { display:none !important; }
     .app{display:block !important;}
     .main{padding:10px !important;}
     body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -239,6 +242,7 @@
     <div class="nav-item" data-page="about"><span class="nav-dot"></span>About Dashboard</div>
     <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-dot"></span>Kelola RDC (Master)</div>
     <div class="nav-item" data-page="upload" id="navUpload"><span class="nav-dot"></span>Upload Data</div>
+    <div class="nav-item" data-page="manual" id="navManual"><span class="nav-dot"></span>Input Manual</div>
     <div class="sidebar-foot">
       5 RDC · Jkt / Smg / Sby / Dps / Plm<br>
       Snapshot: Juni 2026<br>
@@ -467,6 +471,24 @@
         <div class="section-label" style="margin-top:30px;">Riwayat Upload</div>
         <div id="uploadHistory" style="font-size:12px;color:var(--stone);">Memuat...</div>
       </div>
+    </div>
+
+    <div id="page-manual" class="page">
+      <div class="topbar"><div><h1>Input Manual</h1><div class="period">Rekap data yang tidak bisa ditarik otomatis dari SAP — Breakage/Kerusakan, Drop Point, dan data operasional lainnya. RDC hanya bisa input data RDC-nya sendiri.</div></div></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);">
+        <div class="manual-tab active" data-mtab="breakage" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--navy);border-bottom:2px solid var(--navy);">Breakage / Kerusakan</div>
+        <div class="manual-tab" data-mtab="drop_point" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Drop Point</div>
+        <div class="manual-tab" data-mtab="operasional_harian" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Operasional Harian</div>
+        <div class="manual-tab" data-mtab="lainnya" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Lainnya</div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;">
+        <button class="export-btn" style="width:auto;background:var(--navy);" id="manualPrintBtn">📄 Print / PDF Rekap Ini</button>
+        <button class="export-btn" style="width:auto;background:var(--navy);" id="manualExcelBtn">📊 Download Excel Rekap Ini</button>
+      </div>
+
+      <div id="manualPanelContent"></div>
     </div>
   </div>
 </div>
@@ -1300,6 +1322,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     document.getElementById('page-'+el.dataset.page).classList.add('active');
     if(el.dataset.page==='kelola') loadKelola();
     if(el.dataset.page==='upload') loadUploadPage();
+    if(el.dataset.page==='manual') loadManualPage();
   });
 });
 
@@ -2128,6 +2151,7 @@ function applyRoleUI(){
   }
   document.getElementById('navKelola').style.display = (CURRENT_ROLE==='master' && !IS_OFFLINE_MODE) ? 'flex' : 'none';
   document.getElementById('navUpload').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
+  document.getElementById('navManual').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
   document.getElementById('semuaCheckWrap').style.display = CURRENT_ROLE==='master' ? 'flex' : 'none';
   document.getElementById('managementFinancialSection').style.display = CURRENT_ROLE==='master' ? 'block' : 'none';
   document.getElementById('mainTitle').textContent = CURRENT_ROLE==='master' ? 'SLS Supply Chain Profitability Control Tower' : 'SLS Warehouse Operational Dashboard';
@@ -2375,6 +2399,145 @@ async function exportExcel(){
   }
 }
 document.getElementById('downloadExcelBtn').addEventListener('click', exportExcel);
+
+let MANUAL_TAB = 'breakage';
+let MANUAL_RDC_FILTER = null;
+const MANUAL_CATEGORY_META = {
+  drop_point: {label:'Drop Point', unitDefault:'titik', descPlaceholder:'Deskripsi rute/customer (opsional)', subLabel:'Jenis Truck', subPlaceholder:'Engkel / Double', qtyLabel:'Rata-rata Titik'},
+  operasional_harian: {label:'Operasional Harian', unitDefault:'', descPlaceholder:'mis. Jam kerja lembur, insiden, dll', subLabel:'Kategori', subPlaceholder:'mis. Lembur / Insiden / Absensi', qtyLabel:'Nilai (opsional)'},
+  lainnya: {label:'Lainnya', unitDefault:'', descPlaceholder:'Uraikan data yang dicatat', subLabel:'Label', subPlaceholder:'mis. nama data', qtyLabel:'Nilai (opsional)'},
+};
+
+async function loadManualPage(){
+  MANUAL_RDC_FILTER = CURRENT_RDC_SCOPE || MANUAL_RDC_FILTER || Object.keys(RDC).filter(n=>n!=='Semua')[0];
+  document.querySelectorAll('.manual-tab').forEach(t=>{
+    t.onclick = ()=>{
+      document.querySelectorAll('.manual-tab').forEach(x=>{x.classList.remove('active'); x.style.color='var(--stone)'; x.style.borderBottomColor='transparent';});
+      t.classList.add('active'); t.style.color='var(--navy)'; t.style.borderBottomColor='var(--navy)';
+      MANUAL_TAB = t.dataset.mtab;
+      renderManualPanel();
+    };
+  });
+  renderManualPanel();
+}
+
+function manualRdcSelectorHtml(){
+  const rdcNames = Object.keys(RDC).filter(n=>n!=='Semua');
+  return !CURRENT_RDC_SCOPE ? `
+    <div style="margin-bottom:14px;">
+      <label class="mlabel">RDC</label><br>
+      <select id="manualRdcSelect" class="minput">
+        ${rdcNames.map(n=>`<option value="${n}" ${n===MANUAL_RDC_FILTER?'selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>` : `<div style="margin-bottom:10px;font-size:12px;color:var(--stone);">RDC: <b>${CURRENT_RDC_SCOPE}</b></div>`;
+}
+
+async function renderManualPanel(){
+  const el = document.getElementById('manualPanelContent');
+  el.innerHTML = '<div style="padding:20px;color:var(--stone);">Memuat...</div>';
+  if(MANUAL_TAB === 'breakage') await renderManualBreakageTab(el);
+  else await renderManualGenericTab(el, MANUAL_TAB);
+  if(!CURRENT_RDC_SCOPE){
+    const sel = document.getElementById('manualRdcSelect');
+    if(sel) sel.addEventListener('change', e=>{ MANUAL_RDC_FILTER = e.target.value; renderManualPanel(); });
+  }
+}
+
+async function renderManualBreakageTab(el){
+  let rows = [];
+  try{ rows = await sbSelect('breakage_damage_type', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&order=period.desc&limit=100`); }catch(e){}
+  const canInput = CURRENT_ROLE==='master' || CURRENT_RDC_SCOPE===MANUAL_RDC_FILTER;
+  el.innerHTML = manualRdcSelectorHtml() + `
+    <div class="about-box" id="manualFormBox">
+      ${canInput ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="mlabel">Tanggal</label><br><input type="date" id="mBreakDate" class="minput"></div>
+        <div><label class="mlabel">Jenis Kerusakan</label><br><input type="text" id="mBreakType" class="minput" placeholder="mis. Pecah saat handling" style="width:220px;"></div>
+        <div><label class="mlabel">Qty (box)</label><br><input type="number" id="mBreakQty" class="minput" style="width:90px;"></div>
+        <button class="btn-small btn-save" id="mBreakSaveBtn">+ Catat</button>
+      </div>
+      <div class="admin-msg" id="mBreakMsg"></div>` : `<div style="font-size:12px;color:var(--stone);">Anda tidak punya akses input untuk RDC ini.</div>`}
+    </div>
+    <table class="admin-table" id="manualTable" style="margin-top:14px;">
+      <thead><tr><th>Tanggal</th><th>Jenis Kerusakan</th><th>Qty (box)</th><th>Dicatat Oleh</th></tr></thead>
+      <tbody>${rows.length?rows.map(r=>`<tr><td>${r.period}</td><td>${r.damage_type}</td><td>${r.qty_box}</td><td>${r.updated_by||r.created_by||'-'}</td></tr>`).join(''):'<tr><td colspan="4" style="color:var(--stone);">Belum ada data.</td></tr>'}</tbody>
+    </table>`;
+  if(canInput){
+    document.getElementById('mBreakSaveBtn').addEventListener('click', async ()=>{
+      const date = document.getElementById('mBreakDate').value;
+      const type = document.getElementById('mBreakType').value.trim();
+      const qty = parseFloat(document.getElementById('mBreakQty').value);
+      const msg = document.getElementById('mBreakMsg');
+      if(!date||!type||isNaN(qty)){ msg.textContent='Isi semua kolom.'; msg.className='admin-msg err'; return; }
+      try{
+        await sbRpc('upsert_breakage_damage_type', {input_password:CURRENT_PASSWORD, p_rdc_name:MANUAL_RDC_FILTER, p_period:date, p_product_type:null, p_damage_type:type, p_qty_box:qty});
+        msg.textContent='✓ Tercatat.'; msg.className='admin-msg ok';
+        renderManualPanel();
+      }catch(e){ msg.textContent=`Gagal: ${e.message}`; msg.className='admin-msg err'; }
+    });
+  }
+}
+
+async function renderManualGenericTab(el, category){
+  const meta = MANUAL_CATEGORY_META[category];
+  let rows = [];
+  try{ rows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&category=eq.${category}&order=entry_date.desc&limit=100`); }catch(e){}
+  const canInput = CURRENT_ROLE==='master' || CURRENT_RDC_SCOPE===MANUAL_RDC_FILTER;
+  el.innerHTML = manualRdcSelectorHtml() + `
+    <div class="about-box">
+      ${canInput ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="mlabel">Tanggal</label><br><input type="date" id="mDate" class="minput"></div>
+        <div><label class="mlabel">${meta.subLabel}</label><br><input type="text" id="mSubType" class="minput" placeholder="${meta.subPlaceholder}" style="width:160px;"></div>
+        <div><label class="mlabel">Deskripsi</label><br><input type="text" id="mDesc" class="minput" placeholder="${meta.descPlaceholder}" style="width:220px;"></div>
+        <div><label class="mlabel">${meta.qtyLabel}</label><br><input type="number" step="0.01" id="mQty" class="minput" style="width:100px;"></div>
+        <div><label class="mlabel">Satuan</label><br><input type="text" id="mUnit" class="minput" value="${meta.unitDefault}" style="width:80px;"></div>
+        <button class="btn-small btn-save" id="mSaveBtn">+ Catat</button>
+      </div>
+      <div class="admin-msg" id="mMsg"></div>` : `<div style="font-size:12px;color:var(--stone);">Anda tidak punya akses input untuk RDC ini.</div>`}
+    </div>
+    <table class="admin-table" id="manualTable" style="margin-top:14px;">
+      <thead><tr><th>Tanggal</th><th>${meta.subLabel}</th><th>Deskripsi</th><th>Nilai</th><th>Dicatat Oleh</th></tr></thead>
+      <tbody>${rows.length?rows.map(r=>`<tr><td>${r.entry_date}</td><td>${r.sub_type||'-'}</td><td>${r.description||'-'}</td><td>${r.qty!=null?fmtNum(r.qty)+' '+(r.unit||''):'-'}</td><td>${r.updated_by||r.created_by||'-'}</td></tr>`).join(''):'<tr><td colspan="5" style="color:var(--stone);">Belum ada data.</td></tr>'}</tbody>
+    </table>`;
+  if(canInput){
+    document.getElementById('mSaveBtn').addEventListener('click', async ()=>{
+      const date = document.getElementById('mDate').value;
+      const sub = document.getElementById('mSubType').value.trim();
+      const desc = document.getElementById('mDesc').value.trim();
+      const qty = document.getElementById('mQty').value;
+      const unit = document.getElementById('mUnit').value.trim();
+      const msg = document.getElementById('mMsg');
+      if(!date){ msg.textContent='Tanggal wajib diisi.'; msg.className='admin-msg err'; return; }
+      try{
+        await sbRpc('upsert_manual_recap', {input_password:CURRENT_PASSWORD, p_id:null, p_rdc_name:MANUAL_RDC_FILTER, p_entry_date:date, p_category:category, p_sub_type:sub||null, p_description:desc||null, p_qty: qty?parseFloat(qty):null, p_unit: unit||null, p_notes:null});
+        msg.textContent='✓ Tercatat.'; msg.className='admin-msg ok';
+        renderManualPanel();
+      }catch(e){ msg.textContent=`Gagal: ${e.message}`; msg.className='admin-msg err'; }
+    });
+  }
+}
+
+function exportManualPDF(){ window.print(); }
+document.getElementById('manualPrintBtn').addEventListener('click', exportManualPDF);
+
+async function exportManualExcel(){
+  const wb = XLSX.utils.book_new();
+  if(MANUAL_TAB==='breakage'){
+    const rows = await sbSelect('breakage_damage_type', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&order=period.desc`);
+    const aoa = [['Tanggal','Jenis Kerusakan','Qty (box)','Dicatat Oleh']];
+    rows.forEach(r=>aoa.push([r.period, r.damage_type, r.qty_box, r.updated_by||r.created_by||'-']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Breakage');
+  } else {
+    const meta = MANUAL_CATEGORY_META[MANUAL_TAB];
+    const rows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&category=eq.${MANUAL_TAB}&order=entry_date.desc`);
+    const aoa = [['Tanggal', meta.subLabel, 'Deskripsi', 'Nilai', 'Satuan', 'Dicatat Oleh']];
+    rows.forEach(r=>aoa.push([r.entry_date, r.sub_type||'-', r.description||'-', r.qty??'-', r.unit||'-', r.updated_by||r.created_by||'-']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), meta.label);
+  }
+  XLSX.writeFile(wb, `SLS_InputManual_${MANUAL_RDC_FILTER}_${MANUAL_TAB}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+document.getElementById('manualExcelBtn').addEventListener('click', exportManualExcel);
 </script>
 </body>
 </html>
