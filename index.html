@@ -488,8 +488,12 @@
     <div id="page-manual" class="page">
       <div class="topbar"><div><h1>Input Manual</h1><div class="period">Rekap data yang tidak bisa ditarik otomatis dari SAP — Breakage/Kerusakan, Drop Point, dan data operasional lainnya. RDC hanya bisa input data RDC-nya sendiri.</div></div></div>
 
-      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
         <div class="manual-tab active" data-mtab="breakage" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--navy);border-bottom:2px solid var(--navy);">Breakage / Kerusakan</div>
+        <div class="manual-tab" data-mtab="pecah_kirim" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Pecah Kirim</div>
+        <div class="manual-tab" data-mtab="pecah_pallet" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Pecah Pallet</div>
+        <div class="manual-tab" data-mtab="do_tidak_terkirim" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">DO Tidak Terkirim</div>
+        <div class="manual-tab" data-mtab="serah_terima_spb" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Serah Terima SPB</div>
         <div class="manual-tab" data-mtab="drop_point" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Drop Point</div>
         <div class="manual-tab" data-mtab="operasional_harian" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Operasional Harian</div>
         <div class="manual-tab" data-mtab="lainnya" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Lainnya</div>
@@ -976,6 +980,49 @@ function nationalAvgOf(metric){
   const names = Object.keys(RDC).filter(n=>n!=='Semua');
   return names.reduce((s,n)=>s+RDC[n][metric],0)/names.length;
 }
+async function renderMonthlySumCard(rdcName, category, label, unit, sowhatText){
+  const monthPrefix = new Date().toISOString().slice(0,7);
+  let rows = [];
+  try{ rows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(rdcName)}&category=eq.${category}&entry_date=gte.${monthPrefix}-01&order=entry_date.desc&limit=200`); }catch(e){}
+  if(!rows.length){
+    return `<div class="kpi-card empty">
+      <div class="kpi-top"><div class="kpi-label">${label}</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+    </div>`;
+  }
+  const total = rows.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
+  return `<div class="kpi-card">
+    <div class="kpi-top"><div class="kpi-label">${label}</div>${statusBadgeHtml('real','Source: Input Manual (dicatat cabang per kejadian). Formula: jumlah seluruh catatan bulan berjalan.')}</div>
+    <div class="kpi-value">${fmtNum(total)}<span class="unit"> ${unit}</span></div>
+    <div class="kpi-sowhat">${sowhatText} · ${rows.length} catatan bulan ini. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Lihat/Input →</span></div>
+  </div>`;
+}
+
+async function renderSpbCard(rdcName){
+  const monthPrefix = new Date().toISOString().slice(0,7);
+  let rows = [];
+  try{ rows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(rdcName)}&category=eq.serah_terima_spb&entry_date=gte.${monthPrefix}-01&order=entry_date.desc&limit=200`); }catch(e){}
+  if(!rows.length){
+    return `<div class="kpi-card empty">
+      <div class="kpi-top"><div class="kpi-label">Serah Terima SPB</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+    </div>`;
+  }
+  const byStatus = {};
+  rows.forEach(r=>{ byStatus[r.sub_type] = (byStatus[r.sub_type]||0) + (parseFloat(r.qty)||1); });
+  const total = Object.values(byStatus).reduce((a,b)=>a+b,0);
+  const sudah = byStatus['Sudah Diserahkan (Lengkap)']||0;
+  const pct = total>0 ? Math.round(sudah/total*100) : 0;
+  const lines = Object.keys(byStatus).map(k=>`${k}: <b>${fmtNum(byStatus[k])}</b>`).join('<br>');
+  return `<div class="kpi-card ${pct<90?'warn':''}">
+    <div class="kpi-top"><div class="kpi-label">Serah Terima SPB</div>${statusBadgeHtml('real','Source: Input Manual. Formula: % Sudah Diserahkan dari total SPB tercatat bulan berjalan.')}</div>
+    <div class="kpi-value">${pct}<span class="unit">% Lengkap</span></div>
+    <div class="kpi-sowhat" style="line-height:1.6;">${lines}<br><span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Lihat/Input →</span></div>
+  </div>`;
+}
+
 async function renderExtraKpi(rdcName){
   const el = document.getElementById('extraKpiGrid');
   if(!el || rdcName==='Semua'){ if(el) el.innerHTML=''; return; }
@@ -1003,7 +1050,13 @@ async function renderExtraKpi(rdcName){
       <div class="kpi-sowhat">Belum ada data untuk ${rdcName}. Input lewat menu Input Manual → tab Drop Point. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
     </div>`;
   }
-  el.innerHTML = dpCard;
+  const [pecahKirimCard, pecahPalletCard, doCard, spbCard] = await Promise.all([
+    renderMonthlySumCard(rdcName, 'pecah_kirim', 'Pecah Kirim', 'box', 'Breakage yang ditemukan saat/setelah pengiriman (beda dari Breakage Rate gudang).'),
+    renderMonthlySumCard(rdcName, 'pecah_pallet', 'Pecah Pallet', 'pallet', 'Breakage terkait penanganan pallet.'),
+    renderMonthlySumCard(rdcName, 'do_tidak_terkirim', 'DO Tidak Terkirim', 'DO', 'Delivery Order yang gagal terkirim ke customer bulan ini.'),
+    renderSpbCard(rdcName),
+  ]);
+  el.innerHTML = dpCard + pecahKirimCard + pecahPalletCard + doCard + spbCard;
 }
 
 function renderBenchmark(rdcName){
@@ -2677,9 +2730,23 @@ const OPERASIONAL_HARIAN_OPTIONS = [
   'Pelatihan',
   'Lainnya (isi keterangan)',
 ];
+const DO_ALASAN_OPTIONS = [
+  'Customer Tutup/Tidak Ada di Tempat',
+  'Alamat Tidak Ditemukan/Salah',
+  'Barang Rusak Saat Cek',
+  'Kendaraan Bermasalah',
+  'Customer Menolak Terima',
+  'Cuaca/Force Majeure',
+  'Lainnya (isi keterangan)',
+];
+const SPB_STATUS_OPTIONS = ['Sudah Diserahkan (Lengkap)', 'Belum Diserahkan (Pending)', 'Hilang/Bermasalah'];
 const MANUAL_CATEGORY_META = {
   drop_point: {label:'Drop Point', unitDefault:'titik', descPlaceholder:'Deskripsi rute/customer (opsional)', subLabel:'Jenis Truck', subPlaceholder:'Engkel / Double', qtyLabel:'Rata-rata Titik', options:['Engkel','Double']},
   operasional_harian: {label:'Operasional Harian', unitDefault:'', descPlaceholder:'mis. Jam kerja lembur, insiden, dll', subLabel:'Kategori', subPlaceholder:'mis. Lembur / Insiden / Absensi', qtyLabel:'Nilai (opsional)', options:OPERASIONAL_HARIAN_OPTIONS},
+  pecah_kirim: {label:'Pecah Kirim', unitDefault:'box', descPlaceholder:'Rute/customer/no. DO (opsional)', subLabel:'Brand', subPlaceholder:'Granit / Roman', qtyLabel:'Qty Pecah (box)', options:['Granit','Roman','Campuran']},
+  pecah_pallet: {label:'Pecah Pallet', unitDefault:'pallet', descPlaceholder:'Rute/customer (opsional)', subLabel:'Brand', subPlaceholder:'Granit / Roman', qtyLabel:'Qty Pecah (pallet)', options:['Granit','Roman','Campuran']},
+  do_tidak_terkirim: {label:'DO Tidak Terkirim', unitDefault:'DO', descPlaceholder:'No. DO / Customer (opsional)', subLabel:'Alasan', subPlaceholder:'Pilih alasan', qtyLabel:'Jumlah DO', options:DO_ALASAN_OPTIONS},
+  serah_terima_spb: {label:'Serah Terima SPB', unitDefault:'SPB', descPlaceholder:'No. SPB / Customer (opsional)', subLabel:'Status', subPlaceholder:'Pilih status', qtyLabel:'Jumlah SPB', options:SPB_STATUS_OPTIONS},
   lainnya: {label:'Lainnya', unitDefault:'', descPlaceholder:'Uraikan data yang dicatat', subLabel:'Label', subPlaceholder:'mis. nama data', qtyLabel:'Nilai (opsional)'},
 };
 
