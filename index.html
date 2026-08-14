@@ -469,7 +469,7 @@
         </div>
 
         <div id="tabpanel-raw" style="display:none;">
-          <div class="warn-box info">ℹ️ Mode ini membaca langsung file laporan bulanan yang biasa Anda kirim — <b>General Profil</b> (sheet "Summary") dan/atau <b>Stock Rata-Rata</b> (sheet "Stock rata-rata RDC WH"). Bisa upload salah satu atau keduanya sekaligus. 3 file lain (Monthly Report, Delivery Breakdown, Avg Drop Point) belum didukung mode ini.</div>
+          <div class="warn-box info">ℹ️ Mode ini membaca langsung file laporan bulanan yang biasa Anda kirim — <b>General Profil</b>, <b>Stock Rata-Rata</b>, <b>Monthly Report</b> (Deliver Out + Stock Out vs Pecah), <b>Delivery Breakdown</b>, dan <b>Avg Drop Point</b>. Bisa upload satu atau beberapa file sekaligus — sistem otomatis mengenali dan menggabungkan.</div>
           <div class="dropzone" id="dropzoneRaw">
             <div class="icon">📊</div>
             <div class="title">Drag &amp; drop file laporan mentah di sini</div>
@@ -2001,7 +2001,7 @@ async function applyUpload(){
     }
   }
   try{
-    await sbRpc('log_upload', {input_password:CURRENT_PASSWORD, p_filename:filename, p_rows_applied:applied, p_warnings: warnings, p_summary: rows.map(r=>({rdc:r.rdcName, fields:Object.keys(r.fields)}))});
+    await sbRpc('log_upload', {input_password:CURRENT_PASSWORD, p_filename:filename, p_rows_applied:applied, p_warnings: warnings, p_summary: rows.map(r=>({rdc:r.rdcName, fields:Object.keys(r.fields)})), p_upload_data: rows.map(r=>({rdc:r.rdcName, fields:r.fields}))});
   }catch(e){}
 
   let resultHtml = `<div class="warn-box info">✅ Berhasil menyimpan ${applied} dari ${rows.length} RDC. Silakan buka kembali Dashboard Utama untuk melihat perubahan.</div>`;
@@ -2048,12 +2048,45 @@ async function checkTodayUploadStatus(){
 async function loadUploadHistory(){
   const el = document.getElementById('uploadHistory');
   try{
-    const rows = await sbSelect('upload_log', '&order=uploaded_at.desc&limit=10');
+    let rows = await sbSelect('upload_log', '&order=uploaded_at.desc&limit=20');
+    if(CURRENT_RDC_SCOPE){
+      // privacy: RDC-scoped accounts only see uploads that involved their own RDC, and only their own RDC's fields within upload_data
+      rows = rows
+        .map(r=>{
+          const filtered = (r.upload_data||[]).filter(x=>x.rdc===CURRENT_RDC_SCOPE);
+          if(!filtered.length) return null;
+          return {...r, upload_data: filtered, rows_applied: filtered.length};
+        })
+        .filter(r=>r!==null);
+    }
     if(!rows.length){ el.textContent = 'Belum ada riwayat upload.'; return; }
-    el.innerHTML = rows.map(r=>`<div class="upload-log-item"><b>${r.filename||'(tanpa nama)'}</b> — ${r.rows_applied} RDC diupdate — ${new Date(r.uploaded_at).toLocaleString('id-ID')}</div>`).join('');
+    UPLOAD_HISTORY_CACHE = rows;
+    el.innerHTML = rows.map((r,i)=>`<div class="upload-log-item" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span><b>${r.filename||'(tanpa nama)'}</b> — ${r.rows_applied} RDC diupdate — ${new Date(r.uploaded_at).toLocaleString('id-ID')} ${r.uploaded_by?'oleh '+r.uploaded_by:''}</span>
+      ${r.upload_data ? `<button class="btn-small" style="background:var(--navy);color:#fff;flex-shrink:0;" onclick="downloadUploadSnapshot(${i})">📊 Download Excel</button>` : '<span style="font-size:10px;color:var(--stone);flex-shrink:0;">(detail tidak tersimpan — upload sebelum fitur ini aktif)</span>'}
+    </div>`).join('');
   }catch(e){
     el.textContent = 'Gagal memuat riwayat.';
   }
+}
+
+let UPLOAD_HISTORY_CACHE = [];
+function downloadUploadSnapshot(idx){
+  const entry = UPLOAD_HISTORY_CACHE[idx];
+  if(!entry || !entry.upload_data) return;
+  const wb = XLSX.utils.book_new();
+  const allFieldKeys = new Set();
+  entry.upload_data.forEach(row => Object.keys(row.fields||{}).forEach(k=>allFieldKeys.add(k)));
+  const fieldList = Array.from(allFieldKeys);
+  const header = ['RDC', ...fieldList.map(f=>FIELD_LABELS[f]||f)];
+  const aoa = [header];
+  entry.upload_data.forEach(row=>{
+    aoa.push([row.rdc, ...fieldList.map(f=> row.fields && row.fields[f]!=null ? row.fields[f] : '-')]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Data Upload');
+  const infoAoa = [['Nama File', entry.filename||'-'], ['Tanggal Upload', new Date(entry.uploaded_at).toLocaleString('id-ID')], ['Diupload Oleh', entry.uploaded_by||'-'], ['Jumlah RDC Diupdate', entry.rows_applied]];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(infoAoa), 'Info Upload');
+  XLSX.writeFile(wb, `SLS_UploadSnapshot_${(entry.filename||'upload').replace(/[^a-zA-Z0-9]/g,'_')}_${new Date(entry.uploaded_at).toISOString().slice(0,10)}.xlsx`);
 }
 
 document.querySelectorAll('.upload-tab').forEach(tab=>{
@@ -2106,6 +2139,128 @@ function buildRowsFromParsedFields(parsedByRdc, sourceLabel){
     parsedRows.push({ rowNum, rdcName, fields, isNew: !knownRdc.includes(rdcName), bigChanges });
   });
   renderUploadPreview(parsedRows, errors, warnings, sourceLabel);
+}
+
+function parseDeliverOut(wb){
+  const sheetName = wb.SheetNames.find(n=>{ const l=n.toLowerCase(); return l.includes('deliver') && l.includes('out') && !l.includes('breakdown'); });
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const headerRow = grid[1]||[];
+  const refRow = grid[18]||[]; // Jakarta Toko Granit — a raw number cell (not a formula), reliable reference for "which column has real data"
+  let lastCol = -1;
+  for(let c=0;c<headerRow.length;c++){ if(headerRow[c] instanceof Date && refRow[c]!=null) lastCol = c; }
+  if(lastCol<0) return null;
+  const RDC_MAP = {SBY:'Surabaya', SMG:'Semarang', DPS:'Denpasar', PALEMBANG:'Palembang', JKT:'Jakarta'};
+  const result = {};
+  for(let r=0;r<grid.length;r++){
+    const cell = grid[r] && grid[r][1];
+    if(typeof cell === 'string' && cell.toUpperCase().includes('DELIVER OUT RDC') && !cell.toUpperCase().includes('ALL')){
+      let matchedRdc = null, code = null;
+      for(const c in RDC_MAP){ if(cell.toUpperCase().includes(c)) { matchedRdc = RDC_MAP[c]; code = c; break; } }
+      if(!matchedRdc) continue;
+      const g = off => (grid[r+off] ? grid[r+off][lastCol] : null) || 0;
+      const tokoBox = g(2)+g(3), horBox = g(5)+g(6);
+      const projectBox = (code==='SMG') ? 0 : g(8)+g(9); // Semarang has no Project section
+      result[matchedRdc] = { deliv_toko_box: tokoBox, deliv_hor_box: horBox, deliv_project_box: projectBox };
+    }
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+function parseStockOutPecah(wb){
+  const sheetName = wb.SheetNames.find(n=>{ const l=n.toLowerCase(); return l.includes('stock out') && l.includes('pecah'); });
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  let lastRow = -1;
+  for(let r=0;r<grid.length;r++){ if(grid[r] && grid[r][1] instanceof Date) lastRow = r; }
+  if(lastRow<0) return null;
+  const granitRow = grid[lastRow]||[], romanRow = grid[lastRow+1]||[];
+  const RDC_COLS = {Jakarta:4, Surabaya:8, Semarang:12, Denpasar:16, Palembang:20};
+  const result = {};
+  Object.keys(RDC_COLS).forEach(rdc=>{
+    const c = RDC_COLS[rdc];
+    const stockoutG = granitRow[c], pecahG = granitRow[c+1];
+    const stockoutR = romanRow[c], pecahR = romanRow[c+1];
+    if(stockoutG==null && stockoutR==null) return;
+    const totalStockout = (stockoutG||0)+(stockoutR||0);
+    const totalPecah = (pecahG||0)+(pecahR||0);
+    result[rdc] = {
+      stockout_granit_box: stockoutG, pecah_granit_box: pecahG, pecah_granit_pct: stockoutG?pecahG/stockoutG:null,
+      stockout_roman_box: stockoutR, pecah_roman_box: pecahR, pecah_roman_pct: stockoutR?pecahR/stockoutR:null,
+      pecah_box: totalPecah, pecah_ratio: totalStockout?totalPecah/totalStockout:null,
+    };
+  });
+  return Object.keys(result).length ? result : null;
+}
+
+function parseDeliveryBreakdown(wb){
+  const sheetName = wb.SheetNames.find(n=>n.toLowerCase().includes('delivery breakdown'));
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const RDC_NAMES = ['JAKARTA','SURABAYA','SEMARANG','DENPASAR','PALEMBANG'];
+  const labelAt = r => (grid[r] && (grid[r][0] || grid[r][1])) || null; // anchor label can land in col A or col B depending on merge behavior
+  let maxYear = 0;
+  for(let r=0;r<grid.length;r++){
+    const v = labelAt(r);
+    if(typeof v === 'string'){
+      const m = v.match(/(\d{4})/);
+      if(m && RDC_NAMES.some(n=>v.toUpperCase().includes(n))) maxYear = Math.max(maxYear, parseInt(m[1]));
+    }
+  }
+  if(!maxYear) return null;
+  const anchors = [];
+  for(let r=0;r<grid.length;r++){
+    const v = labelAt(r);
+    if(typeof v === 'string' && v.includes(String(maxYear))){
+      const matchedRdc = RDC_NAMES.find(n=>v.toUpperCase().includes(n));
+      if(matchedRdc) anchors.push({row:r, code:matchedRdc});
+    }
+  }
+  const NAME_MAP = {JAKARTA:'Jakarta',SURABAYA:'Surabaya',SEMARANG:'Semarang',DENPASAR:'Denpasar',PALEMBANG:'Palembang'};
+  const result = {};
+  anchors.forEach(({row, code})=>{
+    let headerRow = -1;
+    for(let r=row; r<Math.min(row+30, grid.length); r++){
+      const rowD = grid[r];
+      if(rowD && (rowD[0]==='AREA'||rowD[1]==='AREA') && (rowD[1]==='MONTH'||rowD[2]==='MONTH')){ headerRow = r; break; }
+    }
+    if(headerRow<0) return;
+    let lastGood = null;
+    for(let r=headerRow+2; r<headerRow+14 && r<grid.length; r++){
+      const rowD = grid[r];
+      if(!rowD) break;
+      if(rowD[1] instanceof Date && rowD[3]!=null) lastGood = rowD;
+    }
+    if(lastGood){
+      result[NAME_MAP[code]] = { deliv_toko_box: lastGood[3]||0, deliv_hor_box: lastGood[5]||0, deliv_project_box: lastGood[7]||0, deliv_toped_box: lastGood[9]||0 };
+    }
+  });
+  return Object.keys(result).length ? result : null;
+}
+
+function parseAvgDropPoint(wb){
+  const sheetName = wb.SheetNames.find(n=>n.toLowerCase().includes('summary'));
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const RDC_FULL = ['Jakarta','Semarang','Surabaya','Denpasar','Palembang'];
+  let headerRow = -1;
+  for(let r=0;r<grid.length;r++){ if(grid[r] && grid[r][0]==='RDC' && grid[r][1]==='Truck'){ headerRow=r; break; } }
+  if(headerRow<0) return null;
+  const refRow = grid[headerRow+1]||[]; // Jakarta Engkel — first data row, used to find the last column with a REAL value (not just a month-name header)
+  let lastCol = -1;
+  for(let c=2;c<refRow.length;c++){ if(refRow[c]!=null && refRow[c]!=='N/A') lastCol=c; }
+  if(lastCol<0) return null;
+  const entries = [];
+  let currentRdc = null;
+  for(let r=headerRow+1;r<grid.length;r++){
+    const rowD = grid[r];
+    if(!rowD) continue;
+    if(rowD[0] && RDC_FULL.includes(rowD[0])) currentRdc = rowD[0];
+    const truck = rowD[1];
+    const val = rowD[lastCol];
+    if(currentRdc && truck && val!=null && val!=='N/A'){ entries.push({rdc:currentRdc, truck, value:val}); }
+  }
+  return entries.length ? entries : null;
 }
 
 function parseGeneralProfil(wb){
@@ -2182,25 +2337,57 @@ function handleFileRaw(files){
     };
     reader.readAsBinaryString(file);
   }));
-  Promise.all(readers).then(fileResults=>{
+  Promise.all(readers).then(async fileResults=>{
     const merged = {};
     const namesUsed = [];
     let anyParsed = false;
+    let dropPointEntries = [];
     fileResults.forEach(({name, wb})=>{
       const gp = parseGeneralProfil(wb);
       const sr = parseStockRataRata(wb);
+      const do_ = parseDeliverOut(wb);
+      const sop = parseStockOutPecah(wb);
+      const db = parseDeliveryBreakdown(wb);
+      const dp = parseAvgDropPoint(wb);
       if(gp){ anyParsed = true; namesUsed.push(name+' (General Profil)');
         Object.keys(gp).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, gp[rdc]); });
       }
       if(sr){ anyParsed = true; namesUsed.push(name+' (Stock Rata-Rata)');
         Object.keys(sr).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, sr[rdc]); });
       }
+      if(do_){ anyParsed = true; namesUsed.push(name+' (Deliver Out)');
+        Object.keys(do_).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, do_[rdc]); });
+      }
+      if(sop){ anyParsed = true; namesUsed.push(name+' (Stock Out vs Pecah)');
+        Object.keys(sop).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, sop[rdc]); });
+      }
+      if(db){ anyParsed = true; namesUsed.push(name+' (Delivery Breakdown)');
+        Object.keys(db).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, db[rdc]); });
+      }
+      if(dp){ anyParsed = true; namesUsed.push(name+' (Avg Drop Point)'); dropPointEntries = dropPointEntries.concat(dp); }
     });
+
+    if(dropPointEntries.length){
+      const scoped = CURRENT_RDC_SCOPE ? dropPointEntries.filter(e=>e.rdc===CURRENT_RDC_SCOPE) : dropPointEntries;
+      const skipped = dropPointEntries.length - scoped.length;
+      let ok=0, fail=0;
+      for(const e of scoped){
+        try{
+          await sbRpc('upsert_manual_recap', {input_password:CURRENT_PASSWORD, p_id:null, p_rdc_name:e.rdc, p_entry_date:new Date().toISOString().slice(0,7)+'-01', p_category:'drop_point', p_sub_type:e.truck, p_description:'Auto dari upload Avg Drop Point', p_qty:parseFloat(e.value), p_unit:'titik', p_notes:null});
+          ok++;
+        }catch(err){ fail++; }
+      }
+      const dpMsg = `<div class="warn-box info">📍 Drop Point: ${ok} entri tersimpan otomatis ke Input Manual${skipped?` (${skipped} entri RDC lain dilewati sesuai akses Anda)`:''}${fail?`, ${fail} gagal`:''}.</div>`;
+      document.getElementById('uploadResult').innerHTML = dpMsg;
+    }
+
     if(!anyParsed){
-      document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Tidak ada sheet "Summary" atau "Stock rata-rata RDC WH" yang dikenali di file yang diupload. Pastikan ini file General Profil atau Stock Rata-Rata asli.</div>`;
+      document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Tidak ada sheet yang dikenali di file yang diupload. Format yang didukung: General Profil, Stock Rata-Rata, Deliver Out, Stock Out vs Pecah, Delivery Breakdown, Avg Drop Point.</div>`;
       return;
     }
-    buildRowsFromParsedFields(merged, namesUsed.join(', '));
+    if(Object.keys(merged).length){
+      buildRowsFromParsedFields(merged, namesUsed.join(', '));
+    }
   }).catch(err=>{
     document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Gagal membaca file: ${err.message}</div>`;
   });
