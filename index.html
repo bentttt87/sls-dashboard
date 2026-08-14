@@ -309,6 +309,9 @@
       <div class="section-label">RDC Benchmarking</div>
       <div id="benchmarkTable"></div>
 
+      <div class="section-label">Logistik &amp; Fulfillment Tambahan</div>
+      <div class="kpi-grid" id="extraKpiGrid"></div>
+
       <div class="section-label">Tren 6 Bulan Terakhir <span class="tag">data real</span></div>
       <div class="trend-grid" id="trendGrid"></div>
       <div id="forecastCard" style="margin-top:12px;"></div>
@@ -427,6 +430,15 @@
           <td><input id="newRdcPassword" placeholder="Password login RDC"></td>
           <td><button class="btn-small btn-save" id="addRdcBtn">+ Tambah</button></td>
         </tr></tbody></table>
+
+        <div class="section-label" style="margin-top:26px;">Kelola Jenis Kendaraan (untuk Input Manual → Drop Point)</div>
+        <p style="font-size:11.5px;color:var(--stone);margin-top:-4px;">Daftar pilihan jenis kendaraan yang muncul di form Drop Point. Tambahkan di sini kalau ada jenis baru (mis. Wingbox, Container) — otomatis muncul sebagai pilihan tanpa perlu ubah aplikasi.</p>
+        <table class="admin-table" id="vehicleTypeTable"><thead><tr><th>Jenis Kendaraan</th><th>Ditambahkan Oleh</th><th></th></tr></thead><tbody id="vehicleTypeBody"></tbody></table>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">
+          <div><label class="mlabel">Jenis Kendaraan Baru</label><br><input id="newVehicleType" class="minput" placeholder="mis. Wingbox, Container" style="width:200px;"></div>
+          <button class="btn-small btn-save" id="addVehicleTypeBtn">+ Tambah</button>
+        </div>
+        <div class="admin-msg" id="vehicleTypeMsg"></div>
       </div>
     </div>
 
@@ -964,6 +976,36 @@ function nationalAvgOf(metric){
   const names = Object.keys(RDC).filter(n=>n!=='Semua');
   return names.reduce((s,n)=>s+RDC[n][metric],0)/names.length;
 }
+async function renderExtraKpi(rdcName){
+  const el = document.getElementById('extraKpiGrid');
+  if(!el || rdcName==='Semua'){ if(el) el.innerHTML=''; return; }
+  el.innerHTML = '<div style="padding:10px;color:var(--stone);font-size:12px;">Memuat...</div>';
+
+  let dpRows = [];
+  try{ dpRows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(rdcName)}&category=eq.drop_point&order=entry_date.desc&limit=6`); }catch(e){}
+
+  const latestByType = {};
+  dpRows.forEach(r=>{ if(!latestByType[r.sub_type]) latestByType[r.sub_type] = r; });
+  const hasDropPoint = Object.keys(latestByType).length > 0;
+
+  let dpCard;
+  if(hasDropPoint){
+    const lines = Object.values(latestByType).map(r=>`${r.sub_type}: <b>${fmtNum(r.qty)} ${r.unit||''}</b> <span style="color:var(--stone);font-size:10px;">(${r.entry_date.slice(0,7)})</span>`).join('<br>');
+    dpCard = `<div class="kpi-card">
+      <div class="kpi-top"><div class="kpi-label">Rata-rata Drop Point</div>${statusBadgeHtml('real','Source: Input Manual (dicatat cabang tiap bulan per jenis truck). Formula: rata-rata jumlah titik antar per pengiriman.')}</div>
+      <div class="kpi-value" style="font-size:15px;line-height:1.6;">${lines}</div>
+      <div class="kpi-sowhat">Makin tinggi = makin banyak titik antar terkonsolidasi per trip (rute lebih efisien). <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Update data →</span></div>
+    </div>`;
+  } else {
+    dpCard = `<div class="kpi-card empty">
+      <div class="kpi-top"><div class="kpi-label">Rata-rata Drop Point</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Belum ada data untuk ${rdcName}. Input lewat menu Input Manual → tab Drop Point. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+    </div>`;
+  }
+  el.innerHTML = dpCard;
+}
+
 function renderBenchmark(rdcName){
   const el = document.getElementById('benchmarkTable');
   if(rdcName==='Semua'){ el.innerHTML = `<div class="warn-box info">Pilih satu RDC spesifik untuk melihat benchmarking (mode Nasional membandingkan agregat, tidak relevan untuk benchmark antar-RDC).</div>`; return; }
@@ -1304,6 +1346,7 @@ function render(rdcName){
   renderFinancialGrid();
   renderKPI(rdcName);
   renderBenchmark(rdcName);
+  renderExtraKpi(rdcName);
   renderTrend(rdcName);
   renderBreakageDetail(rdcName);
   renderDataFreshness(rdcName);
@@ -1323,6 +1366,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     if(el.dataset.page==='kelola') loadKelola();
     if(el.dataset.page==='upload') loadUploadPage();
     if(el.dataset.page==='manual') loadManualPage();
+    if(el.dataset.page==='dashboard') render(CURRENT_RDC);
   });
 });
 
@@ -1353,6 +1397,8 @@ async function loadKelola(){
   document.getElementById('cfgWUrgency').value = CONFIG.w_urgency;
   document.getElementById('cfgWActionability').value = CONFIG.w_actionability;
   document.getElementById('cfgStaleHours').value = CONFIG.stale_hours;
+
+  await loadVehicleTypes();
 
   const rows = await sbSelect('rdc_master', '&order=name');
   const tbody = document.getElementById('rdcTableBody');
@@ -1471,6 +1517,39 @@ document.getElementById('saveConfigV21Btn').addEventListener('click', async ()=>
     render(CURRENT_RDC);
   }catch(e){ msg.textContent = `Gagal simpan: ${e.message}`; msg.className='admin-msg err'; }
 });
+
+async function loadVehicleTypes(){
+  const tbody = document.getElementById('vehicleTypeBody');
+  let rows = [];
+  try{ rows = await sbSelect('vehicle_type', '&active=eq.true&order=name.asc'); }catch(e){}
+  tbody.innerHTML = rows.map(r=>`
+    <tr data-id="${r.id}">
+      <td><b>${r.name}</b></td>
+      <td style="font-size:11px;color:var(--stone);">${r.created_by||'-'}</td>
+      <td>${['Engkel','Double'].includes(r.name) ? '' : `<button class="btn-small btn-del" data-vtid="${r.id}">Hapus</button>`}</td>
+    </tr>`).join('');
+  tbody.querySelectorAll('button[data-vtid]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm(`Hapus jenis kendaraan "${btn.closest('tr').querySelector('b').textContent}"? Data yang sudah tercatat dengan jenis ini tidak akan hilang.`)) return;
+      try{
+        await sbRpc('deactivate_vehicle_type', {input_password:CURRENT_PASSWORD, p_id: parseInt(btn.dataset.vtid)});
+        await loadVehicleTypes();
+      }catch(e){ alert('Gagal hapus: '+e.message); }
+    });
+  });
+}
+document.getElementById('addVehicleTypeBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('newVehicleType').value.trim();
+  const msg = document.getElementById('vehicleTypeMsg');
+  if(!name){ msg.textContent='Nama jenis kendaraan wajib diisi.'; msg.className='admin-msg err'; return; }
+  try{
+    await sbRpc('upsert_vehicle_type', {input_password:CURRENT_PASSWORD, p_name:name});
+    msg.textContent = `✓ "${name}" ditambahkan — langsung muncul di form Drop Point.`; msg.className='admin-msg ok';
+    document.getElementById('newVehicleType').value='';
+    await loadVehicleTypes();
+  }catch(e){ msg.textContent = `Gagal tambah: ${e.message}`; msg.className='admin-msg err'; }
+});
+
 document.getElementById('addRdcBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('newRdcName').value.trim();
   const kap = parseFloat(document.getElementById('newRdcKap').value)||0;
@@ -2402,9 +2481,18 @@ document.getElementById('downloadExcelBtn').addEventListener('click', exportExce
 
 let MANUAL_TAB = 'breakage';
 let MANUAL_RDC_FILTER = null;
+const OPERASIONAL_HARIAN_OPTIONS = [
+  'Lembur',
+  'Insiden/Kecelakaan Kerja',
+  'Absensi/Ketidakhadiran',
+  'Downtime Alat (Forklift/dll)',
+  'Kunjungan/Inspeksi',
+  'Pelatihan',
+  'Lainnya (isi keterangan)',
+];
 const MANUAL_CATEGORY_META = {
-  drop_point: {label:'Drop Point', unitDefault:'titik', descPlaceholder:'Deskripsi rute/customer (opsional)', subLabel:'Jenis Truck', subPlaceholder:'Engkel / Double', qtyLabel:'Rata-rata Titik'},
-  operasional_harian: {label:'Operasional Harian', unitDefault:'', descPlaceholder:'mis. Jam kerja lembur, insiden, dll', subLabel:'Kategori', subPlaceholder:'mis. Lembur / Insiden / Absensi', qtyLabel:'Nilai (opsional)'},
+  drop_point: {label:'Drop Point', unitDefault:'titik', descPlaceholder:'Deskripsi rute/customer (opsional)', subLabel:'Jenis Truck', subPlaceholder:'Engkel / Double', qtyLabel:'Rata-rata Titik', options:['Engkel','Double']},
+  operasional_harian: {label:'Operasional Harian', unitDefault:'', descPlaceholder:'mis. Jam kerja lembur, insiden, dll', subLabel:'Kategori', subPlaceholder:'mis. Lembur / Insiden / Absensi', qtyLabel:'Nilai (opsional)', options:OPERASIONAL_HARIAN_OPTIONS},
   lainnya: {label:'Lainnya', unitDefault:'', descPlaceholder:'Uraikan data yang dicatat', subLabel:'Label', subPlaceholder:'mis. nama data', qtyLabel:'Nilai (opsional)'},
 };
 
@@ -2443,6 +2531,17 @@ async function renderManualPanel(){
   }
 }
 
+const BREAKAGE_TYPE_OPTIONS = [
+  'Pecah saat handling',
+  'Pecah saat transport/pengiriman',
+  'Rusak kemasan/box',
+  'Gompal/sumbing',
+  'Retak',
+  'Rusak karena tumpukan (stacking)',
+  'Cacat produksi',
+  'Lainnya (isi keterangan)',
+];
+
 async function renderManualBreakageTab(el){
   let rows = [];
   try{ rows = await sbSelect('breakage_damage_type', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&order=period.desc&limit=100`); }catch(e){}
@@ -2452,7 +2551,8 @@ async function renderManualBreakageTab(el){
       ${canInput ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
         <div><label class="mlabel">Tanggal</label><br><input type="date" id="mBreakDate" class="minput"></div>
-        <div><label class="mlabel">Jenis Kerusakan</label><br><input type="text" id="mBreakType" class="minput" placeholder="mis. Pecah saat handling" style="width:220px;"></div>
+        <div><label class="mlabel">Jenis Kerusakan</label><br><select id="mBreakType" class="minput" style="width:220px;">${BREAKAGE_TYPE_OPTIONS.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
+        <div id="mBreakOtherWrap" style="display:none;"><label class="mlabel">Keterangan Lainnya</label><br><input type="text" id="mBreakOther" class="minput" style="width:180px;" placeholder="Uraikan jenis kerusakannya"></div>
         <div><label class="mlabel">Qty (box)</label><br><input type="number" id="mBreakQty" class="minput" style="width:90px;"></div>
         <button class="btn-small btn-save" id="mBreakSaveBtn">+ Catat</button>
       </div>
@@ -2463,9 +2563,16 @@ async function renderManualBreakageTab(el){
       <tbody>${rows.length?rows.map(r=>`<tr><td>${r.period}</td><td>${r.damage_type}</td><td>${r.qty_box}</td><td>${r.updated_by||r.created_by||'-'}</td></tr>`).join(''):'<tr><td colspan="4" style="color:var(--stone);">Belum ada data.</td></tr>'}</tbody>
     </table>`;
   if(canInput){
+    document.getElementById('mBreakType').addEventListener('change', e=>{
+      document.getElementById('mBreakOtherWrap').style.display = e.target.value.startsWith('Lainnya') ? 'block' : 'none';
+    });
     document.getElementById('mBreakSaveBtn').addEventListener('click', async ()=>{
       const date = document.getElementById('mBreakDate').value;
-      const type = document.getElementById('mBreakType').value.trim();
+      let type = document.getElementById('mBreakType').value;
+      if(type.startsWith('Lainnya')){
+        const other = document.getElementById('mBreakOther').value.trim();
+        if(other) type = other;
+      }
       const qty = parseFloat(document.getElementById('mBreakQty').value);
       const msg = document.getElementById('mBreakMsg');
       if(!date||!type||isNaN(qty)){ msg.textContent='Isi semua kolom.'; msg.className='admin-msg err'; return; }
@@ -2483,34 +2590,58 @@ async function renderManualGenericTab(el, category){
   let rows = [];
   try{ rows = await sbSelect('manual_recap_entry', `&rdc_name=eq.${encodeURIComponent(MANUAL_RDC_FILTER)}&category=eq.${category}&order=entry_date.desc&limit=100`); }catch(e){}
   const canInput = CURRENT_ROLE==='master' || CURRENT_RDC_SCOPE===MANUAL_RDC_FILTER;
+  const hasOptions = !!meta.options;
+  let vehicleOptions = meta.options;
+  if(category==='drop_point'){
+    try{
+      const vt = await sbSelect('vehicle_type', '&active=eq.true&order=name.asc');
+      if(vt.length) vehicleOptions = vt.map(v=>v.name);
+    }catch(e){}
+  }
+  const subFieldHtml = hasOptions
+    ? `<div><label class="mlabel">${meta.subLabel}</label><br><select id="mSubType" class="minput" style="width:${category==='drop_point'?140:200}px;">${vehicleOptions.map(o=>`<option value="${o}">${o}</option>`).join('')}${category==='operasional_harian'?'':''}</select></div>`
+    : `<div><label class="mlabel">${meta.subLabel}</label><br><input type="text" id="mSubType" class="minput" placeholder="${meta.subPlaceholder}" style="width:160px;"></div>`;
+  const otherFieldHtml = hasOptions ? `<div id="mSubOtherWrap" style="display:none;"><label class="mlabel">Keterangan Lainnya</label><br><input type="text" id="mSubOther" class="minput" style="width:180px;" placeholder="Uraikan"></div>` : '';
   el.innerHTML = manualRdcSelectorHtml() + `
+    ${category==='drop_point' ? `<div class="warn-box info" style="margin-bottom:12px;">ℹ️ Isi rata-rata jumlah titik antar (drop point) per pengiriman untuk BULAN berjalan, per jenis truck. Catat 1 baris per bulan per jenis truck (isi ulang di bulan berikutnya, jangan per hari). Jenis kendaraan baru (mis. Wingbox, Container) bisa ditambahkan Master lewat menu Kelola RDC.</div>` : ''}
     <div class="about-box">
       ${canInput ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-        <div><label class="mlabel">Tanggal</label><br><input type="date" id="mDate" class="minput"></div>
-        <div><label class="mlabel">${meta.subLabel}</label><br><input type="text" id="mSubType" class="minput" placeholder="${meta.subPlaceholder}" style="width:160px;"></div>
+        <div><label class="mlabel">${category==='drop_point'?'Bulan':'Tanggal'}</label><br><input type="${category==='drop_point'?'month':'date'}" id="mDate" class="minput"></div>
+        ${subFieldHtml}
+        ${otherFieldHtml}
         <div><label class="mlabel">Deskripsi</label><br><input type="text" id="mDesc" class="minput" placeholder="${meta.descPlaceholder}" style="width:220px;"></div>
         <div><label class="mlabel">${meta.qtyLabel}</label><br><input type="number" step="0.01" id="mQty" class="minput" style="width:100px;"></div>
-        <div><label class="mlabel">Satuan</label><br><input type="text" id="mUnit" class="minput" value="${meta.unitDefault}" style="width:80px;"></div>
+        <div><label class="mlabel">Satuan</label><br><input type="text" id="mUnit" class="minput" value="${meta.unitDefault}" style="width:80px;" ${category==='drop_point'?'readonly':''}></div>
         <button class="btn-small btn-save" id="mSaveBtn">+ Catat</button>
       </div>
       <div class="admin-msg" id="mMsg"></div>` : `<div style="font-size:12px;color:var(--stone);">Anda tidak punya akses input untuk RDC ini.</div>`}
     </div>
     <table class="admin-table" id="manualTable" style="margin-top:14px;">
-      <thead><tr><th>Tanggal</th><th>${meta.subLabel}</th><th>Deskripsi</th><th>Nilai</th><th>Dicatat Oleh</th></tr></thead>
-      <tbody>${rows.length?rows.map(r=>`<tr><td>${r.entry_date}</td><td>${r.sub_type||'-'}</td><td>${r.description||'-'}</td><td>${r.qty!=null?fmtNum(r.qty)+' '+(r.unit||''):'-'}</td><td>${r.updated_by||r.created_by||'-'}</td></tr>`).join(''):'<tr><td colspan="5" style="color:var(--stone);">Belum ada data.</td></tr>'}</tbody>
+      <thead><tr><th>${category==='drop_point'?'Bulan':'Tanggal'}</th><th>${meta.subLabel}</th><th>Deskripsi</th><th>Nilai</th><th>Dicatat Oleh</th></tr></thead>
+      <tbody>${rows.length?rows.map(r=>`<tr><td>${category==='drop_point'?r.entry_date.slice(0,7):r.entry_date}</td><td>${r.sub_type||'-'}</td><td>${r.description||'-'}</td><td>${r.qty!=null?fmtNum(r.qty)+' '+(r.unit||''):'-'}</td><td>${r.updated_by||r.created_by||'-'}</td></tr>`).join(''):'<tr><td colspan="5" style="color:var(--stone);">Belum ada data.</td></tr>'}</tbody>
     </table>`;
   if(canInput){
+    if(hasOptions){
+      document.getElementById('mSubType').addEventListener('change', e=>{
+        document.getElementById('mSubOtherWrap').style.display = e.target.value.startsWith('Lainnya') ? 'block' : 'none';
+      });
+    }
     document.getElementById('mSaveBtn').addEventListener('click', async ()=>{
       const date = document.getElementById('mDate').value;
-      const sub = document.getElementById('mSubType').value.trim();
+      let sub = document.getElementById('mSubType').value.trim();
+      if(hasOptions && sub.startsWith('Lainnya')){
+        const other = document.getElementById('mSubOther').value.trim();
+        if(other) sub = other;
+      }
       const desc = document.getElementById('mDesc').value.trim();
       const qty = document.getElementById('mQty').value;
       const unit = document.getElementById('mUnit').value.trim();
       const msg = document.getElementById('mMsg');
       if(!date){ msg.textContent='Tanggal wajib diisi.'; msg.className='admin-msg err'; return; }
+      const entryDate = category==='drop_point' ? date+'-01' : date;
       try{
-        await sbRpc('upsert_manual_recap', {input_password:CURRENT_PASSWORD, p_id:null, p_rdc_name:MANUAL_RDC_FILTER, p_entry_date:date, p_category:category, p_sub_type:sub||null, p_description:desc||null, p_qty: qty?parseFloat(qty):null, p_unit: unit||null, p_notes:null});
+        await sbRpc('upsert_manual_recap', {input_password:CURRENT_PASSWORD, p_id:null, p_rdc_name:MANUAL_RDC_FILTER, p_entry_date:entryDate, p_category:category, p_sub_type:sub||null, p_description:desc||null, p_qty: qty?parseFloat(qty):null, p_unit: unit||null, p_notes:null});
         msg.textContent='✓ Tercatat.'; msg.className='admin-msg ok';
         renderManualPanel();
       }catch(e){ msg.textContent=`Gagal: ${e.message}`; msg.className='admin-msg err'; }
