@@ -312,6 +312,9 @@
       <div class="section-label">Logistik &amp; Fulfillment Tambahan</div>
       <div class="kpi-grid" id="extraKpiGrid"></div>
 
+      <div class="section-label">Detail Pengiriman per SKU &amp; Sopir <span class="tag">dari file RK</span></div>
+      <div id="rkDrilldown"></div>
+
       <div class="section-label">Tren 6 Bulan Terakhir <span class="tag">data real</span></div>
       <div class="trend-grid" id="trendGrid"></div>
       <div id="forecastCard" style="margin-top:12px;"></div>
@@ -452,6 +455,7 @@
         <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);">
           <div class="upload-tab active" data-tab="template" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--navy);border-bottom:2px solid var(--navy);">Template Sederhana</div>
           <div class="upload-tab" data-tab="raw" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Laporan Mentah (General Profil / Stock Rata-Rata)</div>
+          <div class="upload-tab" data-tab="rk" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">RK (Rekap Kirim Harian)</div>
         </div>
 
         <div id="tabpanel-template">
@@ -476,6 +480,18 @@
             <div class="sub">File General Profil dan/atau Stock Rata-Rata (.xlsx) — boleh lebih dari satu file</div>
             <input type="file" id="fileInputRaw" accept=".xlsx,.xls" multiple style="display:none;">
           </div>
+        </div>
+
+        <div id="tabpanel-rk" style="display:none;">
+          <div class="warn-box info">ℹ️ Upload file RK (Rekap Kirim harian per sopir, format .ods/.xlsx — 1 sheet = 1 hari). Sistem otomatis membaca seluruh transaksi, mendeteksi kejadian "PENGGANTI PECAH" di kolom Remark untuk mengisi KPI Pecah Kirim, dan merekam data Material/SKU serta performa sopir untuk drill-down.</div>
+          <div id="rkRdcPicker" style="margin-bottom:12px;"></div>
+          <div class="dropzone" id="dropzoneRK">
+            <div class="icon">🚚</div>
+            <div class="title">Drag &amp; drop file RK di sini</div>
+            <div class="sub">Format .ods atau .xlsx — bisa 1 file berisi banyak hari (banyak sheet)</div>
+            <input type="file" id="fileInputRK" accept=".ods,.xlsx,.xls" style="display:none;">
+          </div>
+          <div id="rkResult" style="margin-top:16px;"></div>
         </div>
 
         <div id="uploadResult" style="margin-top:20px;"></div>
@@ -1023,6 +1039,56 @@ async function renderSpbCard(rdcName){
   </div>`;
 }
 
+async function renderRkDrilldown(rdcName){
+  const el = document.getElementById('rkDrilldown');
+  if(!el) return;
+  if(rdcName==='Semua'){ el.innerHTML = `<div class="warn-box info">Pilih satu RDC untuk melihat rincian per SKU dan sopir.</div>`; return; }
+  el.innerHTML = '<div style="padding:10px;color:var(--stone);font-size:12px;">Memuat...</div>';
+  let sum=[], sku=[], drv=[], ch=[];
+  try{
+    sum = await sbSelect('rk_summary', `&rdc_name=eq.${encodeURIComponent(rdcName)}&order=period.desc&limit=1`);
+    if(sum.length){
+      const per = sum[0].period;
+      const q = `&rdc_name=eq.${encodeURIComponent(rdcName)}&period=eq.${per}`;
+      [sku, drv, ch] = await Promise.all([
+        sbSelect('rk_sku', q+'&order=qty_box.desc&limit=20'),
+        sbSelect('rk_driver', q+'&order=qty_box.desc&limit=15'),
+        sbSelect('rk_channel', q+'&order=qty_box.desc'),
+      ]);
+    }
+  }catch(e){}
+  if(!sum.length){
+    el.innerHTML = `<div class="kpi-card empty" style="max-width:520px;">
+      <div class="kpi-top"><div class="kpi-label">Detail per SKU / Sopir</div>${statusBadgeHtml('required')}</div>
+      <div class="kpi-value">Data Belum Tersedia</div>
+      <div class="kpi-sowhat">Belum ada file RK untuk ${rdcName}. Upload lewat Upload Data → tab RK (Rekap Kirim Harian) untuk melihat rincian per SKU, per sopir, dan per channel. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'upload\\']').click()">Upload sekarang →</span></div>
+    </div>`;
+    return;
+  }
+  const s = sum[0];
+  const totalBox = Number(s.total_box)||0;
+  const pct = v => totalBox ? ((Number(v)/totalBox)*100).toFixed(1)+'%' : '-';
+  const periodLabel = String(s.period).slice(0,7);
+  el.innerHTML = `
+    <div class="warn-box info" style="margin-bottom:12px;">Periode <b>${periodLabel}</b> — total <b>${fmtNum(totalBox)} box</b> dari <b>${fmtNum(s.total_trx)}</b> transaksi (${fmtNum(s.total_so)} SO, ${fmtNum(s.sku_count)} SKU, ${fmtNum(s.driver_count)} sopir). Diupload oleh ${s.uploaded_by||'-'}.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;margin-bottom:6px;">Top 20 SKU Terkirim</div>
+        <table class="admin-table"><thead><tr><th>Item / Material</th><th>Qty (box)</th><th>% dari Total</th></tr></thead>
+        <tbody>${sku.map(r=>`<tr><td><b>${r.material_desc||'-'}</b><br><span style="font-size:10px;color:var(--stone);">${r.material}</span></td><td>${fmtNum(r.qty_box)}</td><td>${pct(r.qty_box)}</td></tr>`).join('')}</tbody></table>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;margin-bottom:6px;">Per Channel</div>
+        <table class="admin-table" style="margin-bottom:16px;"><thead><tr><th>Channel</th><th>Qty (box)</th><th>%</th></tr></thead>
+        <tbody>${ch.map(r=>`<tr><td><b>${r.channel}</b></td><td>${fmtNum(r.qty_box)}</td><td>${pct(r.qty_box)}</td></tr>`).join('')}</tbody></table>
+        <div style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;margin-bottom:6px;">Top 15 Sopir</div>
+        <table class="admin-table"><thead><tr><th>Sopir</th><th>Qty (box)</th><th>Transaksi</th></tr></thead>
+        <tbody>${drv.map(r=>`<tr><td><b>${r.driver}</b></td><td>${fmtNum(r.qty_box)}</td><td>${fmtNum(r.trx_count)}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--stone);margin-top:8px;">Sumber: file RK (Rekap Kirim harian). Ini komposisi barang yang DIKIRIM pada periode tersebut — bukan komposisi stock yang ada di gudang.</div>`;
+}
+
 async function renderExtraKpi(rdcName){
   const el = document.getElementById('extraKpiGrid');
   if(!el || rdcName==='Semua'){ if(el) el.innerHTML=''; return; }
@@ -1400,6 +1466,7 @@ function render(rdcName){
   renderKPI(rdcName);
   renderBenchmark(rdcName);
   renderExtraKpi(rdcName);
+  renderRkDrilldown(rdcName);
   renderTrend(rdcName);
   renderBreakageDetail(rdcName);
   renderDataFreshness(rdcName);
@@ -2148,9 +2215,156 @@ document.querySelectorAll('.upload-tab').forEach(tab=>{
     tab.classList.add('active'); tab.style.color='var(--navy)'; tab.style.borderBottomColor='var(--navy)';
     document.getElementById('tabpanel-template').style.display = tab.dataset.tab==='template' ? 'block' : 'none';
     document.getElementById('tabpanel-raw').style.display = tab.dataset.tab==='raw' ? 'block' : 'none';
+    document.getElementById('tabpanel-rk').style.display = tab.dataset.tab==='rk' ? 'block' : 'none';
     document.getElementById('uploadResult').innerHTML = '';
+    if(tab.dataset.tab==='rk') renderRkRdcPicker();
   });
 });
+
+function renderRkRdcPicker(){
+  const el = document.getElementById('rkRdcPicker');
+  if(CURRENT_RDC_SCOPE){
+    el.innerHTML = `<div style="font-size:12px;color:var(--stone);">RDC: <b>${CURRENT_RDC_SCOPE}</b></div>`;
+    RK_TARGET_RDC = CURRENT_RDC_SCOPE;
+  } else {
+    const names = Object.keys(RDC).filter(n=>n!=='Semua');
+    el.innerHTML = `<label class="mlabel">RDC untuk file RK ini</label><br><select id="rkRdcSelect" class="minput">${names.map(n=>`<option value="${n}">${n}</option>`).join('')}</select>`;
+    RK_TARGET_RDC = names[0];
+    document.getElementById('rkRdcSelect').addEventListener('change', e=>{ RK_TARGET_RDC = e.target.value; });
+  }
+}
+let RK_TARGET_RDC = null;
+
+// RK column layout (verified against real RK_JULI.ods / RK_AGUSTUS.ods):
+// 0 SO No · 1 ODO date · 3 Material · 4 Material Desc · 6 ODO Qty · 7 UoM · 9 Remark · 17 Project Code · 18 Customer Group
+const RK_COL = { so:0, odoDate:1, material:3, desc:4, qty:6, uom:7, remark:9, projectCode:17, custGroup:18 };
+
+function parseRKWorkbook(wb){
+  const trx = [];
+  wb.SheetNames.forEach(sn=>{
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:null, raw:true, cellDates:true});
+    let driver = null;
+    grid.forEach(row=>{
+      if(!row) return;
+      const c0 = row[RK_COL.so];
+      const filled = row.filter(v=>v!==null && v!=='' && v!==undefined).length;
+      if(c0!=null && String(c0).trim()==='SO No') return;          // header row
+      if(c0!=null && filled<=2){ driver = String(c0).trim(); return; } // driver block header
+      if(c0==null) return;
+      const qty = Number(row[RK_COL.qty]);
+      if(!isFinite(qty) || qty<=0) return;
+      trx.push({
+        so: String(c0), driver: driver||'(tanpa nama)',
+        material: row[RK_COL.material]!=null ? String(row[RK_COL.material]).trim() : null,
+        desc: row[RK_COL.desc]!=null ? String(row[RK_COL.desc]).trim() : null,
+        qty,
+        remark: row[RK_COL.remark]!=null ? String(row[RK_COL.remark]) : '',
+        channel: row[RK_COL.custGroup]!=null ? String(row[RK_COL.custGroup]).trim() : '(tidak diisi)',
+        odoDate: row[RK_COL.odoDate] instanceof Date ? row[RK_COL.odoDate] : null,
+      });
+    });
+  });
+  if(!trx.length) return null;
+
+  const agg = (keyFn, labelFn) => {
+    const m = {};
+    trx.forEach(t=>{ const k = keyFn(t); if(k==null) return;
+      if(!m[k]) m[k] = Object.assign({qty:0, trx:0}, labelFn(t));
+      m[k].qty += t.qty; m[k].trx++; });
+    return Object.values(m).sort((a,b)=>b.qty-a.qty);
+  };
+  const skuAgg = agg(t=>t.material, t=>({material:t.material, desc:t.desc}));
+  const drvAgg = agg(t=>t.driver, t=>({driver:t.driver}));
+  const chAgg  = agg(t=>t.channel, t=>({channel:t.channel}));
+  const pecah = trx.filter(t=>t.remark.toUpperCase().includes('PECAH'));
+
+  // period = most common month among ODO dates (files are named per month but dates are the reliable source)
+  const monthCount = {};
+  trx.forEach(t=>{ if(t.odoDate){ const k = t.odoDate.getFullYear()+'-'+String(t.odoDate.getMonth()+1).padStart(2,'0'); monthCount[k]=(monthCount[k]||0)+1; } });
+  const period = Object.keys(monthCount).sort((a,b)=>monthCount[b]-monthCount[a])[0] || null;
+
+  return {
+    period,
+    summary: { total_box: trx.reduce((s,t)=>s+t.qty,0), total_trx: trx.length,
+               total_so: new Set(trx.map(t=>t.so)).size,
+               pecah_box: pecah.reduce((s,t)=>s+t.qty,0), pecah_trx: pecah.length,
+               driver_count: drvAgg.length, sku_count: skuAgg.length },
+    sku: skuAgg, driver: drvAgg, channel: chAgg,
+    pecahDetail: pecah.slice(0,50),
+  };
+}
+
+function handleFileRK(files){
+  const el = document.getElementById('rkResult');
+  el.innerHTML = '<div style="padding:14px;color:var(--stone);">⏳ Membaca file RK (bisa beberapa detik untuk file besar)...</div>';
+  const readers = Array.from(files).map(file=>new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{ try{ resolve({name:file.name, wb: XLSX.read(e.target.result, {type:'binary', cellDates:true})}); }catch(err){ reject(err); } };
+    reader.onerror = ()=>reject(new Error('Gagal membaca file'));
+    reader.readAsBinaryString(file);
+  }));
+  Promise.all(readers).then(results=>{
+    const parsedList = [];
+    results.forEach(({name, wb})=>{ const p = parseRKWorkbook(wb); if(p) parsedList.push({name, ...p}); });
+    if(!parsedList.length){
+      el.innerHTML = `<div class="warn-box error">Tidak ada transaksi yang terbaca. Pastikan ini file RK (Rekap Kirim) dengan kolom SO No / Material / ODO Qty / Remark.</div>`;
+      return;
+    }
+    RK_PARSED = parsedList;
+    el.innerHTML = parsedList.map((p,i)=>{
+      const s = p.summary;
+      return `<div class="about-box" style="margin-bottom:12px;">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:8px;">${p.name} — periode <b>${p.period||'(tidak terdeteksi)'}</b> · RDC <b>${RK_TARGET_RDC}</b></div>
+        <table class="admin-table"><tbody>
+          <tr><td>Total Transaksi</td><td><b>${fmtNum(s.total_trx)}</b></td><td>Total Box Terkirim</td><td><b>${fmtNum(s.total_box)}</b></td></tr>
+          <tr><td>Jumlah SO Unik</td><td><b>${fmtNum(s.total_so)}</b></td><td>Jumlah SKU Unik</td><td><b>${fmtNum(s.sku_count)}</b></td></tr>
+          <tr><td>Jumlah Sopir</td><td><b>${fmtNum(s.driver_count)}</b></td><td>Channel</td><td><b>${p.channel.length}</b> jenis</td></tr>
+          <tr style="background:#FFF3D6;"><td><b>Pengganti Pecah (transaksi)</b></td><td><b>${fmtNum(s.pecah_trx)}</b></td><td><b>Pengganti Pecah (box)</b></td><td><b>${fmtNum(s.pecah_box)}</b></td></tr>
+        </tbody></table>
+        <div style="font-size:11px;color:var(--stone);margin-top:8px;">Top 5 SKU: ${p.sku.slice(0,5).map(x=>`${x.desc||x.material} (${fmtNum(x.qty)})`).join(' · ')}</div>
+      </div>`;
+    }).join('') + `<button class="btn-primary" id="rkConfirmBtn" style="padding:10px 20px;">✓ Konfirmasi &amp; Simpan ke Dashboard</button>`;
+    document.getElementById('rkConfirmBtn').addEventListener('click', applyRKUpload);
+  }).catch(err=>{
+    el.innerHTML = `<div class="warn-box error">Gagal membaca file: ${err.message}</div>`;
+  });
+}
+let RK_PARSED = null;
+
+async function applyRKUpload(){
+  const btn = document.getElementById('rkConfirmBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  const el = document.getElementById('rkResult');
+  let ok=0, fail=0, msgs=[];
+  for(const p of RK_PARSED){
+    if(!p.period){ fail++; msgs.push(`${p.name}: periode tidak terdeteksi, dilewati.`); continue; }
+    try{
+      await sbRpc('upsert_rk_batch', {
+        input_password: CURRENT_PASSWORD, p_rdc_name: RK_TARGET_RDC, p_period: p.period+'-01',
+        p_summary: p.summary, p_sku: p.sku, p_driver: p.driver, p_channel: p.channel
+      });
+      ok++;
+      try{
+        await sbRpc('log_upload', {input_password:CURRENT_PASSWORD, p_filename:p.name+' (RK '+p.period+')',
+          p_rows_applied:1, p_warnings:[], p_summary:[{rdc:RK_TARGET_RDC, fields:Object.keys(p.summary)}],
+          p_upload_data:[{rdc:RK_TARGET_RDC, fields:p.summary}]});
+      }catch(e){}
+    }catch(e){ fail++; msgs.push(`${p.name}: ${e.message}`); }
+  }
+  el.innerHTML = `<div class="warn-box ${fail?'warn':'ok'}">${ok} file RK tersimpan${fail?`, ${fail} gagal`:''}. ${msgs.join(' ')}</div>`;
+  await loadUploadHistory();
+  render(CURRENT_RDC);
+}
+
+const dzRK = document.getElementById('dropzoneRK');
+const fileInputRK = document.getElementById('fileInputRK');
+if(dzRK){
+  dzRK.addEventListener('click', ()=>fileInputRK.click());
+  dzRK.addEventListener('dragover', e=>{ e.preventDefault(); dzRK.classList.add('dragover'); });
+  dzRK.addEventListener('dragleave', ()=>dzRK.classList.remove('dragover'));
+  dzRK.addEventListener('drop', e=>{ e.preventDefault(); dzRK.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFileRK(e.dataTransfer.files); });
+  fileInputRK.addEventListener('change', e=>{ if(e.target.files.length) handleFileRK(e.target.files); });
+}
 
 function buildRowsFromParsedFields(parsedByRdc, sourceLabel){
   const knownRdc = Object.keys(RDC_MASTER).filter(n=>n!=='Semua');
