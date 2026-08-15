@@ -162,7 +162,7 @@
   .export-btn:hover{background:rgba(255,255,255,0.14);}
   .offline-banner{background:#7A5300;color:#fff;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
   @media print{
-    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #semuaCheckWrap, #rangePickerBox, #rangePickerLabel, #viewTabsWrap { display:none !important; }
+    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #rangePickerBox, #rangePickerLabel, #viewTabsWrap { display:none !important; }
     .app{display:block !important;}
     .main{padding:10px !important;}
     body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -268,10 +268,10 @@
           <div class="period" id="periodLine">Memuat data...</div>
         </div>
         <div class="filters" id="filtersArea">
-          <label id="semuaCheckWrap" style="display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;">
-            <input type="checkbox" id="semuaCheck" style="width:15px;height:15px;cursor:pointer;">
-            Tampilkan Semua (Nasional — rata-rata seluruh RDC)
-          </label>
+          <div id="rdcSelectorWrap" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
+            <label for="rdcSelector" style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;">RDC</label>
+            <select id="rdcSelector" style="border:none;background:transparent;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;outline:none;"></select>
+          </div>
         </div>
       </div>
 
@@ -712,8 +712,9 @@ function renderPulse(selected){
   if(!CURRENT_RDC_SCOPE){
     grid.querySelectorAll('.pulse-card').forEach(el=>{
       el.addEventListener('click', ()=>{
-        document.getElementById('semuaCheck').checked = false;
         CURRENT_RDC = el.dataset.rdc;
+        const sel = document.getElementById('rdcSelector');
+        if(sel) sel.value = el.dataset.rdc;
         render(el.dataset.rdc);
       });
     });
@@ -1618,6 +1619,8 @@ function renderHeaderSummary(){
 
 function render(rdcName){
   CURRENT_RDC = rdcName;
+  const sel = document.getElementById('rdcSelector');
+  if(sel && sel.value !== rdcName) sel.value = rdcName;
   renderHeaderSummary();
   renderExecutiveStatement(rdcName);
   renderPulse(rdcName==='Semua' ? null : rdcName);
@@ -1650,9 +1653,14 @@ function switchView(mode){
 document.getElementById('viewTabMgmt').addEventListener('click', ()=>switchView('mgmt'));
 document.getElementById('viewTabOps').addEventListener('click', ()=>switchView('ops'));
 
-document.getElementById('semuaCheck').addEventListener('change', e=>{
-  if(e.target.checked){ render('Semua'); }
-  else { render(CURRENT_RDC_SCOPE || Object.keys(RDC).filter(n=>n!=='Semua')[0]); }
+function populateRdcSelector(){
+  const sel = document.getElementById('rdcSelector');
+  const names = Object.keys(RDC).filter(n=>n!=='Semua');
+  sel.innerHTML = `<option value="Semua">Nasional (Semua RDC)</option>` + names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  sel.value = CURRENT_RDC || 'Semua';
+}
+document.getElementById('rdcSelector').addEventListener('change', e=>{
+  render(e.target.value);
 });
 document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
   el.addEventListener('click', ()=>{
@@ -2989,7 +2997,7 @@ function applyRoleUI(){
   document.getElementById('navKelola').style.display = (CURRENT_ROLE==='master' && !IS_OFFLINE_MODE) ? 'flex' : 'none';
   document.getElementById('navUpload').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
   document.getElementById('navManual').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
-  document.getElementById('semuaCheckWrap').style.display = CURRENT_ROLE==='master' ? 'flex' : 'none';
+  document.getElementById('rdcSelectorWrap').style.display = CURRENT_ROLE==='master' ? 'flex' : 'none';
   document.getElementById('managementFinancialSection').style.display = CURRENT_ROLE==='master' ? 'block' : 'none';
   document.getElementById('mainTitle').textContent = CURRENT_ROLE==='master' ? 'SLS Supply Chain Profitability Control Tower' : 'SLS Warehouse Operational Dashboard';
   document.getElementById('footerScopedNote').style.display = CURRENT_ROLE==='master' ? 'none' : 'inline';
@@ -3039,7 +3047,8 @@ async function bootDashboard(){
   }catch(e){ DELIVERY_LEADTIME = {}; }
   saveOfflineCache();
 
-  render(CURRENT_RDC_SCOPE || 'Jakarta');
+  populateRdcSelector();
+  render(CURRENT_RDC_SCOPE || 'Semua');
 }
 
 function bootDashboardOffline(savedAt){
@@ -3050,7 +3059,8 @@ function bootDashboardOffline(savedAt){
   banner.style.display = 'flex';
   banner.innerHTML = `🔌 <b>MODE OFFLINE</b> — menampilkan data tersimpan terakhir dari ${new Date(savedAt).toLocaleString('id-ID')}. Sambungkan kembali ke internet untuk data terbaru.`;
   document.getElementById('lastUpdated').textContent = 'Update (offline): ' + new Date(savedAt).toLocaleString('id-ID');
-  render(CURRENT_RDC_SCOPE || 'Jakarta');
+  populateRdcSelector();
+  render(CURRENT_RDC_SCOPE || 'Semua');
 }
 
 (async function init(){
