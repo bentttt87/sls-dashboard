@@ -79,6 +79,9 @@
   .header-summary .hs-value.small{font-size:12.5px;font-weight:600;line-height:1.4;}
 
   .level-label{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#fff;background:var(--navy);display:inline-block;padding:4px 12px;border-radius:20px;margin:28px 0 12px;}
+  .view-tab{padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:0.5px;color:var(--stone);border-bottom:3px solid transparent;transition:all .15s;}
+  .view-tab.active{color:var(--navy);border-bottom-color:var(--navy);}
+  .view-tab:hover:not(.active){color:var(--ink-soft);}
   .level-label.l2{background:var(--clay);}
   .level-label.l3{background:#3A5787;}
   .level-label.l4{background:var(--stone);}
@@ -159,7 +162,7 @@
   .export-btn:hover{background:rgba(255,255,255,0.14);}
   .offline-banner{background:#7A5300;color:#fff;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
   @media print{
-    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #semuaCheckWrap, #rangePickerBox, #rangePickerLabel { display:none !important; }
+    .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #semuaCheckWrap, #rangePickerBox, #rangePickerLabel, #viewTabsWrap { display:none !important; }
     .app{display:block !important;}
     .main{padding:10px !important;}
     body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -271,63 +274,95 @@
         </div>
       </div>
 
-      <div class="section-label" id="rangePickerLabel">Tren Kustom — Pilih Rentang Tanggal</div>
-      <div class="about-box" id="rangePickerBox" style="padding:16px 18px;margin-bottom:16px;">
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div><label style="font-size:10.5px;font-weight:700;color:var(--stone);text-transform:uppercase;">Dari Tanggal</label><br><input type="date" id="rangeFrom" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;"></div>
-          <div><label style="font-size:10.5px;font-weight:700;color:var(--stone);text-transform:uppercase;">Sampai Tanggal</label><br><input type="date" id="rangeTo" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;"></div>
-          <button class="btn-primary" id="applyRangeBtn" style="padding:9px 18px;">Terapkan</button>
-        </div>
-        <div id="rangeResult" style="margin-top:16px;"></div>
+      <div id="viewTabsWrap" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);">
+        <div class="view-tab active" data-view="mgmt" id="viewTabMgmt">MANAGEMENT</div>
+        <div class="view-tab" data-view="ops" id="viewTabOps">OPERATIONAL</div>
       </div>
 
-      <div class="section-label" id="pulseSectionLabel">Status Cepat per RDC</div>
-      <div class="pulse" id="pulseGrid"></div>
-
-      <div id="managementFinancialSection">
+      <!-- ===================== MANAGEMENT VIEW ===================== -->
+      <div id="mgmtView">
+        <div class="section-label" style="margin-top:0;">Executive Pulse</div>
         <div class="header-summary" id="headerSummary"></div>
+        <div id="executiveStatement" style="font-size:12.5px;color:var(--ink-soft);font-style:italic;margin:10px 0 4px;line-height:1.6;"></div>
 
-        <div class="level-label">Level 1 — Management</div>
-        <div class="section-label" style="margin-top:6px;">Business Impact &amp; Action Center <span class="tag">auto-analisis</span></div>
-        <div id="impactGrid"></div>
-
-        <div class="section-label">Top 5 Business Opportunities</div>
+        <div class="section-label">Business Priorities <span class="tag">Top 5</span></div>
         <div id="top5Grid"></div>
 
-        <div class="section-label">Management Decision Required</div>
-        <div id="decisionGrid"></div>
+        <div class="section-label" id="pulseSectionLabel">National RDC Insight</div>
+        <div class="pulse" id="pulseGrid"></div>
 
-        <div class="level-label l2">Level 2 — Financial</div>
-        <div class="section-label" style="margin-top:6px;">Financial Impact <span class="tag">status data dicantumkan per kartu</span></div>
-        <div class="kpi-grid" id="financialGrid"></div>
+        <div id="managementFinancialSection">
+          <div class="section-label">Business Impact &amp; Action Center <span class="tag">auto-analisis</span></div>
+          <div id="impactGrid"></div>
+
+          <div class="section-label">Financial Impact</div>
+          <div class="kpi-grid" id="financialGrid"></div>
+
+          <div class="section-label">Management Decision Required</div>
+          <div id="decisionGrid"></div>
+        </div>
+
+        <div class="section-label">Trend &amp; Early Warning</div>
+        <div id="forecastCard" style="margin-top:0;"></div>
+
+        <div class="section-label">Management Benchmarking</div>
+        <div id="mgmtBenchmarkSummary"></div>
+
+        <div class="section-label">Executive Detail</div>
+        <div class="about-box" style="font-size:12.5px;">Rincian KPI lengkap per hari/minggu, root cause, SKU, dan sopir ada di <span class="detail-link" onclick="switchView('ops')">Operational View →</span></div>
       </div>
 
-      <div class="level-label l3">Level 3 — Operational</div>
-      <div class="section-label" style="margin-top:6px;" id="kpiSectionLabel">10 KPI Utama <span class="tag">5 real/estimasi · 5 belum tersedia</span></div>
-      <div class="kpi-grid" id="kpiGrid"></div>
+      <!-- ===================== OPERATIONAL VIEW ===================== -->
+      <div id="opsView" style="display:none;">
+        <div class="section-label" style="margin-top:0;">Operational Pulse</div>
+        <div class="kpi-grid" id="mgmtKpiStrip"></div>
 
-      <div class="section-label">RDC Benchmarking</div>
-      <div id="benchmarkTable"></div>
+        <div class="section-label">Today's Control</div>
+        <div class="about-box" id="todaysControl"></div>
 
-      <div class="section-label">Logistik &amp; Fulfillment Tambahan</div>
-      <div class="kpi-grid" id="extraKpiGrid"></div>
+        <div class="section-label" id="rangePickerLabel">Tren Kustom — Pilih Rentang Tanggal</div>
+        <div class="about-box" id="rangePickerBox" style="padding:16px 18px;margin-bottom:16px;">
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div><label style="font-size:10.5px;font-weight:700;color:var(--stone);text-transform:uppercase;">Dari Tanggal</label><br><input type="date" id="rangeFrom" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;"></div>
+            <div><label style="font-size:10.5px;font-weight:700;color:var(--stone);text-transform:uppercase;">Sampai Tanggal</label><br><input type="date" id="rangeTo" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;"></div>
+            <button class="btn-primary" id="applyRangeBtn" style="padding:9px 18px;">Terapkan</button>
+          </div>
+          <div id="rangeResult" style="margin-top:16px;"></div>
+        </div>
 
-      <div class="section-label">Detail Pengiriman per SKU &amp; Sopir <span class="tag">dari file RK</span></div>
-      <div id="rkDrilldown"></div>
+        <div class="section-label">Capacity &amp; Inventory</div>
+        <div class="kpi-grid" id="kpiGridCapacity"></div>
 
-      <div class="section-label">Tren 6 Bulan Terakhir <span class="tag">data real</span></div>
-      <div class="trend-grid" id="trendGrid"></div>
-      <div id="forecastCard" style="margin-top:12px;"></div>
+        <div class="section-label">Service &amp; Fulfillment</div>
+        <div class="kpi-grid" id="kpiGridService"></div>
+        <div class="kpi-grid" id="extraKpiGrid" style="margin-top:10px;"></div>
 
-      <div class="section-label">Breakdown Breakage Lebih Detail</div>
-      <div id="breakageDetailSection"></div>
+        <div class="section-label">Productivity</div>
+        <div class="kpi-grid" id="kpiGridProductivity"></div>
 
-      <div class="level-label l4">Level 4 — Detail</div>
-      <div class="section-label" style="margin-top:6px;">Klik kartu KPI di atas untuk rincian SDM, ukuran gudang, breakage per kategori, dan pengiriman per channel.</div>
+        <div class="section-label">Quality / Breakage</div>
+        <div class="kpi-grid" id="kpiGridQuality"></div>
+        <div id="breakageDetailSection"></div>
+
+        <div class="section-label">RDC Benchmarking</div>
+        <div id="benchmarkTable"></div>
+
+        <div class="section-label">Trend</div>
+        <div class="trend-grid" id="trendGrid"></div>
+
+        <div class="section-label">Root Cause — Detail Pengiriman per SKU &amp; Sopir <span class="tag">dari file RK</span></div>
+        <div id="rkDrilldown"></div>
+
+        <div class="section-label">Action Tracker</div>
+        <div id="opsActionTracker"></div>
+
+        <div class="section-label">Data Detail</div>
+        <div class="section-label" style="margin-top:6px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:12px;">Klik kartu KPI di atas untuk rincian SDM, ukuran gudang, breakage per kategori, dan pengiriman per channel.</div>
+      </div>
 
       <div class="footer-note">
         <b>Sumber data real:</b> DATA_GENERAL_PROFIL (snapshot Jun 2026), DATA_STOCK_HISTORY (2024-2026), DATA_STOCK_OUT_PECAH (2019-2026), DATA_DELIVERY_BREAKDOWN (2024-2026) — disimpan di Supabase, live untuk semua yang buka link ini.<br>
-        <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF, Inventory Accuracy — lihat dokumen Kebutuhan Data untuk detail data yang diperlukan. <span id="footerScopedNote" style="display:none;">(Panel Management &amp; Financial hanya bisa dilihat oleh akses Master.)</span>
+        <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF, Inventory Accuracy — lihat dokumen Kebutuhan Data untuk detail data yang diperlukan. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
       </div>
     </div>
 
@@ -571,14 +606,14 @@ let CURRENT_RDC_SCOPE = null; // null = master (sees all); RDC name = locked to 
 let CURRENT_RDC = 'Jakarta';
 
 const KPI_DEFS_REAL = [
-  {key:'occ',   label:'Occupancy',  unit:'%', dataStatus:'real', formula:'Source: DATA_GENERAL_PROFIL. Formula: Stock Saat Ini ÷ Kapasitas Gudang × 100%.', get:(d)=>d.occ_now, sowhat:(d)=> (d.occ_now>CONFIG.occ_overload_pct ? `<b>Overload</b> — kapasitas terlampaui ${Math.abs(d.caprem).toLocaleString('id-ID')} box.` : `Sisa kapasitas <b>${d.caprem.toLocaleString('id-ID')} box</b>.`) + ` <span class="detail-link" onclick="openDetail(event,'occ')">Ukuran gudang →</span>` },
-  {key:'caprem',label:'Capacity Remaining', unit:' box', dataStatus:'real', formula:'Source: DATA_GENERAL_PROFIL. Formula: Kapasitas Gudang − Stock Saat Ini.', get:(d)=>d.caprem, sowhat:(d)=> d.caprem<0 ? 'Kapasitas sudah minus — perlu solusi segera.' : `Dari total kapasitas <b>${d.kapasitas.toLocaleString('id-ID')} box</b>.` },
-  {key:'invdays',label:'Inventory Days', unit:' hari', dataStatus:'estimated', formula:'Source: DATA_STOCK_HISTORY, DATA_GENERAL_PROFIL. Formula: Stock Rata-rata ÷ Pengeluaran Rata-rata Harian × 30. Asumsi: distribusi keluar-masuk stock merata sepanjang bulan (belum dari transaksi harian aktual).', get:(d)=>d.invdays, sowhat:()=>`Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical} · Minimum ${CONFIG.invdays_minimum}.` },
-  {key:'prod',  label:'Productivity', unit:' box/SDM/bln', dataStatus:'estimated', formula:'Source: DATA_GENERAL_PROFIL. Formula: Pengeluaran Total Box ÷ Total SDM.', get:(d)=>d.prod, sowhat:(d)=>{
+  {key:'occ',   label:'Occupancy',  unit:'%', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Stock Saat Ini ÷ Kapasitas Gudang × 100%.', get:(d)=>d.occ_now, sowhat:(d)=> (d.occ_now>CONFIG.occ_overload_pct ? `<b>Overload</b> — kapasitas terlampaui ${Math.abs(d.caprem).toLocaleString('id-ID')} box.` : `Sisa kapasitas <b>${d.caprem.toLocaleString('id-ID')} box</b>.`) + ` <span class="detail-link" onclick="openDetail(event,'occ')">Ukuran gudang →</span>` },
+  {key:'caprem',label:'Capacity Remaining', unit:' box', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Kapasitas Gudang − Stock Saat Ini.', get:(d)=>d.caprem, sowhat:(d)=> d.caprem<0 ? 'Kapasitas sudah minus — perlu solusi segera.' : `Dari total kapasitas <b>${d.kapasitas.toLocaleString('id-ID')} box</b>.` },
+  {key:'invdays',label:'Inventory Days', unit:' hari', dataStatus:'estimated', group:'capacity', formula:'Source: DATA_STOCK_HISTORY, DATA_GENERAL_PROFIL. Formula: Stock Rata-rata ÷ Pengeluaran Rata-rata Harian × 30. Asumsi: distribusi keluar-masuk stock merata sepanjang bulan (belum dari transaksi harian aktual).', get:(d)=>d.invdays, sowhat:()=>`Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical} · Minimum ${CONFIG.invdays_minimum}.` },
+  {key:'prod',  label:'Productivity', unit:' box/SDM/bln', dataStatus:'estimated', group:'productivity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Pengeluaran Total Box ÷ Total SDM.', get:(d)=>d.prod, sowhat:(d)=>{
       const avg = nationalAvgProd(); const best = bestRDCProd();
       return `Dari Total SDM <span class="detail-link" onclick="openDetail(event,'sdm')">${d.total_sdm} orang →</span><br><span style="font-size:10px;">vs Rata-rata Nasional ${fmtNum(avg)} · vs Terbaik ${best}(${fmtNum(RDC[best].prod)})</span>`;
     } },
-  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'real', formula:'Source: DATA_STOCK_OUT_PECAH. Formula: Box Pecah ÷ Total Stock Out × 100%, periode Juli 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out, Juli 2026. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
+  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'real', group:'quality', formula:'Source: DATA_STOCK_OUT_PECAH. Formula: Box Pecah ÷ Total Stock Out × 100%, periode Juli 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out, Juli 2026. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
 ];
 const FINANCIAL_KPI_DEFS = [
   {label:'Working Capital Impact', need:'Nilai inventory harian dalam Rupiah (Finance)'},
@@ -653,11 +688,11 @@ function renderPulse(selected){
 }
 
 const KPI_EMPTY_BASIC = [
-  {label:'OTIF', need:'data kelengkapan qty ("in full") — Delivery Speed di bawah ini BUKAN OTIF, baru komponen "on-time"-nya saja'},
-  {label:'Inventory Accuracy', need:'data stock opname vs sistem'},
-  {label:'Dead Stock', need:'data stock per SKU + tanggal keluar terakhir'},
-  {label:'Logistics Cost', need:'data biaya pengiriman (Rupiah)'},
-  {label:'Cost Saving', need:'baseline Logistics Cost'},
+  {label:'OTIF', group:'service', need:'data kelengkapan qty ("in full") — Delivery Speed di bawah ini BUKAN OTIF, baru komponen "on-time"-nya saja'},
+  {label:'Inventory Accuracy', group:'capacity', need:'data stock opname vs sistem'},
+  {label:'Dead Stock', group:'capacity', need:'data stock per SKU + tanggal keluar terakhir'},
+  {label:'Logistics Cost', group:'financial-only', need:'data biaya pengiriman (Rupiah)'},
+  {label:'Cost Saving', group:'financial-only', need:'baseline Logistics Cost'},
 ];
 
 let DELIVERY_LEADTIME = {};
@@ -689,28 +724,114 @@ function renderDeliverySpeedCard(rdcName){
   </div>`;
 }
 
+function kpiCardHtml(k, d){
+  const v = k.get(d);
+  let cls = '';
+  if(k.key==='occ'){ cls = v>CONFIG.occ_overload_pct ? 'crit' : v>=CONFIG.occ_watch_pct ? 'warn' : ''; }
+  if(k.key==='invdays'){ cls = invDaysStatus(v).cls; }
+  return `<div class="kpi-card ${cls}">
+    <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml(k.dataStatus, k.formula)}</div>
+    <div class="kpi-value">${fmtNum(v)}<span class="unit">${k.unit}</span></div>
+    <div class="kpi-sowhat">${k.sowhat(d)}</div>
+  </div>`;
+}
+function kpiEmptyCardHtml(k){
+  return `<div class="kpi-card empty">
+    <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml('required')}</div>
+    <div class="kpi-value">Data Belum Tersedia</div>
+    <div class="kpi-sowhat">Perlu ${k.need}.</div>
+  </div>`;
+}
+
+// Operational View: KPI split into 4 purpose-grouped grids (Capacity&Inventory / Service&Fulfillment / Productivity / Quality)
 function renderKPI(rdcName){
   const d = RDC[rdcName];
-  const grid = document.getElementById('kpiGrid');
-  let html = KPI_DEFS_REAL.map(k=>{
+  const targets = {capacity:'kpiGridCapacity', service:'kpiGridService', productivity:'kpiGridProductivity', quality:'kpiGridQuality'};
+  const html = {capacity:'', service:'', productivity:'', quality:''};
+  KPI_DEFS_REAL.forEach(k=>{ html[k.group] += kpiCardHtml(k, d); });
+  html.service += renderDeliverySpeedCard(rdcName);
+  KPI_EMPTY_BASIC.forEach(k=>{ if(k.group!=='financial-only') html[k.group] += kpiEmptyCardHtml(k); });
+  Object.keys(targets).forEach(g=>{
+    const el = document.getElementById(targets[g]);
+    if(el) el.innerHTML = html[g];
+  });
+}
+
+// Management View: condensed single-row KPI strip (not the full operational grid) — "small/detail" per the IA spec
+function renderMgmtKpiStrip(rdcName){
+  const el = document.getElementById('mgmtKpiStrip');
+  if(!el) return;
+  const d = RDC[rdcName];
+  el.innerHTML = KPI_DEFS_REAL.map(k=>{
     const v = k.get(d);
     let cls = '';
     if(k.key==='occ'){ cls = v>CONFIG.occ_overload_pct ? 'crit' : v>=CONFIG.occ_watch_pct ? 'warn' : ''; }
     if(k.key==='invdays'){ cls = invDaysStatus(v).cls; }
-    return `<div class="kpi-card ${cls}">
-      <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml(k.dataStatus, k.formula)}</div>
-      <div class="kpi-value">${fmtNum(v)}<span class="unit">${k.unit}</span></div>
-      <div class="kpi-sowhat">${k.sowhat(d)}</div>
+    return `<div class="kpi-card ${cls}" style="padding:12px;">
+      <div class="kpi-top"><div class="kpi-label" style="font-size:9.5px;">${k.label}</div>${statusBadgeHtml(k.dataStatus)}</div>
+      <div class="kpi-value" style="font-size:19px;">${fmtNum(v)}<span class="unit">${k.unit}</span></div>
     </div>`;
-  }).join('');
-  html += renderDeliverySpeedCard(rdcName);
-  html += KPI_EMPTY_BASIC.map(k=>`
-    <div class="kpi-card empty">
-      <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml('required')}</div>
-      <div class="kpi-value">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Perlu ${k.need}.</div>
-    </div>`).join('');
-  grid.innerHTML = html;
+  }).join('') + renderDeliverySpeedCard(rdcName).replace('class="kpi-card', 'style="padding:12px;" class="kpi-card');
+}
+
+// Management View: dynamic one-line executive statement generated from actual issue data — never a canned string
+function renderExecutiveStatement(rdcName){
+  const el = document.getElementById('executiveStatement');
+  if(!el) return;
+  const issues = calcAllIssues();
+  const critical = issues.filter(i=>i.status==='red');
+  const watch = issues.filter(i=>i.status==='amber'||i.status==='blue');
+  if(critical.length===0 && watch.length===0){
+    el.textContent = `Kondisi seluruh RDC dalam rentang sehat pada periode ini — tidak ada isu signifikan yang terdeteksi.`;
+    return;
+  }
+  const parts = [];
+  if(critical.length){
+    const names = [...new Set(critical.map(i=>i.rdcName).filter(Boolean))];
+    parts.push(`kondisi umum perlu perhatian pada ${names.length?names.join(' dan '):'beberapa area'} (${critical[0].issue.split('—')[0].trim()})`);
+  }
+  if(watch.length){
+    const names = [...new Set(watch.map(i=>i.rdcName).filter(Boolean))];
+    parts.push(`${names.length?names.join(', ')+' perlu dipantau':'beberapa area perlu dipantau'}`);
+  }
+  el.textContent = `Kondisi keseluruhan ${critical.length?'memerlukan tindakan':'cukup terkendali'} — ${parts.join('; ')}.`;
+}
+
+// Operational View: "Today's Control" — critical/watch/normal counts + actionable list, derived from the same issue engine
+function renderTodaysControl(rdcName){
+  const el = document.getElementById('todaysControl');
+  if(!el) return;
+  const issues = calcAllIssues();
+  const critical = issues.filter(i=>i.status==='red');
+  const watch = issues.filter(i=>i.status==='amber'||i.status==='blue');
+  const allRdcNames = CURRENT_RDC_SCOPE ? [CURRENT_RDC_SCOPE] : Object.keys(RDC).filter(n=>n!=='Semua');
+  const troubledNames = new Set(issues.map(i=>i.rdcName).filter(Boolean));
+  const normalCount = allRdcNames.filter(n=>!troubledNames.has(n)).length;
+  el.innerHTML = `
+    <div style="display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="font-size:13px;font-weight:700;color:var(--red);">🔴 ${critical.length} Critical Issue${critical.length!==1?'s':''}</div>
+      <div style="font-size:13px;font-weight:700;color:#946200;">🟡 ${watch.length} Issue${watch.length!==1?'s':''} to Watch</div>
+      <div style="font-size:13px;font-weight:700;color:var(--green);">🟢 ${normalCount} Area${normalCount!==1?'s':''} Normal</div>
+    </div>
+    ${critical.length?`<div style="margin-bottom:10px;"><b style="font-size:11px;color:var(--red);text-transform:uppercase;">Critical</b>${critical.map(i=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border);">• ${i.issue}${i.rdcName?` (${i.rdcName})`:''}</div>`).join('')}</div>`:''}
+    ${watch.length?`<div><b style="font-size:11px;color:#946200;text-transform:uppercase;">Watch</b>${watch.map(i=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border);">• ${i.issue}${i.rdcName?` (${i.rdcName})`:''}</div>`).join('')}</div>`:''}
+    ${(!critical.length && !watch.length)?'<div style="font-size:12.5px;color:var(--stone);">Tidak ada isu yang butuh kontrol khusus hari ini.</div>':''}
+  `;
+}
+
+// Management View: lightweight "who's best" strategic summary (NOT the full operational comparison table — separate render, not reused DOM)
+function renderMgmtBenchmarkSummary(rdcName){
+  const el = document.getElementById('mgmtBenchmarkSummary');
+  if(!el || rdcName==='Semua') { if(el) el.innerHTML = ''; return; }
+  const names = Object.keys(RDC).filter(n=>n!=='Semua');
+  const bestOcc = bestRDCFor('occ_now', false);
+  const bestProd = bestRDCFor('prod', true);
+  const bestPecah = bestRDCFor('pecah_now', false);
+  const lines = [];
+  if(bestProd===bestPecah) lines.push(`<b>${bestProd}</b> memiliki productivity terbaik dan breakage terendah — kandidat best practice.`);
+  else { lines.push(`<b>${bestProd}</b> productivity terbaik.`); lines.push(`<b>${bestPecah}</b> breakage terendah.`); }
+  if(RDC[rdcName].occ_now > RDC[bestOcc].occ_now) lines.push(`Gap Occupancy vs RDC dengan sisa kapasitas terbanyak (<b>${bestOcc}</b>): ${(RDC[rdcName].occ_now-RDC[bestOcc].occ_now).toFixed(1)} ppt.`);
+  el.innerHTML = `<div class="about-box" style="font-size:12.5px;line-height:1.7;">${lines.join('<br>')}<div style="margin-top:6px;"><span class="detail-link" onclick="switchView('ops')">Lihat perbandingan lengkap di Operational View →</span></div></div>`;
 }
 
 function renderFinancialGrid(){
@@ -1372,9 +1493,14 @@ function renderTop5(){
 
 function renderDecisions(){
   const grid = document.getElementById('decisionGrid');
+  const opsGrid = document.getElementById('opsActionTracker');
   const all = calcAllIssues().filter(i=>i.status==='red'||i.status==='amber').sort((a,b)=>b.priorityScore-a.priorityScore).slice(0,5);
-  if(all.length===0){ grid.innerHTML = `<div class="decision-card">✅ Tidak ada keputusan mendesak yang diperlukan saat ini.</div>`; return; }
-  grid.innerHTML = all.map(iss=>{
+  if(all.length===0){
+    const empty = `<div class="decision-card">✅ Tidak ada keputusan mendesak yang diperlukan saat ini.</div>`;
+    grid.innerHTML = empty; if(opsGrid) opsGrid.innerHTML = empty;
+    return;
+  }
+  const html = all.map(iss=>{
     const act = findActionFor(iss.issue, iss.rdcName);
     const owner = act?.owner || 'Pending Assignment';
     const deadline = act?.deadline ? new Date(act.deadline).toLocaleDateString('id-ID') : 'Pending Assignment';
@@ -1388,6 +1514,8 @@ function renderDecisions(){
       ${CURRENT_ROLE==='master' ? `<button class="btn-small btn-save" style="margin-top:8px;" onclick="openActionEditor('${escAttr(iss.issue)}','${escAttr(iss.rdcName||'')}','${escAttr(iss.action)}',${actId||'null'})">✏️ ${act?'Update':'Assign'} Owner/Deadline</button>` : ''}
     </div>`;
   }).join('');
+  grid.innerHTML = html;
+  if(opsGrid) opsGrid.innerHTML = html;
 }
 
 function calcDimensionScores(d){
@@ -1458,13 +1586,17 @@ function renderHeaderSummary(){
 function render(rdcName){
   CURRENT_RDC = rdcName;
   renderHeaderSummary();
+  renderExecutiveStatement(rdcName);
   renderPulse(rdcName==='Semua' ? null : rdcName);
   renderImpact(rdcName);
   renderTop5();
   renderDecisions();
   renderFinancialGrid();
+  renderMgmtKpiStrip(rdcName);
+  renderTodaysControl(rdcName);
   renderKPI(rdcName);
   renderBenchmark(rdcName);
+  renderMgmtBenchmarkSummary(rdcName);
   renderExtraKpi(rdcName);
   renderRkDrilldown(rdcName);
   renderTrend(rdcName);
@@ -1472,6 +1604,18 @@ function render(rdcName){
   renderDataFreshness(rdcName);
   document.getElementById('periodLine').textContent = `Ringkasan operasional ${displayName(rdcName)} — Juli 2026 (data real, live dari Supabase)`;
 }
+
+let VIEW_MODE = 'mgmt';
+function switchView(mode){
+  if(mode==='mgmt' && CURRENT_RDC_SCOPE){ mode = 'ops'; } // RDC-scoped accounts never see Management View
+  VIEW_MODE = mode;
+  document.getElementById('mgmtView').style.display = mode==='mgmt' ? 'block' : 'none';
+  document.getElementById('opsView').style.display = mode==='ops' ? 'block' : 'none';
+  document.getElementById('viewTabMgmt').classList.toggle('active', mode==='mgmt');
+  document.getElementById('viewTabOps').classList.toggle('active', mode==='ops');
+}
+document.getElementById('viewTabMgmt').addEventListener('click', ()=>switchView('mgmt'));
+document.getElementById('viewTabOps').addEventListener('click', ()=>switchView('ops'));
 
 document.getElementById('semuaCheck').addEventListener('change', e=>{
   if(e.target.checked){ render('Semua'); }
@@ -2239,6 +2383,51 @@ let RK_TARGET_RDC = null;
 // 0 SO No · 1 ODO date · 3 Material · 4 Material Desc · 6 ODO Qty · 7 UoM · 9 Remark · 17 Project Code · 18 Customer Group
 const RK_COL = { so:0, odoDate:1, material:3, desc:4, qty:6, uom:7, remark:9, projectCode:17, custGroup:18 };
 
+// Parses the "Pecah dalam pallet / Pecah pengiriman" recap sheet that ships inside some RK workbooks.
+// Structure: repeated blocks, each = title row · "Document Date" header · detail rows · "Total" row (qty in col 5).
+// Title encodes type + product line + month, e.g. "Pecah dalam pallet Roman Granit Bulan Juni 2026 barang SRKI".
+function parseRKPecahSheet(wb){
+  const out = [];
+  wb.SheetNames.forEach(sn=>{
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:null, raw:true, cellDates:true});
+    let current = null;
+    grid.forEach(row=>{
+      if(!row) return;
+      const c0 = row[0];
+      if(typeof c0 === 'string' && /^Pecah\s+(dalam pallet|pengiriman)/i.test(c0.trim())){
+        const t = c0.trim();
+        const isPallet = /dalam pallet/i.test(t);
+        let line = null;
+        const lineMatch = t.match(/Roman\s+(Gress|Granit)/i);
+        if(lineMatch) line = 'Roman ' + lineMatch[1].charAt(0).toUpperCase()+lineMatch[1].slice(1).toLowerCase();
+        const sourceMatch = t.match(/barang\s+(.+)$/i);
+        const source = sourceMatch ? sourceMatch[1].trim() : null;
+        const monthMatch = t.match(/Bulan\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})/i);
+        let period = null;
+        if(monthMatch){
+          const MONTHS = {januari:1,februari:2,maret:3,april:4,mei:5,juni:6,juli:7,agustus:8,september:9,oktober:10,november:11,desember:12};
+          const m = MONTHS[monthMatch[1].toLowerCase()];
+          if(m) period = monthMatch[2]+'-'+String(m).padStart(2,'0');
+        }
+        current = { category: isPallet ? 'pecah_pallet' : 'pecah_kirim', line, source, period, title: t };
+        return;
+      }
+      if(current && typeof c0 === 'string' && c0.trim().toLowerCase()==='total'){
+        // Qty position shifts depending on merged cells, so take the first numeric cell in the Total row.
+        let qty = null;
+        for(let i=1;i<row.length;i++){
+          const v = row[i];
+          if(typeof v === 'number' && isFinite(v)){ qty = v; break; }
+          if(typeof v === 'string' && v.trim()!=='' && isFinite(Number(v)) && Number(v)>0){ qty = Number(v); break; }
+        }
+        if(qty!=null && qty>0) out.push(Object.assign({qty}, current));
+        current = null;
+      }
+    });
+  });
+  return out.length ? out : null;
+}
+
 function parseRKWorkbook(wb){
   const trx = [];
   wb.SheetNames.forEach(sn=>{
@@ -2305,13 +2494,41 @@ function handleFileRK(files){
   }));
   Promise.all(readers).then(results=>{
     const parsedList = [];
-    results.forEach(({name, wb})=>{ const p = parseRKWorkbook(wb); if(p) parsedList.push({name, ...p}); });
+    results.forEach(({name, wb})=>{
+      const p = parseRKWorkbook(wb);
+      const pecahSheet = parseRKPecahSheet(wb);
+      if(p) parsedList.push({name, ...p, pecahSheet});
+      else if(pecahSheet) parsedList.push({name, pecahSheetOnly:true, pecahSheet});
+    });
     if(!parsedList.length){
       el.innerHTML = `<div class="warn-box error">Tidak ada transaksi yang terbaca. Pastikan ini file RK (Rekap Kirim) dengan kolom SO No / Material / ODO Qty / Remark.</div>`;
       return;
     }
     RK_PARSED = parsedList;
     el.innerHTML = parsedList.map((p,i)=>{
+      const pecahBlock = (p.pecahSheet && p.pecahSheet.length) ? (()=>{
+        const byCat = {};
+        p.pecahSheet.forEach(x=>{
+          const k = x.category+'|'+(x.line||'-')+'|'+(x.period||'-');
+          if(!byCat[k]) byCat[k] = {category:x.category, line:x.line, period:x.period, qty:0, n:0};
+          byCat[k].qty += x.qty; byCat[k].n++;
+        });
+        const rows = Object.values(byCat).sort((a,b)=>a.category.localeCompare(b.category)||String(a.line).localeCompare(String(b.line)));
+        const periods = [...new Set(p.pecahSheet.map(x=>x.period).filter(Boolean))];
+        return `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
+          <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:6px;">📋 Sheet Rekap Pecah terdeteksi — ${p.pecahSheet.length} blok${periods.length?`, periode <b>${periods.join(', ')}</b>`:''}</div>
+          <table class="admin-table"><thead><tr><th>Jenis</th><th>Lini Produk</th><th>Periode</th><th>Total (box)</th></tr></thead>
+          <tbody>${rows.map(r=>`<tr><td>${r.category==='pecah_pallet'?'Pecah dalam Pallet':'Pecah Pengiriman'}</td><td>${r.line||'-'}</td><td>${r.period||'-'}</td><td><b>${fmtNum(r.qty)}</b></td></tr>`).join('')}</tbody></table>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:5px;">Akan tersimpan otomatis ke Input Manual (tab Pecah Pallet &amp; Pecah Kirim) sesuai periode di judul blok — bukan periode file.</div>
+        </div>`;
+      })() : '';
+
+      if(p.pecahSheetOnly){
+        return `<div class="about-box" style="margin-bottom:12px;">
+          <div style="font-weight:700;color:var(--navy);">${p.name} — RDC <b>${RK_TARGET_RDC}</b></div>
+          <div style="font-size:11.5px;color:var(--stone);margin-top:4px;">Tidak ada transaksi pengiriman harian di file ini, tapi sheet rekap pecah terbaca.</div>
+          ${pecahBlock}</div>`;
+      }
       const s = p.summary;
       return `<div class="about-box" style="margin-bottom:12px;">
         <div style="font-weight:700;color:var(--navy);margin-bottom:8px;">${p.name} — periode <b>${p.period||'(tidak terdeteksi)'}</b> · RDC <b>${RK_TARGET_RDC}</b></div>
@@ -2322,6 +2539,7 @@ function handleFileRK(files){
           <tr style="background:#FFF3D6;"><td><b>Pengganti Pecah (transaksi)</b></td><td><b>${fmtNum(s.pecah_trx)}</b></td><td><b>Pengganti Pecah (box)</b></td><td><b>${fmtNum(s.pecah_box)}</b></td></tr>
         </tbody></table>
         <div style="font-size:11px;color:var(--stone);margin-top:8px;">Top 5 SKU: ${p.sku.slice(0,5).map(x=>`${x.desc||x.material} (${fmtNum(x.qty)})`).join(' · ')}</div>
+        ${pecahBlock}
       </div>`;
     }).join('') + `<button class="btn-primary" id="rkConfirmBtn" style="padding:10px 20px;">✓ Konfirmasi &amp; Simpan ke Dashboard</button>`;
     document.getElementById('rkConfirmBtn').addEventListener('click', applyRKUpload);
@@ -2335,23 +2553,60 @@ async function applyRKUpload(){
   const btn = document.getElementById('rkConfirmBtn');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   const el = document.getElementById('rkResult');
-  let ok=0, fail=0, msgs=[];
+  let ok=0, fail=0, msgs=[], pecahOk=0, pecahFail=0;
   for(const p of RK_PARSED){
-    if(!p.period){ fail++; msgs.push(`${p.name}: periode tidak terdeteksi, dilewati.`); continue; }
-    try{
-      await sbRpc('upsert_rk_batch', {
-        input_password: CURRENT_PASSWORD, p_rdc_name: RK_TARGET_RDC, p_period: p.period+'-01',
-        p_summary: p.summary, p_sku: p.sku, p_driver: p.driver, p_channel: p.channel
-      });
-      ok++;
+    if(p.period){
       try{
-        await sbRpc('log_upload', {input_password:CURRENT_PASSWORD, p_filename:p.name+' (RK '+p.period+')',
-          p_rows_applied:1, p_warnings:[], p_summary:[{rdc:RK_TARGET_RDC, fields:Object.keys(p.summary)}],
-          p_upload_data:[{rdc:RK_TARGET_RDC, fields:p.summary}]});
-      }catch(e){}
-    }catch(e){ fail++; msgs.push(`${p.name}: ${e.message}`); }
+        await sbRpc('upsert_rk_batch', {
+          input_password: CURRENT_PASSWORD, p_rdc_name: RK_TARGET_RDC, p_period: p.period+'-01',
+          p_summary: p.summary, p_sku: p.sku, p_driver: p.driver, p_channel: p.channel
+        });
+        ok++;
+        try{
+          await sbRpc('log_upload', {input_password:CURRENT_PASSWORD, p_filename:p.name+' (RK '+p.period+')',
+            p_rows_applied:1, p_warnings:[], p_summary:[{rdc:RK_TARGET_RDC, fields:Object.keys(p.summary)}],
+            p_upload_data:[{rdc:RK_TARGET_RDC, fields:p.summary}]});
+        }catch(e){}
+      }catch(e){ fail++; msgs.push(`${p.name}: ${e.message}`); }
+    } else if(!p.pecahSheetOnly){
+      fail++; msgs.push(`${p.name}: periode tidak terdeteksi, dilewati.`);
+    }
+
+    // Rekap Pecah blocks → Input Manual (pecah_pallet / pecah_kirim), each using ITS OWN period from the block title
+    if(p.pecahSheet && p.pecahSheet.length){
+      // Re-upload safety: remove previously auto-imported blocks for the same RDC+period+category first,
+      // otherwise re-uploading the same file would double-count the KPI.
+      const affected = {};
+      p.pecahSheet.forEach(b=>{ if(b.period) affected[b.category+'|'+b.period] = {category:b.category, period:b.period}; });
+      for(const key in affected){
+        const {category, period} = affected[key];
+        try{
+          const existing = await sbSelect('manual_recap_entry',
+            `&rdc_name=eq.${encodeURIComponent(RK_TARGET_RDC)}&category=eq.${category}&entry_date=eq.${period}-01`);
+          for(const row of existing){
+            if(row.description && row.description.startsWith('Auto dari sheet rekap pecah')){
+              try{ await sbRpc('delete_manual_recap', {input_password:CURRENT_PASSWORD, p_id: row.id}); }catch(e){}
+            }
+          }
+        }catch(e){}
+      }
+      for(const b of p.pecahSheet){
+        if(!b.period){ pecahFail++; continue; }
+        try{
+          await sbRpc('upsert_manual_recap', {
+            input_password: CURRENT_PASSWORD, p_id: null, p_rdc_name: RK_TARGET_RDC,
+            p_entry_date: b.period+'-01', p_category: b.category,
+            p_sub_type: b.line || null,
+            p_description: `Auto dari sheet rekap pecah${b.source?' — barang '+b.source:''}`,
+            p_qty: b.qty, p_unit: 'box', p_notes: b.title
+          });
+          pecahOk++;
+        }catch(e){ pecahFail++; }
+      }
+    }
   }
-  el.innerHTML = `<div class="warn-box ${fail?'warn':'ok'}">${ok} file RK tersimpan${fail?`, ${fail} gagal`:''}. ${msgs.join(' ')}</div>`;
+  const pecahMsg = (pecahOk||pecahFail) ? ` Rekap pecah: ${pecahOk} blok tersimpan${pecahFail?`, ${pecahFail} gagal/tanpa periode`:''}.` : '';
+  el.innerHTML = `<div class="warn-box ${(fail||pecahFail)?'warn':'ok'}">${ok} file RK tersimpan${fail?`, ${fail} gagal`:''}.${pecahMsg} ${msgs.join(' ')}</div>`;
   await loadUploadHistory();
   render(CURRENT_RDC);
 }
@@ -2363,7 +2618,7 @@ if(dzRK){
   dzRK.addEventListener('dragover', e=>{ e.preventDefault(); dzRK.classList.add('dragover'); });
   dzRK.addEventListener('dragleave', ()=>dzRK.classList.remove('dragover'));
   dzRK.addEventListener('drop', e=>{ e.preventDefault(); dzRK.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFileRK(e.dataTransfer.files); });
-  fileInputRK.addEventListener('change', e=>{ if(e.target.files.length) handleFileRK(e.target.files); });
+  fileInputRK.addEventListener('change', e=>{ if(e.target.files.length){ handleFileRK(e.target.files); e.target.value=''; } });
 }
 
 function buildRowsFromParsedFields(parsedByRdc, sourceLabel){
@@ -2690,6 +2945,9 @@ function applyRoleUI(){
   document.getElementById('mainTitle').textContent = CURRENT_ROLE==='master' ? 'SLS Supply Chain Profitability Control Tower' : 'SLS Warehouse Operational Dashboard';
   document.getElementById('footerScopedNote').style.display = CURRENT_ROLE==='master' ? 'none' : 'inline';
   document.getElementById('pulseSectionLabel').style.display = CURRENT_RDC_SCOPE ? 'none' : 'flex';
+  document.getElementById('viewTabMgmt').style.display = CURRENT_ROLE==='master' ? 'block' : 'none';
+  document.getElementById('viewTabsWrap').style.display = CURRENT_ROLE==='master' ? 'flex' : 'none';
+  switchView(CURRENT_ROLE==='master' ? 'mgmt' : 'ops');
   const todayStr = new Date().toISOString().slice(0,10);
   const monthAgoStr = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
   document.getElementById('rangeFrom').value = monthAgoStr;
