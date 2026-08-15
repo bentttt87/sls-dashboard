@@ -240,6 +240,7 @@
     <div class="brand"><span class="brand-mark">S</span>SLS CONTROL TOWER</div>
     <div class="brand-sub">Supply Chain · Satya Langgeng</div>
     <div class="badge-real" id="dataGovBadge" title="Lihat status validasi per KPI di masing-masing kartu">📊 Data Governance: 5 Status</div>
+    <div id="authSessionBadge" style="display:none;"></div>
     <div class="badge-role" id="roleBadge"></div>
     <div class="nav-item active" data-page="dashboard"><span class="nav-dot"></span>Dashboard Utama</div>
     <div class="nav-item" data-page="about"><span class="nav-dot"></span>About Dashboard</div>
@@ -577,10 +578,35 @@
 const SUPABASE_URL = 'https://mfdckngkvjnemwgmkiiv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZGNrbmdrdmpuZW13Z21raWl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDcxMjUsImV4cCI6MjEwMTU4MzEyNX0.mFhv9hgQvjzg6AYfmEI2GiJ71I2xSkOozC43mwFcogU';
 
+// SLS-AUTH: real Supabase Auth session (JWT), established after login. Used instead of the bare anon key
+// whenever available so PostgREST/RLS can see who's actually calling — but every function below falls back
+// to the anon key if no session exists yet, so nothing here can break the app before login completes.
+let AUTH_SESSION = null;
+let AUTH_SESSION_OK = false;
+function authHeader(){
+  return AUTH_SESSION && AUTH_SESSION.access_token ? AUTH_SESSION.access_token : SUPABASE_ANON_KEY;
+}
+async function establishAuthSession(password){
+  try{
+    const emailRes = await sbRpc('get_login_email', {input_password: password});
+    if(!emailRes) return false;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method:'POST',
+      headers:{ 'apikey':SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email: emailRes, password })
+    });
+    if(!res.ok) return false;
+    const data = await res.json();
+    if(!data.access_token) return false;
+    AUTH_SESSION = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in||3600)*1000 };
+    return true;
+  }catch(e){ console.warn('SLS-AUTH: gagal membangun sesi aman, lanjut pakai mode lama.', e); return false; }
+}
+
 async function sbRpc(fn, params){
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method:'POST',
-    headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' },
+    headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${authHeader()}`, 'Content-Type':'application/json' },
     body: JSON.stringify(params)
   });
   if(!res.ok){ const t = await res.text(); throw new Error(t); }
@@ -588,7 +614,7 @@ async function sbRpc(fn, params){
 }
 async function sbSelect(table, query=''){
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${query}`, {
-    headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` }
+    headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${authHeader()}` }
   });
   if(!res.ok){ const t = await res.text(); throw new Error(t); }
   return res.json();
@@ -1886,6 +1912,7 @@ async function doLogin(){
     CURRENT_ROLE = account.role;
     CURRENT_RDC_SCOPE = account.rdc_name;
     sessionStorage.setItem('sls_pw', pw);
+    AUTH_SESSION_OK = await establishAuthSession(pw); // non-blocking for login itself — old system still works if this fails
     await bootDashboard();
   }catch(e){
     const cache = loadOfflineCache();
@@ -2930,6 +2957,21 @@ fileInputRaw.addEventListener('change', e=>{
 
 function applyRoleUI(){
   const badge = document.getElementById('roleBadge');
+  const authBadge = document.getElementById('authSessionBadge');
+  if(!IS_OFFLINE_MODE){
+    authBadge.style.display = 'block';
+    if(AUTH_SESSION_OK){
+      authBadge.className = 'badge-real'; authBadge.style.background='#E7F6EC'; authBadge.style.color='#1E7B34';
+      authBadge.title = 'Sesi ini terautentikasi lewat Supabase Auth (JWT) — bukan hanya cek password di sisi tampilan.';
+      authBadge.innerHTML = '🔐 Sesi Aman Aktif';
+    } else {
+      authBadge.className = 'badge-real'; authBadge.style.background='#FFF3D6'; authBadge.style.color='#946200';
+      authBadge.title = 'Login tetap berjalan normal, tapi lapisan keamanan tambahan belum aktif untuk sesi ini — mungkin karena masalah jaringan sesaat.';
+      authBadge.innerHTML = '⚠️ Sesi Standar (belum ter-autentikasi penuh)';
+    }
+  } else {
+    authBadge.style.display = 'none';
+  }
   if(CURRENT_ROLE==='master'){
     badge.textContent = '👑 MASTER — Semua RDC';
     badge.className = 'badge-role master';
@@ -3009,7 +3051,7 @@ function bootDashboardOffline(savedAt){
   if(savedPw){
     try{
       const account = await sbRpc('verify_password', {input_password: savedPw});
-      if(account){ CURRENT_PASSWORD = savedPw; CURRENT_ROLE = account.role; CURRENT_RDC_SCOPE = account.rdc_name; await bootDashboard(); return; }
+      if(account){ CURRENT_PASSWORD = savedPw; CURRENT_ROLE = account.role; CURRENT_RDC_SCOPE = account.rdc_name; AUTH_SESSION_OK = await establishAuthSession(savedPw); await bootDashboard(); return; }
     }catch(e){
       const cache = loadOfflineCache();
       if(cache){
