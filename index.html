@@ -586,21 +586,28 @@ let AUTH_SESSION_OK = false;
 function authHeader(){
   return AUTH_SESSION && AUTH_SESSION.access_token ? AUTH_SESSION.access_token : SUPABASE_ANON_KEY;
 }
+let AUTH_SESSION_ERROR = '';
 async function establishAuthSession(password){
+  AUTH_SESSION_ERROR = '';
   try{
     const emailRes = await sbRpc('get_login_email', {input_password: password});
-    if(!emailRes) return false;
+    if(!emailRes){ AUTH_SESSION_ERROR = 'get_login_email tidak menemukan akun (hasil kosong).'; return false; }
     const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method:'POST',
       headers:{ 'apikey':SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
       body: JSON.stringify({ email: emailRes, password })
     });
-    if(!res.ok) return false;
+    if(!res.ok){
+      let bodyText = '';
+      try{ bodyText = await res.text(); }catch(e){}
+      AUTH_SESSION_ERROR = `HTTP ${res.status} dari /auth/v1/token — ${bodyText.slice(0,200)}`;
+      return false;
+    }
     const data = await res.json();
-    if(!data.access_token) return false;
+    if(!data.access_token){ AUTH_SESSION_ERROR = 'Respons token tidak berisi access_token: ' + JSON.stringify(data).slice(0,200); return false; }
     AUTH_SESSION = { access_token: data.access_token, refresh_token: data.refresh_token, expires_at: Date.now() + (data.expires_in||3600)*1000 };
     return true;
-  }catch(e){ console.warn('SLS-AUTH: gagal membangun sesi aman, lanjut pakai mode lama.', e); return false; }
+  }catch(e){ AUTH_SESSION_ERROR = 'Exception: ' + (e && e.message ? e.message : String(e)); console.warn('SLS-AUTH: gagal membangun sesi aman, lanjut pakai mode lama.', e); return false; }
 }
 
 async function sbRpc(fn, params){
@@ -2967,7 +2974,7 @@ function applyRoleUI(){
     } else {
       authBadge.className = 'badge-real'; authBadge.style.background='#FFF3D6'; authBadge.style.color='#946200';
       authBadge.title = 'Login tetap berjalan normal, tapi lapisan keamanan tambahan belum aktif untuk sesi ini — mungkin karena masalah jaringan sesaat.';
-      authBadge.innerHTML = '⚠️ Sesi Standar (belum ter-autentikasi penuh)';
+      authBadge.innerHTML = '⚠️ Sesi Standar (belum ter-autentikasi penuh)' + (AUTH_SESSION_ERROR ? `<div style="font-weight:400;font-size:9px;margin-top:3px;opacity:0.85;word-break:break-word;">${AUTH_SESSION_ERROR}</div>` : '');
     }
   } else {
     authBadge.style.display = 'none';
