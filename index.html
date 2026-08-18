@@ -16,19 +16,20 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);font-family:'Inter',sans-serif;color:var(--ink);}
   .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
-  .sidebar{background:var(--navy-deep);color:#fff;padding:24px 18px;display:flex;flex-direction:column;}
-  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .sidebar{background:var(--navy-deep);color:#fff;padding:24px 18px;display:flex;flex-direction:column;height:100vh;position:sticky;top:0;overflow:hidden;}
+  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-shrink:0;}
   .brand-mark{width:22px;height:22px;border-radius:5px;background:var(--clay);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
-  .brand-sub{font-size:10.5px;color:#9FB0CC;margin-bottom:20px;letter-spacing:0.5px;text-transform:uppercase;}
-  .badge-real{display:inline-block;background:#16A34A;color:#fff;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:10px;margin-bottom:14px;letter-spacing:0.3px;}
-  .badge-role{display:inline-block;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:10px;margin-bottom:20px;letter-spacing:0.3px;}
+  .brand-sub{font-size:10.5px;color:#9FB0CC;margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;flex-shrink:0;}
+  .badge-real{display:inline-block;background:#16A34A;color:#fff;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:10px;margin-bottom:10px;letter-spacing:0.3px;flex-shrink:0;}
+  .badge-role{display:inline-block;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:10px;margin-bottom:12px;letter-spacing:0.3px;flex-shrink:0;}
   .badge-role.master{background:var(--clay);color:#fff;}
   .badge-role.user{background:#3A5787;color:#fff;}
+  .nav-scroll{overflow-y:auto;flex:1 1 auto;min-height:60px;margin:0 -18px;padding:0 18px;}
   .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;font-size:13px;font-weight:500;color:#C7D2E3;margin-bottom:2px;cursor:pointer;}
   .nav-item:hover{background:rgba(255,255,255,0.06);}
   .nav-item.active{background:rgba(255,255,255,0.08);color:#fff;border-left:3px solid var(--clay);padding-left:7px;}
   .nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0.6;flex-shrink:0;}
-  .sidebar-foot{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:10.5px;color:#7E8DA8;line-height:1.7;}
+  .sidebar-foot{padding:12px 0 14px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:10.5px;color:#7E8DA8;line-height:1.7;flex-shrink:0;}
   .logout-btn{margin-top:14px;background:rgba(255,255,255,0.08);color:#fff;border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;}
   .logout-btn:hover{background:rgba(255,255,255,0.14);}
   .main{padding:22px 30px 40px;}
@@ -242,21 +243,23 @@
     <div class="badge-real" id="dataGovBadge" title="Lihat status validasi per KPI di masing-masing kartu">📊 Data Governance: 5 Status</div>
     <div id="authSessionBadge" style="display:none;"></div>
     <div class="badge-role" id="roleBadge"></div>
-    <div class="nav-item active" data-page="dashboard"><span class="nav-dot"></span>Dashboard Utama</div>
-    <div class="nav-item" data-page="about"><span class="nav-dot"></span>About Dashboard</div>
-    <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-dot"></span>Kelola RDC (Master)</div>
-    <div class="nav-item" data-page="upload" id="navUpload"><span class="nav-dot"></span>Upload Data</div>
-    <div class="nav-item" data-page="manual" id="navManual"><span class="nav-dot"></span>Input Manual</div>
     <div class="sidebar-foot">
       5 RDC · Jkt / Smg / Sby / Dps / Plm<br>
       Snapshot: Juni 2026<br>
       Sumber: Supabase (live)<br>
       <span id="lastUpdated"></span>
       <div id="dataFreshnessBox" style="margin-top:8px;font-size:10px;line-height:1.6;"></div>
+      <button class="export-btn" id="downloadPdfBtn" style="margin-top:12px;">📄 Download PDF</button>
+      <button class="export-btn" id="downloadExcelBtn">📊 Download Excel</button>
     </div>
-    <button class="export-btn" id="downloadPdfBtn">📄 Download PDF</button>
-    <button class="export-btn" id="downloadExcelBtn">📊 Download Excel</button>
-    <button class="logout-btn" id="logoutBtn">⎋ Keluar</button>
+    <div class="nav-scroll">
+      <div class="nav-item active" data-page="dashboard"><span class="nav-dot"></span>Dashboard Utama</div>
+      <div class="nav-item" data-page="about"><span class="nav-dot"></span>About Dashboard</div>
+      <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-dot"></span>Kelola RDC (Master)</div>
+      <div class="nav-item" data-page="upload" id="navUpload"><span class="nav-dot"></span>Upload Data</div>
+      <div class="nav-item" data-page="manual" id="navManual"><span class="nav-dot"></span>Input Manual</div>
+    </div>
+    <button class="logout-btn" id="logoutBtn" style="flex-shrink:0;">⎋ Keluar</button>
   </div>
 
   <div class="main">
@@ -1159,14 +1162,14 @@ async function renderMonthlySumCard(rdcName, category, label, unit, sowhatText){
     return `<div class="kpi-card empty">
       <div class="kpi-top"><div class="kpi-label">${label}</div>${statusBadgeHtml('required')}</div>
       <div class="kpi-value">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="goToManualTab('${category}')">Input sekarang →</span></div>
     </div>`;
   }
   const total = rows.reduce((s,r)=>s+(parseFloat(r.qty)||0),0);
   return `<div class="kpi-card">
     <div class="kpi-top"><div class="kpi-label">${label}</div>${statusBadgeHtml('real','Source: Input Manual (dicatat cabang per kejadian). Formula: jumlah seluruh catatan bulan berjalan.')}</div>
     <div class="kpi-value">${fmtNum(total)}<span class="unit"> ${unit}</span></div>
-    <div class="kpi-sowhat">${sowhatText} · ${rows.length} catatan bulan ini. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Lihat/Input →</span></div>
+    <div class="kpi-sowhat">${sowhatText} · ${rows.length} catatan bulan ini. <span class="detail-link" onclick="goToManualTab('${category}')">Lihat/Input →</span></div>
   </div>`;
 }
 
@@ -1178,7 +1181,7 @@ async function renderSpbCard(rdcName){
     return `<div class="kpi-card empty">
       <div class="kpi-top"><div class="kpi-label">Serah Terima SPB</div>${statusBadgeHtml('required')}</div>
       <div class="kpi-value">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+      <div class="kpi-sowhat">Belum ada catatan bulan ini untuk ${rdcName}. <span class="detail-link" onclick="goToManualTab('serah_terima_spb')">Input sekarang →</span></div>
     </div>`;
   }
   const byStatus = {};
@@ -1190,7 +1193,7 @@ async function renderSpbCard(rdcName){
   return `<div class="kpi-card ${pct<90?'warn':''}">
     <div class="kpi-top"><div class="kpi-label">Serah Terima SPB</div>${statusBadgeHtml('real','Source: Input Manual. Formula: % Sudah Diserahkan dari total SPB tercatat bulan berjalan.')}</div>
     <div class="kpi-value">${pct}<span class="unit">% Lengkap</span></div>
-    <div class="kpi-sowhat" style="line-height:1.6;">${lines}<br><span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Lihat/Input →</span></div>
+    <div class="kpi-sowhat" style="line-height:1.6;">${lines}<br><span class="detail-link" onclick="goToManualTab('serah_terima_spb')">Lihat/Input →</span></div>
   </div>`;
 }
 
@@ -1262,13 +1265,13 @@ async function renderExtraKpi(rdcName){
     dpCard = `<div class="kpi-card">
       <div class="kpi-top"><div class="kpi-label">Rata-rata Drop Point</div>${statusBadgeHtml('real','Source: Input Manual (dicatat cabang tiap bulan per jenis truck). Formula: rata-rata jumlah titik antar per pengiriman.')}</div>
       <div class="kpi-value" style="font-size:15px;line-height:1.6;">${lines}</div>
-      <div class="kpi-sowhat">Makin tinggi = makin banyak titik antar terkonsolidasi per trip (rute lebih efisien). <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Update data →</span></div>
+      <div class="kpi-sowhat">Makin tinggi = makin banyak titik antar terkonsolidasi per trip (rute lebih efisien). <span class="detail-link" onclick="goToManualTab('drop_point')">Update data →</span></div>
     </div>`;
   } else {
     dpCard = `<div class="kpi-card empty">
       <div class="kpi-top"><div class="kpi-label">Rata-rata Drop Point</div>${statusBadgeHtml('required')}</div>
       <div class="kpi-value">Data Belum Tersedia</div>
-      <div class="kpi-sowhat">Belum ada data untuk ${rdcName}. Input lewat menu Input Manual → tab Drop Point. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'manual\\']').click()">Input sekarang →</span></div>
+      <div class="kpi-sowhat">Belum ada data untuk ${rdcName}. Input lewat menu Input Manual → tab Drop Point. <span class="detail-link" onclick="goToManualTab('drop_point')">Input sekarang →</span></div>
     </div>`;
   }
   const [pecahKirimCard, pecahPalletCard, doCard, spbCard] = await Promise.all([
@@ -3284,6 +3287,10 @@ const MANUAL_CATEGORY_META = {
 async function loadManualPage(){
   MANUAL_RDC_FILTER = CURRENT_RDC_SCOPE || MANUAL_RDC_FILTER || Object.keys(RDC).filter(n=>n!=='Semua')[0];
   document.querySelectorAll('.manual-tab').forEach(t=>{
+    const isActive = t.dataset.mtab === MANUAL_TAB;
+    t.classList.toggle('active', isActive);
+    t.style.color = isActive ? 'var(--navy)' : 'var(--stone)';
+    t.style.borderBottomColor = isActive ? 'var(--navy)' : 'transparent';
     t.onclick = ()=>{
       document.querySelectorAll('.manual-tab').forEach(x=>{x.classList.remove('active'); x.style.color='var(--stone)'; x.style.borderBottomColor='transparent';});
       t.classList.add('active'); t.style.color='var(--navy)'; t.style.borderBottomColor='var(--navy)';
@@ -3292,6 +3299,13 @@ async function loadManualPage(){
     };
   });
   renderManualPanel();
+}
+
+// Deep-link helper: KPI cards elsewhere on the dashboard use this so "Lihat/Input →" opens
+// Input Manual on the SPECIFIC tab that card is about, instead of whichever tab was last active.
+function goToManualTab(tabKey){
+  MANUAL_TAB = tabKey;
+  document.querySelector('.nav-item[data-page="manual"]').click();
 }
 
 function manualRdcSelectorHtml(){
