@@ -2458,7 +2458,11 @@ function parseMB51Pecah(wb){
         cMvt=col('Movement Type'), cDht=col('Document Header Text'), cRdc=col('Name 1');
   if([cDate,cQty,cSloc,cMvt,cDht,cRdc].some(c=>c<0)) return null;
 
-  const PLATE_RE = /^[A-Z]{1,3}\s?\d{3,5}/;
+  // Plate can appear at the START ("B 9661 UCA - DIAN") or AFTER a transport-vendor prefix
+  // ("PT NINO B 9787 NI GUNTUR", "PT PAGAR B 9407 BIT IMAM", "CSL D 9867 AG - RONI").
+  // Matching only at the start (the original v40 behaviour) misclassified 432 rows / 510 box
+  // of real delivery breakage as warehouse breakage — verified against the Jan-Jul 2026 Jakarta export.
+  const PLATE_RE = /\b[A-Z]{1,2}\s?\d{3,5}\s?[A-Z]{1,3}\b/;
   const agg = {}; // key: rdc|period|category -> qty
 
   for(let r=1;r<grid.length;r++){
