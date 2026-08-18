@@ -512,7 +512,7 @@
         </div>
 
         <div id="tabpanel-raw" style="display:none;">
-          <div class="warn-box info">ℹ️ Mode ini membaca langsung file laporan bulanan yang biasa Anda kirim — <b>General Profil</b>, <b>Stock Rata-Rata</b>, <b>Monthly Report</b> (Deliver Out + Stock Out vs Pecah), <b>Delivery Breakdown</b>, dan <b>Avg Drop Point</b>. Bisa upload satu atau beberapa file sekaligus — sistem otomatis mengenali dan menggabungkan.</div>
+          <div class="warn-box info">ℹ️ Mode ini membaca langsung file laporan bulanan yang biasa Anda kirim — <b>General Profil</b>, <b>Stock Rata-Rata</b>, <b>Monthly Report</b> (Deliver Out + Stock Out vs Pecah), <b>Delivery Breakdown</b>, <b>Avg Drop Point</b>, dan <b>tarikan SAP MB51</b> (otomatis mengisi Pecah Kirim/Pallet/Breakage + DO Tidak Terkirim, RDC dibaca langsung dari file). Bisa upload satu atau beberapa file sekaligus — sistem otomatis mengenali dan menggabungkan.</div>
           <div class="dropzone" id="dropzoneRaw">
             <div class="icon">📊</div>
             <div class="title">Drag &amp; drop file laporan mentah di sini</div>
@@ -2431,6 +2431,71 @@ const RK_COL = { so:0, odoDate:1, material:3, desc:4, qty:6, uom:7, remark:9, pr
 // Parses the "Pecah dalam pallet / Pecah pengiriman" recap sheet that ships inside some RK workbooks.
 // Structure: repeated blocks, each = title row · "Document Date" header · detail rows · "Total" row (qty in col 5).
 // Title encodes type + product line + month, e.g. "Pecah dalam pallet Roman Granit Bulan Juni 2026 barang SRKI".
+// Parses a raw SAP MB51 material-document export (Posting Date/Material/Quantity/Storage Location/
+// Movement Type/Document Header Text/Name 1 columns). Classifies breakage-related transfers into
+// the 3 Pecah categories plus DO Tidak Terkirim, purely from movement-type + storage-location +
+// free-text patterns already verified against a real Jakarta Jan-Jul 2026 export:
+//   - Movement 311 (transfer within plant) landing in storage location RFB1 (the "rusak/broken" bin),
+//     positive qty = the destination side of the pair (the source-side negative row is the mirror, skipped).
+//     - Document Header Text starting with a vehicle-plate pattern (e.g. "B 9661 UCA - DIAN") → pecah_kirim
+//     - Document Header Text containing "PECAH" + "PALET" → pecah_pallet
+//     - anything else landing in RFB1 (SELISIH SERI, DITEMUKAN SAAT ..., PECAH GUDANG, ADJ/... etc.) → pecah_breakage
+//   - Movement 602 ("GD Goods deliv. rev." — standard SAP goods-issue-for-delivery reversal) → do_tidak_terkirim
+// Movement 905 ("Scarp Dmg WHS") is deliberately EXCLUDED — confirmed by Bent this is a separate
+// downstream process (accounting adjustment for returning broken goods to the factory), not one of
+// these 4 KPIs.
+function parseMB51Pecah(wb){
+  const sheetName = wb.SheetNames.find(n=>{
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:null, range:0});
+    const h = (grid[0]||[]).map(x=>String(x||'').trim());
+    return h.includes('Posting Date') && h.includes('Movement Type') && h.includes('Storage Location');
+  });
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const header = grid[0].map(x=>String(x||'').trim());
+  const col = name => header.indexOf(name);
+  const cDate=col('Posting Date'), cQty=col('Quantity'), cSloc=col('Storage Location'),
+        cMvt=col('Movement Type'), cDht=col('Document Header Text'), cRdc=col('Name 1');
+  if([cDate,cQty,cSloc,cMvt,cDht,cRdc].some(c=>c<0)) return null;
+
+  const PLATE_RE = /^[A-Z]{1,3}\s?\d{3,5}/;
+  const agg = {}; // key: rdc|period|category -> qty
+
+  for(let r=1;r<grid.length;r++){
+    const row = grid[r];
+    if(!row) continue;
+    const mt = String(row[cMvt]||'').trim();
+    const qty = Number(row[cQty])||0;
+    const dateVal = row[cDate];
+    if(!(dateVal instanceof Date)) continue;
+    const period = dateVal.getFullYear()+'-'+String(dateVal.getMonth()+1).padStart(2,'0');
+    const rdcRaw = String(row[cRdc]||'').trim();
+    const rdc = rdcRaw.replace(/^RDC\s+/i,'');
+    if(!rdc) continue;
+
+    let category = null, addQty = 0;
+    if(mt==='311' && row[cSloc]==='RFB1' && qty>0){
+      const dht = String(row[cDht]||'').trim();
+      if(PLATE_RE.test(dht)) category = 'pecah_kirim';
+      else if(/PECAH/i.test(dht) && /PALET/i.test(dht)) category = 'pecah_pallet';
+      else category = 'pecah_breakage';
+      addQty = qty;
+    } else if(mt==='602'){
+      category = 'do_tidak_terkirim';
+      addQty = Math.abs(qty);
+    }
+    if(!category) continue;
+    const key = rdc+'|'+period+'|'+category;
+    agg[key] = (agg[key]||0) + addQty;
+  }
+
+  const out = Object.keys(agg).map(k=>{
+    const [rdc, period, category] = k.split('|');
+    return { rdc, period, category, qty: agg[k] };
+  });
+  return out.length ? out : null;
+}
+
 function parseRKPecahSheet(wb){
   const out = [];
   wb.SheetNames.forEach(sn=>{
@@ -2909,6 +2974,8 @@ function handleFileRaw(files){
     const namesUsed = [];
     let anyParsed = false;
     let dropPointEntries = [];
+    let mb51Entries = [];
+    let mb51FileName = null;
     fileResults.forEach(({name, wb})=>{
       const gp = parseGeneralProfil(wb);
       const sr = parseStockRataRata(wb);
@@ -2916,6 +2983,7 @@ function handleFileRaw(files){
       const sop = parseStockOutPecah(wb);
       const db = parseDeliveryBreakdown(wb);
       const dp = parseAvgDropPoint(wb);
+      const mb51 = parseMB51Pecah(wb);
       if(gp){ anyParsed = true; namesUsed.push(name+' (General Profil)');
         Object.keys(gp).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, gp[rdc]); });
       }
@@ -2932,6 +3000,7 @@ function handleFileRaw(files){
         Object.keys(db).forEach(rdc=>{ merged[rdc] = Object.assign(merged[rdc]||{}, db[rdc]); });
       }
       if(dp){ anyParsed = true; namesUsed.push(name+' (Avg Drop Point)'); dropPointEntries = dropPointEntries.concat(dp); }
+      if(mb51){ anyParsed = true; namesUsed.push(name+' (SAP MB51 — Pecah/DO)'); mb51Entries = mb51Entries.concat(mb51); mb51FileName = name; }
     });
 
     if(dropPointEntries.length){
@@ -2948,8 +3017,12 @@ function handleFileRaw(files){
       document.getElementById('uploadResult').innerHTML = dpMsg;
     }
 
+    if(mb51Entries.length){
+      renderMB51Preview(mb51Entries, mb51FileName);
+    }
+
     if(!anyParsed){
-      document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Tidak ada sheet yang dikenali di file yang diupload. Format yang didukung: General Profil, Stock Rata-Rata, Deliver Out, Stock Out vs Pecah, Delivery Breakdown, Avg Drop Point.</div>`;
+      document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Tidak ada sheet yang dikenali di file yang diupload. Format yang didukung: General Profil, Stock Rata-Rata, Deliver Out, Stock Out vs Pecah, Delivery Breakdown, Avg Drop Point, SAP MB51.</div>`;
       return;
     }
     if(Object.keys(merged).length){
@@ -2958,6 +3031,68 @@ function handleFileRaw(files){
   }).catch(err=>{
     document.getElementById('uploadResult').innerHTML = `<div class="warn-box error">Gagal membaca file: ${err.message}</div>`;
   });
+}
+
+const MB51_CATEGORY_LABEL = {pecah_kirim:'Pecah Kirim', pecah_pallet:'Pecah Pallet', pecah_breakage:'Pecah Breakage (Gudang)', do_tidak_terkirim:'DO Tidak Terkirim'};
+const MB51_CATEGORY_UNIT = {pecah_kirim:'box', pecah_pallet:'box', pecah_breakage:'box', do_tidak_terkirim:'box'};
+let MB51_ENTRIES = null;
+let MB51_FILENAME = null;
+
+function renderMB51Preview(entries, filename){
+  MB51_ENTRIES = CURRENT_RDC_SCOPE ? entries.filter(e=>e.rdc===CURRENT_RDC_SCOPE) : entries;
+  MB51_FILENAME = filename;
+  const skipped = entries.length - MB51_ENTRIES.length;
+  const byPeriod = {};
+  MB51_ENTRIES.forEach(e=>{ (byPeriod[e.period]=byPeriod[e.period]||[]).push(e); });
+  const periods = Object.keys(byPeriod).sort();
+  const rdcs = [...new Set(MB51_ENTRIES.map(e=>e.rdc))];
+  const el = document.getElementById('uploadResult');
+  el.innerHTML = `<div class="about-box" style="margin-top:10px;">
+    <div style="font-weight:700;color:var(--navy);margin-bottom:8px;">📄 ${filename} — tarikan SAP MB51 (${rdcs.join(', ')})${skipped?` — ${skipped} baris RDC lain dilewati sesuai akses Anda`:''}</div>
+    <div class="warn-box info" style="margin-bottom:10px;">Otomatis mengisi 4 KPI dari transaksi SAP — <b>Pecah Kirim</b> (transfer ke lokasi rusak yang ditandai plat+sopir), <b>Pecah Pallet</b> ("PECAH DALAM PALET"), <b>Pecah Breakage</b> (transfer lain ke lokasi rusak), dan <b>DO Tidak Terkirim</b> (movement 602). Ini akan MENGGANTI entri auto-import sebelumnya untuk RDC+bulan+kategori yang sama — bukan menambah dobel.</div>
+    <table class="admin-table"><thead><tr><th>Bulan</th>${Object.values(MB51_CATEGORY_LABEL).map(l=>`<th>${l}</th>`).join('')}</tr></thead>
+    <tbody>${periods.map(p=>{
+      const rowsByCategory = {};
+      byPeriod[p].forEach(e=>{ rowsByCategory[e.category] = (rowsByCategory[e.category]||0) + e.qty; });
+      return `<tr><td><b>${p}</b></td>${Object.keys(MB51_CATEGORY_LABEL).map(c=>`<td>${rowsByCategory[c]!=null?fmtNum(rowsByCategory[c])+' box':'-'}</td>`).join('')}</tr>`;
+    }).join('')}</tbody></table>
+    <button class="btn-primary" id="mb51ConfirmBtn" style="padding:10px 20px;margin-top:12px;">✓ Konfirmasi &amp; Simpan ke Input Manual</button>
+  </div>`;
+  document.getElementById('mb51ConfirmBtn').addEventListener('click', applyMB51Upload);
+}
+
+async function applyMB51Upload(){
+  const btn = document.getElementById('mb51ConfirmBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  let ok=0, fail=0;
+  const touched = {}; // rdc|period|category -> true, so we only purge-then-insert once per group
+  for(const e of MB51_ENTRIES){
+    const groupKey = e.rdc+'|'+e.period+'|'+e.category;
+    if(!touched[groupKey]){
+      touched[groupKey] = true;
+      try{
+        const existing = await sbSelect('manual_recap_entry',
+          `&rdc_name=eq.${encodeURIComponent(e.rdc)}&category=eq.${e.category}&entry_date=eq.${e.period}-01`);
+        for(const row of existing){
+          if(row.description && row.description.startsWith('Auto dari SAP MB51')){
+            try{ await sbRpc('delete_manual_recap', {input_password:CURRENT_PASSWORD, p_id: row.id}); }catch(err){}
+          }
+        }
+      }catch(err){}
+    }
+    try{
+      await sbRpc('upsert_manual_recap', {
+        input_password: CURRENT_PASSWORD, p_id: null, p_rdc_name: e.rdc,
+        p_entry_date: e.period+'-01', p_category: e.category, p_sub_type: null,
+        p_description: 'Auto dari SAP MB51 ('+MB51_FILENAME+')', p_qty: e.qty,
+        p_unit: MB51_CATEGORY_UNIT[e.category], p_notes: null
+      });
+      ok++;
+    }catch(err){ fail++; }
+  }
+  document.getElementById('uploadResult').innerHTML = `<div class="warn-box ${fail?'warn':'ok'}">${ok} entri tersimpan otomatis ke Input Manual dari SAP MB51${fail?`, ${fail} gagal`:''}.</div>`;
+  await loadUploadHistory();
+  if(document.getElementById('page-dashboard').classList.contains('active')) render(CURRENT_RDC);
 }
 
 const dzRaw = document.getElementById('dropzoneRaw');
