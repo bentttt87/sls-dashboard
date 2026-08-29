@@ -41,6 +41,29 @@
   .filter-select{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:500;color:var(--ink);font-family:'Inter',sans-serif;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6459'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:28px;}
   .pulse{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px;}
   .pulse-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;}
+  .kpi-spark{display:flex;align-items:center;gap:7px;margin:6px 0 2px;}
+  .kpi-spark svg{flex:0 0 auto;}
+  .kpi-spark span{font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .pulse-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .pulse-head .pulse-name{flex:1;margin:0;}
+  .pulse-health{font-size:11px;font-weight:800;background:var(--navy);color:#fff;
+    border-radius:20px;padding:2px 8px;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .pulse-metrics{display:grid;grid-template-columns:1fr;gap:2px;margin:6px 0 4px;}
+  .pulse-metrics div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .pulse-metrics span{font-size:10px;color:var(--stone);flex:0 0 auto;}
+  .pulse-metrics b{font-size:12px;font-variant-numeric:tabular-nums;text-align:right;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pulse-spark{width:100%;height:18px;display:block;margin:4px 0 6px;}
+  .hl-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:var(--panel);
+    border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:10px;}
+  .hl-item{display:flex;gap:9px;align-items:flex-start;}
+  .hl-ico{font-size:17px;line-height:1;flex:0 0 auto;}
+  .hl-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;color:var(--stone);text-transform:uppercase;}
+  .hl-val{font-size:14px;font-weight:700;margin-top:1px;}
+  .hl-sub{font-size:11px;color:var(--stone);font-variant-numeric:tabular-nums;}
+  .hl-note{grid-column:1/-1;border-top:1px solid var(--border);padding-top:10px;margin-top:2px;
+    font-size:12px;color:var(--ink-soft);}
+  @media (max-width:820px){ .hl-strip{grid-template-columns:1fr 1fr;} }
   .pulse-card.selected{box-shadow:0 0 0 2px var(--navy);}
   .pulse-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
   .pulse-card.ok::before{background:var(--green);}
@@ -294,6 +317,7 @@
 
         <div class="section-label" id="pulseSectionLabel">National RDC Insight</div>
         <div class="pulse" id="pulseGrid"></div>
+        <div id="highlightStrip"></div>
 
         <div id="managementFinancialSection">
           <div class="section-label">Business Impact &amp; Action Center <span class="tag">auto-analisis</span></div>
@@ -705,8 +729,17 @@ function renderPulse(selected){
     if(name===highestRiskName && status==='alert') highlight = '<div style="font-size:9px;font-weight:700;color:var(--red);margin-top:2px;">⚠ HIGHEST RISK</div>';
     else if(name===highestOppName && d.caprem>0) highlight = '<div style="font-size:9px;font-weight:700;color:var(--green);margin-top:2px;">💡 HIGHEST OPPORTUNITY (sisa kapasitas)</div>';
     return `<div class="pulse-card ${status} ${sel}" data-rdc="${name}" style="${clickable}">
-      <div class="pulse-name">${name}</div>
-      <div class="pulse-meta">Occupancy ${d.occ_now}% · Pecah ${d.pecah_now}%</div>
+      <div class="pulse-head">
+        <div class="pulse-name">${name}</div>
+        <div class="pulse-health" title="Health Score gabungan — dimensi yang datanya belum ada tidak dihitung">${healthScoreOf(name)}</div>
+      </div>
+      <div class="pulse-metrics">
+        <div><span>Occupancy</span><b>${fmtNum(d.occ_now)}%</b></div>
+        <div><span>Breakage</span><b>${fmtNum(d.pecah_now)}%</b></div>
+        <div><span>Inv. Days</span><b>${fmtNum(d.invdays)}</b></div>
+        <div><span>Sisa Kap.</span><b>${fmtNum(d.caprem)}</b></div>
+      </div>
+      ${pulseSpark(d)}
       <div class="pulse-status">${status==='ok'?'●':status==='watch'?'▲':'■'} ${label}</div>
       ${highlight}
       ${!CURRENT_RDC_SCOPE ? freshnessLabel(name) : ''}
@@ -722,6 +755,54 @@ function renderPulse(selected){
       });
     });
   }
+}
+
+// Health score shown on each RDC card — reuses the SAME calculation as Executive Pulse
+// so the two can never disagree.
+function healthScoreOf(name){
+  try{ return calcHealthScore(name).score; }catch(e){ return '—'; }
+}
+// Small trend line inside each RDC card, from the occupancy history already stored.
+function pulseSpark(d){
+  const vals = (d.occ_trend||[]).filter(v=>typeof v==='number'&&isFinite(v));
+  if(vals.length < 2) return '';
+  const min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
+  const W=100,H=18;
+  const pts = vals.map((v,i)=>`${((i/(vals.length-1))*W).toFixed(1)},${(H-((v-min)/span)*H).toFixed(1)}`).join(' ');
+  const diff = vals[vals.length-1]-vals[vals.length-2];
+  const col = diff===0 ? '#9FB0CC' : (diff<0 ? '#1B7F4B' : '#B3261E');
+  return `<svg class="pulse-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+}
+
+// Bottom summary strip — the "so what" layer. Every line is derived from data
+// already on screen; nothing here is a new metric.
+function renderHighlightStrip(){
+  const el = document.getElementById('highlightStrip');
+  if(!el) return;
+  const names = Object.keys(RDC).filter(n=>n!=='Semua');
+  if(CURRENT_RDC_SCOPE || names.length<2){ el.innerHTML=''; return; }
+  const byHealth = [...names].sort((a,b)=>calcHealthScore(b).score-calcHealthScore(a).score);
+  const best = byHealth[0], worst = byHealth[byHealth.length-1];
+  const lowestPecah = [...names].sort((a,b)=>RDC[a].pecah_now-RDC[b].pecah_now)[0];
+  const mostCap = [...names].sort((a,b)=>RDC[b].caprem-RDC[a].caprem)[0];
+  const overload = names.filter(n=>RDC[n].occ_now>CONFIG.occ_overload_pct);
+  const items = [
+    {ico:'🏆', lbl:'HEALTH TERBAIK', val:best, sub:`${calcHealthScore(best).score}/100`, col:'var(--green)'},
+    {ico:'⚠️', lbl:'PERLU PERHATIAN', val:worst, sub:`${calcHealthScore(worst).score}/100`, col:'var(--red)'},
+    {ico:'✅', lbl:'BREAKAGE TERENDAH', val:lowestPecah, sub:`${fmtNum(RDC[lowestPecah].pecah_now)}%`, col:'var(--green)'},
+    {ico:'📦', lbl:'SISA KAPASITAS TERBANYAK', val:mostCap, sub:`${fmtNum(RDC[mostCap].caprem)} box`, col:'var(--navy)'},
+  ];
+  el.innerHTML = `<div class="hl-strip">` + items.map(i=>`
+    <div class="hl-item">
+      <div class="hl-ico">${i.ico}</div>
+      <div><div class="hl-lbl">${i.lbl}</div>
+      <div class="hl-val" style="color:${i.col}">${i.val}</div>
+      <div class="hl-sub">${i.sub}</div></div>
+    </div>`).join('') +
+    `<div class="hl-note">${overload.length
+      ? `<b>${overload.length} RDC overload</b> — ${overload.join(', ')}. Pertimbangkan transfer antar-RDC.`
+      : 'Tidak ada RDC dalam kondisi overload saat ini.'}</div></div>`;
 }
 
 const KPI_EMPTY_BASIC = [
@@ -761,6 +842,43 @@ function renderDeliverySpeedCard(rdcName){
   </div>`;
 }
 
+// --- Sparkline: drawn from the SAME trend arrays already used by the trend charts.
+// No new data is invented; a KPI with no trend history simply shows nothing.
+const SPARK_SERIES = {
+  occ:     d => ({vals: d.occ_trend,      months: d.occ_months,      better:'lower'}),
+  pecah:   d => ({vals: d.pecah_trend,    months: d.pecah_months,    better:'lower'}),
+};
+function sparkHtml(k, d){
+  const s = SPARK_SERIES[k.key] ? SPARK_SERIES[k.key](d) : null;
+  if(!s || !Array.isArray(s.vals) || s.vals.length < 2) return '';
+  const vals = s.vals.filter(v=>typeof v === 'number' && isFinite(v));
+  if(vals.length < 2) return '';
+  const min = Math.min(...vals), max = Math.max(...vals), span = (max-min)||1;
+  const W = 78, H = 22;
+  const pts = vals.map((v,i)=>{
+    const x = (i/(vals.length-1))*W;
+    const y = H - ((v-min)/span)*H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = vals[vals.length-1], prev = vals[vals.length-2];
+  const diff = last - prev;
+  const pct = prev !== 0 ? (diff/Math.abs(prev))*100 : null;
+  // "better" tells us whether a rise is good or bad for THIS metric
+  const good = s.better === 'lower' ? diff < 0 : diff > 0;
+  const col = diff === 0 ? '#6E6A63' : (good ? '#1B7F4B' : '#B3261E');
+  const arrow = diff === 0 ? '→' : (diff > 0 ? '▲' : '▼');
+  const label = pct === null ? '' :
+    `${arrow} ${Math.abs(pct).toFixed(1)}%`;
+  const lastMonth = (s.months && s.months.length>=2) ? s.months[s.months.length-2] : 'bulan lalu';
+  return `<div class="kpi-spark" title="Dibanding ${lastMonth}">
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="color:${col}">${label}</span>
+  </div>`;
+}
+
 function kpiCardHtml(k, d){
   const v = k.get(d);
   let cls = '';
@@ -769,6 +887,7 @@ function kpiCardHtml(k, d){
   return `<div class="kpi-card ${cls}">
     <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml(k.dataStatus, k.formula)}</div>
     <div class="kpi-value">${fmtNum(v)}<span class="unit">${k.unit}</span></div>
+    ${sparkHtml(k, d)}
     <div class="kpi-sowhat">${k.sowhat(d)}</div>
   </div>`;
 }
@@ -807,6 +926,7 @@ function renderMgmtKpiStrip(rdcName){
     return `<div class="kpi-card ${cls}" style="padding:12px;">
       <div class="kpi-top"><div class="kpi-label" style="font-size:9.5px;">${k.label}</div>${statusBadgeHtml(k.dataStatus)}</div>
       <div class="kpi-value" style="font-size:19px;">${fmtNum(v)}<span class="unit">${k.unit}</span></div>
+      ${sparkHtml(k, d)}
     </div>`;
   }).join('') + renderDeliverySpeedCard(rdcName).replace('class="kpi-card', 'style="padding:12px;" class="kpi-card');
 }
@@ -1627,6 +1747,7 @@ function render(rdcName){
   renderHeaderSummary();
   renderExecutiveStatement(rdcName);
   renderPulse(rdcName==='Semua' ? null : rdcName);
+  renderHighlightStrip();
   renderImpact(rdcName);
   renderTop5();
   renderDecisions();
