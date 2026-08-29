@@ -46,8 +46,13 @@
   .kpi-spark span{font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;}
   .pulse-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .pulse-head .pulse-name{flex:1;margin:0;}
-  .pulse-health{font-size:11px;font-weight:800;background:var(--navy);color:#fff;
-    border-radius:20px;padding:2px 8px;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .pulse-health{font-size:19px;font-weight:800;color:#fff;
+    border-radius:10px;padding:4px 12px;font-variant-numeric:tabular-nums;flex:0 0 auto;
+    line-height:1.15;min-width:44px;text-align:center;}
+  .pulse-health.hs-good{background:#1B7F4B;}
+  .pulse-health.hs-watch{background:#9A6300;}
+  .pulse-health.hs-risk{background:#C46A1F;}
+  .pulse-health.hs-crit{background:#B3261E;}
   .pulse-metrics{display:grid;grid-template-columns:1fr;gap:2px;margin:6px 0 4px;}
   .pulse-metrics div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
   .pulse-metrics span{font-size:10px;color:var(--stone);flex:0 0 auto;}
@@ -731,7 +736,7 @@ function renderPulse(selected){
     return `<div class="pulse-card ${status} ${sel}" data-rdc="${name}" style="${clickable}">
       <div class="pulse-head">
         <div class="pulse-name">${name}</div>
-        <div class="pulse-health" title="Health Score gabungan — dimensi yang datanya belum ada tidak dihitung">${healthScoreOf(name)}</div>
+        <div class="pulse-health ${healthColorClass(name)}" title="Health Score gabungan — dimensi yang datanya belum ada tidak dihitung">${healthScoreOf(name)}</div>
       </div>
       <div class="pulse-metrics">
         <div><span>Occupancy</span><b>${fmtNum(d.occ_now)}%</b></div>
@@ -739,7 +744,6 @@ function renderPulse(selected){
         <div><span>Inv. Days</span><b>${fmtNum(d.invdays)}</b></div>
         <div><span>Sisa Kap.</span><b>${fmtNum(d.caprem)}</b></div>
       </div>
-      ${pulseSpark(d)}
       <div class="pulse-status">${status==='ok'?'●':status==='watch'?'▲':'■'} ${label}</div>
       ${highlight}
       ${!CURRENT_RDC_SCOPE ? freshnessLabel(name) : ''}
@@ -759,6 +763,14 @@ function renderPulse(selected){
 
 // Health score shown on each RDC card — reuses the SAME calculation as Executive Pulse
 // so the two can never disagree.
+function healthColorClass(name){
+  const score = healthScoreOf(name);
+  if(typeof score !== 'number') return '';
+  if(score>=80) return 'hs-good';
+  if(score>=60) return 'hs-watch';
+  if(score>=40) return 'hs-risk';
+  return 'hs-crit';
+}
 function healthScoreOf(name){
   try{ return calcHealthScore(name).score; }catch(e){ return '—'; }
 }
