@@ -59,6 +59,20 @@
   .pulse-metrics b{font-size:12px;font-variant-numeric:tabular-nums;text-align:right;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .pulse-spark{width:100%;height:18px;display:block;margin:4px 0 6px;}
+  .nbc-tab{padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--stone);cursor:pointer;
+    border-bottom:2px solid transparent;}
+  .nbc-tab.active{color:var(--navy);border-bottom-color:var(--navy);}
+  .nbc-page{display:none;} .nbc-page.active{display:block;}
+  .nbc-rate-card{border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .nbc-rate-card .lbl{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;}
+  .nbc-rate-card .val{font-size:26px;font-weight:800;color:var(--navy);margin:5px 0 2px;}
+  .nbc-rate-card .val small{font-size:12px;font-weight:600;color:var(--stone);}
+  .nbc-rate-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--stone);margin-top:8px;
+    padding-top:8px;border-top:1px dashed var(--border);}
+  .nbc-gap-up{color:var(--red);font-weight:700;} .nbc-gap-down{color:var(--green);font-weight:700;}
+  .nbc-placeholder{padding:30px 16px;text-align:center;color:var(--stone);font-size:13px;
+    background:repeating-linear-gradient(45deg,#F7F5F1,#F7F5F1 10px,#EFEBE2 10px,#EFEBE2 20px);
+    border-radius:8px;}
   .hl-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:var(--panel);
     border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:10px;}
   .hl-item{display:flex;gap:9px;align-items:flex-start;}
@@ -376,6 +390,26 @@
         <div class="section-label">Quality / Breakage</div>
         <div class="kpi-grid" id="kpiGridQuality"></div>
         <div id="breakageDetailSection"></div>
+
+        <div id="nbcWrap" style="margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div style="font-weight:700;font-size:14px;color:var(--navy);">National Breakage Control</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="nbcPeriod" style="font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);"></select>
+              <button class="export-btn" id="nbcDownload" style="padding:6px 10px;font-size:11.5px;">⬇ Download</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+            <div class="nbc-tab active" data-nbc="overview">Overview</div>
+            <div class="nbc-tab" data-nbc="rekap">Rekap &amp; Trend</div>
+            <div class="nbc-tab" data-nbc="root">Root Cause &amp; Action</div>
+            <div class="nbc-tab" data-nbc="upload">Upload &amp; Reconciliation</div>
+          </div>
+          <div id="nbc-overview" class="nbc-page active"></div>
+          <div id="nbc-rekap" class="nbc-page"></div>
+          <div id="nbc-root" class="nbc-page"></div>
+          <div id="nbc-upload" class="nbc-page"></div>
+        </div>
 
         <div class="section-label">RDC Benchmarking</div>
         <div id="benchmarkTable"></div>
@@ -3323,6 +3357,8 @@ async function bootDashboard(){
   saveOfflineCache();
 
   populateRdcSelector();
+  populateNbcPeriods();
+  renderNbcPlaceholders();
   render(CURRENT_RDC_SCOPE || 'Semua');
 }
 
@@ -3335,6 +3371,8 @@ function bootDashboardOffline(savedAt){
   banner.innerHTML = `🔌 <b>MODE OFFLINE</b> — menampilkan data tersimpan terakhir dari ${new Date(savedAt).toLocaleString('id-ID')}. Sambungkan kembali ke internet untuk data terbaru.`;
   document.getElementById('lastUpdated').textContent = 'Update (offline): ' + new Date(savedAt).toLocaleString('id-ID');
   populateRdcSelector();
+  populateNbcPeriods();
+  renderNbcPlaceholders();
   render(CURRENT_RDC_SCOPE || 'Semua');
 }
 
@@ -3740,6 +3778,135 @@ async function exportManualExcel(){
   XLSX.writeFile(wb, `SLS_InputManual_${MANUAL_RDC_FILTER}_${MANUAL_TAB}_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 document.getElementById('manualExcelBtn').addEventListener('click', exportManualExcel);
+
+
+// ============ NATIONAL BREAKAGE CONTROL (v43 module — Quality/Breakage) ============
+// Numerator/denominator are always summed separately across RDC scope, never averaged
+// as pre-baked rates — matches Fang's "SUM/SUM, JANGAN average rate RDC" requirement.
+let NBC_PERIOD = null;
+function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function populateNbcPeriods(){
+  const sel = document.getElementById('nbcPeriod');
+  if(!sel) return;
+  const now = new Date();
+  const opts = [];
+  for(let i=0;i<12;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    opts.push(`<option value="${val}">${d.toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  NBC_PERIOD = sel.value;
+  sel.addEventListener('change', ()=>{ NBC_PERIOD = sel.value; renderNbcOverview(); });
+}
+
+document.querySelectorAll('.nbc-tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.nbc-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.nbc-page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('nbc-'+t.dataset.nbc).classList.add('active');
+  });
+});
+
+function nbcRateCardHtml(title, sub, m, unit){
+  if(m.rate == null){
+    return `<div class="nbc-rate-card">
+      <div class="lbl">${title}</div>
+      <div class="val" style="font-size:15px;color:var(--stone);">DATA REQUIRED</div>
+      <div style="font-size:11.5px;color:var(--stone);">${sub} — denominator belum tersedia untuk periode ini.</div>
+    </div>`;
+  }
+  const gapUp = m.gap > 0;
+  const trendKnown = m.trend_pct != null;
+  return `<div class="nbc-rate-card">
+    <div class="lbl">${title}</div>
+    <div class="val">${m.rate}<small> / 10.000 ${unit}</small></div>
+    <div style="font-size:11px;color:var(--stone);">${sub}</div>
+    <div class="nbc-rate-row">
+      <span>Target Final: <b>${m.target_final}</b></span>
+      <span class="${gapUp?'nbc-gap-up':'nbc-gap-down'}">${gapUp?'▲':'▼'} Gap ${gapUp?'+':''}${m.gap} (${gapUp?'+':''}${m.gap_pct}%)</span>
+    </div>
+    ${trendKnown ? `<div class="nbc-rate-row"><span>Trend vs bulan lalu</span>
+      <span class="${m.trend_pct>0?'nbc-gap-up':'nbc-gap-down'}">${m.trend_pct>0?'▲':'▼'} ${Math.abs(m.trend_pct)}%</span></div>` : ''}
+  </div>`;
+}
+
+async function renderNbcOverview(){
+  const el = document.getElementById('nbc-overview');
+  if(!el || !NBC_PERIOD) return;
+  el.innerHTML = '<div class="nbc-placeholder">⏳ Memuat data breakage nasional…</div>';
+  try{
+    const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+    const d = await sbRpc('breakage_overview', { p_period: NBC_PERIOD, p_rdc: scopeRdc });
+    const totalKnown = d.delivery.rate != null || d.warehouse.rate != null;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;margin-bottom:14px;">
+        ${nbcRateCardHtml('Delivery Breakage Rate', 'Pecah Kiriman', d.delivery, 'Delivered Box')}
+        ${nbcRateCardHtml('Warehouse Breakage Rate', 'Pecah Pallet/Gudang', d.warehouse, 'Stock Exposure')}
+        <div class="nbc-rate-card" style="min-width:130px;">
+          <div class="lbl">Total Breakage (${d.period})</div>
+          <div class="val">${totalKnown?fmtNum(d.total_breakage_box):'—'}<small> Box</small></div>
+          <div style="font-size:11.5px;color:var(--stone);margin-top:6px;">RDC Above Target</div>
+          <div style="font-size:15px;font-weight:700;color:var(--navy);">${d.rdc_above_target} / ${d.rdc_count} RDC</div>
+        </div>
+      </div>
+      ${d.delivery.rate!=null ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:14px;margin-bottom:14px;">
+        ${nbcTargetProgress('Delivery Breakage', d.delivery)}
+        ${nbcTargetProgress('Warehouse Breakage', d.warehouse)}
+        <div class="nbc-rate-card" style="min-width:170px;">
+          <div class="lbl">RDC Highlight</div>
+          <div style="font-size:12px;margin-top:8px;line-height:1.9;">
+            <div>Worst RDC: <b style="color:var(--red);">${esc(d.worst_rdc||'-')}</b></div>
+            <div>Best RDC: <b style="color:var(--green);">${esc(d.best_rdc||'-')}</b></div>
+          </div>
+        </div>
+      </div>` : ''}
+      <div style="background:#F7F5F1;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.6;">
+        <b>Management Insight —</b> ${esc(d.insight)}
+      </div>`;
+  }catch(e){
+    el.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal memuat: ${esc(e.message)}</div>`;
+  }
+}
+function nbcTargetProgress(title, m){
+  const pct = m.recovery_pct==null ? 0 : Math.min(100, Math.max(0, m.recovery_pct));
+  return `<div class="nbc-rate-card">
+    <div class="lbl">${title} — Target Progress</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--stone);margin-top:8px;">
+      <span>Baseline<br><b style="font-size:13px;color:var(--ink);">${m.baseline}</b></span>
+      <span>Interim (12 mgg)<br><b style="font-size:13px;color:var(--ink);">≤${m.interim}</b></span>
+      <span>Final<br><b style="font-size:13px;color:var(--ink);">≤${m.target_final}</b></span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:6px;margin:10px 0 4px;overflow:hidden;">
+      <div style="background:${pct>=100?'var(--green)':'var(--clay)'};height:100%;width:${pct}%;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--stone);">Current <b>${m.rate}</b> · Recovery ${m.recovery_pct!=null?m.recovery_pct+'%':'-'}</div>
+  </div>`;
+}
+
+// Menus 2-4: not built yet this phase — shown honestly, not hidden or faked.
+function renderNbcPlaceholders(){
+  document.getElementById('nbc-rekap').innerHTML = `<div class="nbc-placeholder">
+    📊 <b>Rekap & Trend</b> — belum dibangun di fase ini.<br>Akan berisi: Rekap Bulanan (SUM/SUM per RDC), Trend 12 bulan, RDC Comparison.</div>`;
+  document.getElementById('nbc-root').innerHTML = `<div class="nbc-placeholder">
+    🔍 <b>Root Cause & Action</b> — belum dibangun di fase ini.<br>Akan berisi: Pareto Cause, Incident Detail, Action Tracker.</div>`;
+  document.getElementById('nbc-upload').innerHTML = `<div class="nbc-placeholder">
+    📤 <b>Upload & Reconciliation</b> — belum dibangun di fase ini.<br>Akan berisi: alur 4 langkah Upload SAP → Preview → Reconciliation → Confirm & Publish.</div>`;
+}
+document.getElementById('nbcDownload')?.addEventListener('click', ()=>{
+  alert('Download Excel/PDF untuk module ini akan tersedia setelah Menu 2-4 selesai dibangun (data yang diekspor harus berasal dari sumber yang sama dengan yang ditampilkan).');
+});
+
+// Hook into the existing render() pipeline additively (does not replace anything already there)
+const _renderKPI_pre_nbc = renderKPI;
+renderKPI = function(rdcName){
+  _renderKPI_pre_nbc(rdcName);
+  renderNbcOverview();
+};
+
 </script>
 </body>
 </html>
