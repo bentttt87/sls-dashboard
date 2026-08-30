@@ -3807,6 +3807,9 @@ document.querySelectorAll('.nbc-tab').forEach(t=>{
     document.querySelectorAll('.nbc-page').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('nbc-'+t.dataset.nbc).classList.add('active');
+    if(t.dataset.nbc==='upload') renderNbcUploadStep1();
+    if(t.dataset.nbc==='rekap') renderNbcRekapTrend();
+    if(t.dataset.nbc==='root') renderNbcRootCause();
   });
 });
 
@@ -3889,12 +3892,8 @@ function nbcTargetProgress(title, m){
 
 // Menus 2-4: not built yet this phase — shown honestly, not hidden or faked.
 function renderNbcPlaceholders(){
-  document.getElementById('nbc-rekap').innerHTML = `<div class="nbc-placeholder">
-    📊 <b>Rekap & Trend</b> — belum dibangun di fase ini.<br>Akan berisi: Rekap Bulanan (SUM/SUM per RDC), Trend 12 bulan, RDC Comparison.</div>`;
-  document.getElementById('nbc-root').innerHTML = `<div class="nbc-placeholder">
-    🔍 <b>Root Cause & Action</b> — belum dibangun di fase ini.<br>Akan berisi: Pareto Cause, Incident Detail, Action Tracker.</div>`;
-  document.getElementById('nbc-upload').innerHTML = `<div class="nbc-placeholder">
-    📤 <b>Upload & Reconciliation</b> — belum dibangun di fase ini.<br>Akan berisi: alur 4 langkah Upload SAP → Preview → Reconciliation → Confirm & Publish.</div>`;
+  // rekap & root now render live content on first tab click (see tab-click hook above);
+  // nothing to pre-fill here anymore.
 }
 document.getElementById('nbcDownload')?.addEventListener('click', ()=>{
   alert('Download Excel/PDF untuk module ini akan tersedia setelah Menu 2-4 selesai dibangun (data yang diekspor harus berasal dari sumber yang sama dengan yang ditampilkan).');
@@ -3906,6 +3905,485 @@ renderKPI = function(rdcName){
   _renderKPI_pre_nbc(rdcName);
   renderNbcOverview();
 };
+
+
+
+// ============ MENU 4: UPLOAD & RECONCILIATION ============
+// Extends the EXISTING parseMB51Pecah pattern (same column detection, same plate/pallet regex
+// already verified against real Jakarta Jan-Jul 2026 data) — this time keeping row-level detail
+// instead of discarding it after aggregation, and classifying into the 10 Pareto sub-categories.
+const PLATE_RE_V43 = /\b[A-Z]{1,2}\s?\d{3,5}\s?[A-Z]{1,3}\b/;
+function classifySubCategory(dht, mvt){
+  const t = String(dht||'').toUpperCase();
+  if(PLATE_RE_V43.test(t)) return {main:'delivery', sub:'Transport'};
+  if(mvt==='602') return {main:'delivery', sub:'Loading'};
+  if(/PECAH/.test(t) && /PALET|PALLET/.test(t)) return {main:'warehouse', sub:'Packaging / Pallet'};
+  if(/PERSIAPAN/.test(t)) return {main:'warehouse', sub:'Handling / Picking'};
+  if(/PERAPIHAN/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/\bSO\b|STOCK OPNAME/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/GUDANG/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/SELISIH SERI/.test(t)) return {main:'warehouse', sub:'Unknown'};
+  if(t.trim()==='') return {main:'warehouse', sub:'Unknown'};
+  return {main:'warehouse', sub:'Other'};
+}
+function parseMB51EventDetail(wb){
+  const sheetName = wb.SheetNames.find(n=>{
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:null});
+    const h = (g[0]||[]).map(x=>String(x||'').trim());
+    return h.includes('Posting Date') && h.includes('Movement Type') && h.includes('Storage Location');
+  });
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const header = grid[0].map(x=>String(x||'').trim());
+  const col = name => header.indexOf(name);
+  const cDate=col('Posting Date'), cQty=col('Quantity'), cSloc=col('Storage Location'),
+        cMvt=col('Movement Type'), cDht=col('Document Header Text'), cRdc=col('Name 1'),
+        cMat=col('Material'), cDesc=col('Material Description'), cDoc=col('Material Document');
+  if([cDate,cQty,cSloc,cMvt,cDht,cRdc].some(c=>c<0)) return null;
+
+  const out = [];
+  for(let r=1;r<grid.length;r++){
+    const row = grid[r]; if(!row) continue;
+    const mt = String(row[cMvt]||'').trim();
+    const qty = Number(row[cQty])||0;
+    const dateVal = row[cDate];
+    if(!(dateVal instanceof Date)) continue;
+    const period = dateVal.getFullYear()+'-'+String(dateVal.getMonth()+1).padStart(2,'0')+'-01';
+    const rdc = String(row[cRdc]||'').trim().replace(/^RDC\s+/i,'');
+    if(!rdc) continue;
+    const dht = String(row[cDht]||'').trim();
+    let qtyToUse = null, cls = null;
+    if(mt==='311' && row[cSloc]==='RFB1' && qty>0){ qtyToUse = qty; cls = classifySubCategory(dht, mt); }
+    else if(mt==='602'){ qtyToUse = Math.abs(qty); cls = classifySubCategory(dht, mt); }
+    if(qtyToUse==null) continue;
+    out.push({rdc, period, posting_date: dateVal.toISOString().slice(0,10),
+      main_category: cls.main, sub_category: cls.sub,
+      material: cMat>=0?String(row[cMat]||'').trim():'', material_desc: cDesc>=0?String(row[cDesc]||''):'',
+      qty: qtyToUse, sap_document: cDoc>=0?String(row[cDoc]||''):'',
+      driver_vendor: cls.sub==='Transport'?dht:'',
+      movement_type: mt, storage_location: String(row[cSloc]||''), document_header_text: dht});
+  }
+  return out.length ? out : null;
+}
+
+let NBC_UPLOAD_STATE = null; // {batch_id, rdc, period}
+function nbcUploadStepIndicator(active){
+  const steps = ['Upload SAP','Preview Data','Reconciliation','Confirm & Publish'];
+  return `<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">` +
+    steps.map((s,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;
+      font-size:11.5px;font-weight:600;background:${i+1===active?'var(--navy)':i+1<active?'#E7F6EC':'#F0EEE8'};
+      color:${i+1===active?'#fff':i+1<active?'#1E7B34':'var(--stone)'};">
+      <span style="width:16px;height:16px;border-radius:50%;background:${i+1<=active?'currentColor':'transparent'};
+        border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;
+        font-size:9px;color:${i+1===active?'var(--navy)':'#fff'};">${i+1<active?'✓':i+1}</span>${s}</div>`).join('')
+    + `</div>`;
+}
+function renderNbcUploadStep1(){
+  const el = document.getElementById('nbc-upload');
+  el.innerHTML = nbcUploadStepIndicator(1) + `
+    <input type="file" id="nbcFile" accept=".xlsx,.xls" style="display:none">
+    <div style="border:2px dashed var(--border);border-radius:10px;padding:34px 16px;text-align:center;cursor:pointer;"
+      id="nbcDropzone">
+      <div style="font-size:13px;color:var(--stone);margin-bottom:10px;">Drag &amp; drop file SAP MB51 di sini, atau</div>
+      <button class="btn-primary" style="padding:8px 18px;" id="nbcPickFile">Pilih File</button>
+      <div style="font-size:11px;color:var(--stone);margin-top:10px;">Format .xlsx / .xls — kolom Posting Date, Movement Type, Storage Location, Name 1, dll (sama seperti tarikan MB51 yang sudah dipakai)</div>
+    </div>
+    <div id="nbcUploadMsg" style="margin-top:12px;font-size:13px;"></div>`;
+  document.getElementById('nbcPickFile').onclick = ()=>document.getElementById('nbcFile').click();
+  document.getElementById('nbcDropzone').onclick = ()=>document.getElementById('nbcFile').click();
+  document.getElementById('nbcFile').addEventListener('change', e=>{
+    if(e.target.files.length) handleNbcFile(e.target.files[0]);
+  });
+}
+function handleNbcFile(file){
+  const msg = document.getElementById('nbcUploadMsg');
+  msg.innerHTML = '⏳ Membaca file…';
+  const fr = new FileReader();
+  fr.onload = async ev=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'binary', cellDates:true});
+      const rows = parseMB51EventDetail(wb);
+      if(!rows){ msg.innerHTML = '<span style="color:#B3261E;">File tidak dikenali sebagai tarikan MB51 (kolom wajib tidak ditemukan).</span>'; return; }
+      msg.innerHTML = `⏳ Mengunggah ${rows.length} baris…`;
+      const res = await sbRpc('breakage_stage', { p_filename: file.name, p_rows: rows });
+      NBC_UPLOAD_STATE = { batch_id: res.upload_batch_id, rdc: res.rdc, period: res.period };
+      renderNbcUploadStep2(res);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+  fr.readAsBinaryString(file);
+}
+function renderNbcUploadStep2(res){
+  const el = document.getElementById('nbc-upload');
+  const cats = Object.entries(res.by_category||{});
+  el.innerHTML = nbcUploadStepIndicator(2) + `
+    <div style="font-size:13px;margin-bottom:10px;"><b>${esc(res.rdc)}</b> · Periode ${esc(res.period)} ·
+      ${fmtNum(res.total_rows)} baris · ${fmtNum(res.total_qty)} box</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+        <th style="padding:6px 10px;">Kategori</th><th style="padding:6px 10px;">Sub-Kategori</th>
+        <th style="padding:6px 10px;text-align:right;">Qty (Box)</th><th style="padding:6px 10px;text-align:right;">Baris</th></tr></thead>
+      <tbody>${cats.map(([k,v])=>{ const [main,sub]=k.split('|'); return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;">${esc(main)}</td><td style="padding:6px 10px;">${esc(sub)}</td>
+        <td style="padding:6px 10px;text-align:right;">${fmtNum(v.qty)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(v.rows)}</td></tr>`;}).join('')}</tbody>
+    </table>
+    <button class="btn-primary" style="margin-top:14px;padding:8px 18px;" id="nbcToStep3">Lanjut ke Reconciliation →</button>`;
+  document.getElementById('nbcToStep3').onclick = renderNbcUploadStep3;
+}
+async function renderNbcUploadStep3(){
+  const el = document.getElementById('nbc-upload');
+  el.innerHTML = nbcUploadStepIndicator(3) + '<div class="nbc-placeholder">⏳ Membandingkan dengan data existing…</div>';
+  try{
+    const res = await sbRpc('breakage_reconcile', { p_upload_id: NBC_UPLOAD_STATE.batch_id });
+    const rows = res.detail || [];
+    const badge = s => s==='MATCH' ? '<span style="color:#1E7B34;font-weight:700;">MATCH</span>'
+      : s==='VARIANCE' ? '<span style="color:#946200;font-weight:700;">VARIANCE</span>'
+      : '<span style="color:#B3261E;font-weight:700;">'+s.replace(/_/g,' ')+'</span>';
+    el.innerHTML = nbcUploadStepIndicator(3) + `
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+          <th style="padding:6px 10px;">Kategori</th><th style="padding:6px 10px;">Sub</th>
+          <th style="padding:6px 10px;text-align:right;">Existing</th><th style="padding:6px 10px;text-align:right;">SAP</th>
+          <th style="padding:6px 10px;text-align:right;">Variance</th><th style="padding:6px 10px;">Status</th>
+          <th style="padding:6px 10px;">Keputusan</th></tr></thead>
+        <tbody>${rows.map((r,i)=>`<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px 10px;">${esc(r.main_category)}</td><td style="padding:6px 10px;">${esc(r.sub_category)}</td>
+          <td style="padding:6px 10px;text-align:right;">${fmtNum(r.existing_qty)}</td>
+          <td style="padding:6px 10px;text-align:right;">${fmtNum(r.sap_qty)}</td>
+          <td style="padding:6px 10px;text-align:right;">${r.variance>0?'+':''}${fmtNum(r.variance)}</td>
+          <td style="padding:6px 10px;">${badge(r.status)}</td>
+          <td style="padding:6px 10px;"><select id="nbcDecision_${i}" style="font-size:11.5px;padding:3px 6px;">
+            <option value="USE_SAP" ${r.status!=='MATCH'?'selected':''}>Pakai Data SAP</option>
+            <option value="KEEP_EXISTING">Pertahankan Existing</option>
+            <option value="SKIP">Lewati</option></select></td></tr>`).join('')}</tbody></table>
+      <button class="btn-primary" style="margin-top:14px;padding:8px 18px;" id="nbcToStep4">Lanjut ke Confirm &amp; Publish →</button>`;
+    document.getElementById('nbcToStep4').onclick = ()=>{
+      // Read every decision select BEFORE the DOM that holds them gets replaced.
+      const decisions = rows.map((r,i)=>({
+        main_category: r.main_category, sub_category: r.sub_category,
+        action: document.getElementById('nbcDecision_'+i).value
+      }));
+      renderNbcUploadStep4(decisions);
+    };
+  }catch(e){ el.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function renderNbcUploadStep4(decisions){
+  const el = document.getElementById('nbc-upload');
+  const useSap = decisions.filter(d=>d.action==='USE_SAP').length;
+  el.innerHTML = nbcUploadStepIndicator(4) + `
+    <div style="font-size:13px;margin-bottom:12px;">Periksa sekali lagi sebelum publish. ${useSap} dari ${decisions.length} kategori akan dipublikasikan ("Pakai Data SAP") — kategori lain tidak disentuh.</div>
+    <div id="nbcPublishMsg" style="margin-bottom:10px;"></div>
+    <button class="btn-primary" style="padding:9px 20px;" id="nbcPublishBtn">✓ Confirm &amp; Publish</button>`;
+  document.getElementById('nbcPublishBtn').onclick = async ()=>{
+    const msg = document.getElementById('nbcPublishMsg');
+    msg.innerHTML = '⏳ Mempublikasikan…';
+    try{
+      await sbRpc('breakage_publish', { p_upload_id: NBC_UPLOAD_STATE.batch_id, p_decisions: decisions });
+      msg.innerHTML = '<span style="color:#1E7B34;font-weight:700;">✓ Berhasil dipublikasikan. Overview & Rekap akan diperbarui.</span>';
+      renderNbcOverview();
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+
+
+
+// ============ MENU 2: REKAP & TREND ============
+let NBC2_SUB = 'rekap';
+function renderNbcRekapTrend(){
+  const el = document.getElementById('nbc-rekap');
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <div class="nbc-subtab active" data-s2="rekap" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;background:var(--navy);color:#fff;">Rekap Bulanan</div>
+      <div class="nbc-subtab" data-s2="trend" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Trend</div>
+      <div class="nbc-subtab" data-s2="compare" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">RDC Comparison</div>
+    </div>
+    <div id="nbc2-body"></div>`;
+  el.querySelectorAll('.nbc-subtab').forEach(t=>t.addEventListener('click', ()=>{
+    el.querySelectorAll('.nbc-subtab').forEach(x=>{x.style.background='';x.style.color='var(--stone)';});
+    t.style.background='var(--navy)'; t.style.color='#fff';
+    NBC2_SUB = t.dataset.s2;
+    renderNbc2Body();
+  }));
+  renderNbc2Body();
+}
+async function renderNbc2Body(){
+  const body = document.getElementById('nbc2-body');
+  if(!body || !NBC_PERIOD) return;
+  body.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+  const [y,m] = NBC_PERIOD.split('-').map(Number);
+  const fromP = new Date(y, m-1-5, 1); // 6-month window ending at selected period
+  const fromStr = fromP.getFullYear()+'-'+String(fromP.getMonth()+1).padStart(2,'0');
+  try{
+    if(NBC2_SUB==='rekap'){
+      const d = await sbRpc('breakage_rekap_bulanan', {p_from: fromStr, p_to: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcRekapTableHtml(d);
+    } else if(NBC2_SUB==='trend'){
+      const d = await sbRpc('breakage_trend', {p_from: fromStr, p_to: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcTrendHtml(d.series||[]);
+    } else {
+      const d = await sbRpc('breakage_rdc_comparison', {p_period: NBC_PERIOD});
+      body.innerHTML = nbcComparisonHtml(d.rows||[]);
+    }
+  }catch(e){ body.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function nbcRekapTableHtml(d){
+  const all = d.all_rdc||[], rows = d.rows||[];
+  if(!all.length) return '<div class="nbc-placeholder">Belum ada data breakage untuk rentang periode ini.</div>';
+  const th = `<tr style="background:var(--navy);color:#fff;text-align:right;">
+    <th style="padding:6px 10px;text-align:left;">Bulan</th><th style="padding:6px 10px;text-align:left;">RDC</th>
+    <th style="padding:6px 10px;">Pecah Kiriman</th><th style="padding:6px 10px;">Delivered</th><th style="padding:6px 10px;">D-Rate</th>
+    <th style="padding:6px 10px;">Pecah Gudang</th><th style="padding:6px 10px;">Stock Exp.</th><th style="padding:6px 10px;">W-Rate</th></tr>`;
+  const tr = (label, r, bold) => `<tr style="border-bottom:1px solid var(--border);${bold?'background:#F7F5F1;font-weight:700;':''}">
+    <td style="padding:6px 10px;text-align:left;">${esc(r.bulan||r.period)}</td><td style="padding:6px 10px;text-align:left;">${esc(label)}</td>
+    <td style="padding:6px 10px;text-align:right;">${fmtNum(r.pecah_kiriman)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(r.delivered)}</td>
+    <td style="padding:6px 10px;text-align:right;">${r.d_rate??'-'}</td>
+    <td style="padding:6px 10px;text-align:right;">${fmtNum(r.pecah_gudang)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(r.stock_exposure)}</td>
+    <td style="padding:6px 10px;text-align:right;">${r.w_rate??'-'}</td></tr>`;
+  const rdcRows = rows.map(r=>tr(r.rdc, r, false)).join('');
+  const allRows = all.map(r=>tr('ALL RDC (SUM/SUM)', r, true)).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>${th}</thead><tbody>${rdcRows}${allRows}</tbody></table>
+    <div style="font-size:11px;color:var(--stone);margin-top:8px;">Baris "ALL RDC" selalu dihitung SUM(numerator)/SUM(denominator) — bukan rata-rata rate antar-RDC.</div>`;
+}
+function nbcTrendHtml(series){
+  if(!series.length) return '<div class="nbc-placeholder">Belum ada data tren untuk rentang ini.</div>';
+  const W=700,H=160,pad=30;
+  function chart(key, targetKey, title, color){
+    const vals = series.map(s=>s[key]).filter(v=>v!=null);
+    if(!vals.length) return `<div class="nbc-rate-card"><div class="lbl">${title}</div>
+      <div style="padding:20px;text-align:center;color:var(--stone);font-size:12px;">DATA REQUIRED</div></div>`;
+    const allVals = series.map(s=>s[key]).filter(v=>v!=null).concat(series.map(s=>s[targetKey]).filter(v=>v!=null));
+    const min=0, max=Math.max(...allVals)*1.15;
+    const n = series.length;
+    const x = i => pad + i*((W-2*pad)/(n-1||1));
+    const y = v => H-pad - (v-min)/(max-min||1)*(H-2*pad);
+    const pts = series.map((s,i)=> s[key]!=null ? `${x(i).toFixed(1)},${y(s[key]).toFixed(1)}` : null).filter(Boolean).join(' ');
+    const tgt = series[0][targetKey];
+    const tgtLine = tgt!=null ? `<line x1="${pad}" y1="${y(tgt).toFixed(1)}" x2="${W-pad}" y2="${y(tgt).toFixed(1)}" stroke="#9A6300" stroke-dasharray="4,3" stroke-width="1.4"/>` : '';
+    const labels = series.map((s,i)=>`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="9" fill="#6E6A63" text-anchor="middle">${esc(s.bulan)}</text>`).join('');
+    const dots = series.map((s,i)=> s[key]!=null ? `<circle cx="${x(i).toFixed(1)}" cy="${y(s[key]).toFixed(1)}" r="2.6" fill="${color}"/>` : '').join('');
+    return `<div class="nbc-rate-card">
+      <div class="lbl">${title}</div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:6px;">
+        ${tgtLine}<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}${labels}
+      </svg>
+      <div style="font-size:10.5px;color:var(--stone);">— Actual &nbsp;&nbsp; ┅ Target (${tgt??'-'})</div>
+    </div>`;
+  }
+  return `<div style="display:grid;grid-template-columns:1fr;gap:14px;">
+    ${chart('delivery_rate','delivery_target','Delivery Breakage Rate — Trend','#1F3864')}
+    ${chart('warehouse_rate','warehouse_target','Warehouse Breakage Rate — Trend','#C46A1F')}
+  </div>`;
+}
+function nbcComparisonHtml(rows){
+  if(!rows.length) return '<div class="nbc-placeholder">Belum ada data untuk periode ini.</div>';
+  const th = `<tr style="background:var(--navy);color:#fff;text-align:right;">
+    <th style="padding:6px 10px;text-align:left;">RDC</th>
+    <th style="padding:6px 10px;">Delivery Rate</th><th style="padding:6px 10px;">Gap</th><th style="padding:6px 10px;">Trend</th>
+    <th style="padding:6px 10px;">Warehouse Rate</th><th style="padding:6px 10px;">Gap</th><th style="padding:6px 10px;">Trend</th>
+    <th style="padding:6px 10px;text-align:left;">Status</th></tr>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead>${th}</thead><tbody>
+    ${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;font-weight:600;">${esc(r.rdc)}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.d_rate??'-'}</td>
+      <td style="padding:6px 10px;text-align:right;color:${r.d_gap>0?'#B3261E':'#1E7B34'};">${r.d_gap!=null?(r.d_gap>0?'+':'')+r.d_gap:'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.d_trend!=null?(r.d_trend>0?'▲':'▼')+' '+Math.abs(r.d_trend)+'%':'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.w_rate??'-'}</td>
+      <td style="padding:6px 10px;text-align:right;color:${r.w_gap>0?'#B3261E':'#1E7B34'};">${r.w_gap!=null?(r.w_gap>0?'+':'')+r.w_gap:'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.w_trend!=null?(r.w_trend>0?'▲':'▼')+' '+Math.abs(r.w_trend)+'%':'-'}</td>
+      <td style="padding:6px 10px;"><span style="font-size:10.5px;font-weight:700;color:${r.status==='ABOVE TARGET'?'#B3261E':r.status==='ON TARGET'?'#1E7B34':'#946200'};">${esc(r.status)}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ============ MENU 3: ROOT CAUSE & ACTION ============
+let NBC3_SUB = 'pareto';
+let NBC3_SELECTED_EVENTS = new Set();
+function renderNbcRootCause(){
+  const el = document.getElementById('nbc-root');
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <div class="nbc-subtab active" data-s3="pareto" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;background:var(--navy);color:#fff;">Pareto Cause</div>
+      <div class="nbc-subtab" data-s3="incident" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Incident Detail</div>
+      <div class="nbc-subtab" data-s3="action" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Action Tracker</div>
+    </div>
+    <div id="nbc3-body"></div>`;
+  el.querySelectorAll('.nbc-subtab').forEach(t=>t.addEventListener('click', ()=>{
+    el.querySelectorAll('.nbc-subtab').forEach(x=>{x.style.background='';x.style.color='var(--stone)';});
+    t.style.background='var(--navy)'; t.style.color='#fff';
+    NBC3_SUB = t.dataset.s3;
+    renderNbc3Body();
+  }));
+  renderNbc3Body();
+}
+async function renderNbc3Body(){
+  const body = document.getElementById('nbc3-body');
+  if(!body || !NBC_PERIOD) return;
+  body.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+  try{
+    if(NBC3_SUB==='pareto'){
+      const d = await sbRpc('breakage_pareto', {p_period: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcParetoHtml(d);
+    } else if(NBC3_SUB==='incident'){
+      await renderNbcIncidentDetail(scopeRdc);
+    } else {
+      await renderNbcActionTracker(scopeRdc);
+    }
+  }catch(e){ body.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function nbcParetoHtml(d){
+  const rows = d.rows||[];
+  if(!rows.length) return '<div class="nbc-placeholder">Belum ada data breakage untuk periode ini.</div>';
+  const W=680,H=220,pad=40, barW=(W-2*pad)/rows.length*0.6;
+  const maxQty = Math.max(...rows.map(r=>r.qty));
+  const bars = rows.map((r,i)=>{
+    const cx = pad + i*((W-2*pad)/rows.length) + (W-2*pad)/rows.length/2;
+    const bh = (r.qty/maxQty)*(H-2*pad-20);
+    return `<rect x="${(cx-barW/2).toFixed(1)}" y="${(H-pad-bh).toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="#1F3864"/>
+      <text x="${cx.toFixed(1)}" y="${H-pad+14}" font-size="9" fill="#6E6A63" text-anchor="middle">${esc(r.sub_category)}</text>
+      <text x="${cx.toFixed(1)}" y="${(H-pad-bh-6).toFixed(1)}" font-size="9.5" fill="#14161A" text-anchor="middle" font-weight="700">${fmtNum(r.qty)}</text>`;
+  }).join('');
+  const cumPts = rows.map((r,i)=>{
+    const cx = pad + i*((W-2*pad)/rows.length) + (W-2*pad)/rows.length/2;
+    const cy = H-pad-20 - (r.cum_pct/100)*(H-2*pad-20);
+    return `${cx.toFixed(1)},${cy.toFixed(1)}`;
+  }).join(' ');
+  return `<div class="nbc-rate-card">
+    <div class="lbl">Pareto Cause — ${esc(d.period)} (Total ${fmtNum(d.total)} Box)</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:8px;">
+      ${bars}<polyline points="${cumPts}" fill="none" stroke="#C46A1F" stroke-width="1.8"/>
+      ${rows.map((r,i)=>{const cx=pad+i*((W-2*pad)/rows.length)+(W-2*pad)/rows.length/2;
+        const cy=H-pad-20-(r.cum_pct/100)*(H-2*pad-20);
+        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.5" fill="#C46A1F"/>`;}).join('')}
+    </svg>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:10px;">
+      <thead><tr style="background:#F0EEE8;text-align:right;"><th style="padding:5px 8px;text-align:left;">Sub-Kategori</th>
+        <th style="padding:5px 8px;">Qty</th><th style="padding:5px 8px;">%</th><th style="padding:5px 8px;">Kumulatif %</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;">${esc(r.sub_category)}</td><td style="padding:5px 8px;text-align:right;">${fmtNum(r.qty)}</td>
+        <td style="padding:5px 8px;text-align:right;">${r.pct}%</td><td style="padding:5px 8px;text-align:right;">${r.cum_pct}%</td></tr>`).join('')}</tbody>
+    </table></div>`;
+}
+async function renderNbcIncidentDetail(scopeRdc){
+  const body = document.getElementById('nbc3-body');
+  const [incidents, ungrouped] = await Promise.all([
+    sbRpc('breakage_incident_list', {p_period: NBC_PERIOD, p_rdc: scopeRdc}),
+    sbRpc('breakage_ungrouped_events', {p_period: NBC_PERIOD, p_rdc: scopeRdc})
+  ]);
+  NBC3_SELECTED_EVENTS = new Set();
+  let html = `<div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Insiden Tercatat (${incidents.length})</div>`;
+  html += incidents.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;">
+    <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+      <th style="padding:6px 10px;">Incident No</th><th style="padding:6px 10px;">RDC</th><th style="padding:6px 10px;">Sub-Kategori</th>
+      <th style="padding:6px 10px;text-align:right;">Qty</th><th style="padding:6px 10px;">PIC</th><th style="padding:6px 10px;">Status</th></tr></thead>
+    <tbody>${incidents.map(i=>`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;font-weight:600;">${esc(i.incident_no)}</td><td style="padding:6px 10px;">${esc(i.rdc)}</td>
+      <td style="padding:6px 10px;">${esc(i.sub_category)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(i.qty_box)}</td>
+      <td style="padding:6px 10px;">${esc(i.pic||'-')}</td><td style="padding:6px 10px;">${esc(i.status)}</td></tr>`).join('')}</tbody>
+    </table>` : `<div class="nbc-placeholder" style="margin-bottom:16px;">Belum ada insiden yang dikelompokkan untuk periode ini.</div>`;
+
+  html += `<div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Event Belum Dikelompokkan (${ungrouped.length})</div>`;
+  if(ungrouped.length){
+    html += `<div style="font-size:11px;color:var(--stone);margin-bottom:8px;">Pilih event dengan RDC, kategori, dan sub-kategori yang SAMA untuk digabung jadi satu insiden.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#F0EEE8;text-align:left;"><th style="padding:5px 8px;"></th>
+        <th style="padding:5px 8px;">RDC</th><th style="padding:5px 8px;">Tanggal</th><th style="padding:5px 8px;">Sub-Kategori</th>
+        <th style="padding:5px 8px;">Material</th><th style="padding:5px 8px;text-align:right;">Qty</th><th style="padding:5px 8px;">SAP Doc</th><th style="padding:5px 8px;">Driver/Vendor</th></tr></thead>
+      <tbody>${ungrouped.map(e=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;"><input type="checkbox" class="nbc-ev-chk" data-id="${e.id}"></td>
+        <td style="padding:5px 8px;">${esc(e.rdc)}</td><td style="padding:5px 8px;">${esc(e.posting_date||'-')}</td>
+        <td style="padding:5px 8px;">${esc(e.sub_category)}</td><td style="padding:5px 8px;">${esc(e.material_code||'-')}</td>
+        <td style="padding:5px 8px;text-align:right;">${fmtNum(e.qty_box)}</td>
+        <td style="padding:5px 8px;">${esc(e.sap_document||'-')}</td><td style="padding:5px 8px;">${esc(e.driver_vendor||'-')}</td></tr>`).join('')}</tbody>
+      </table>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input id="nbcGroupResp" placeholder="Responsibility" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+        <input id="nbcGroupPic" placeholder="PIC" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+        <button class="btn-primary" id="nbcGroupBtn" style="padding:7px 14px;font-size:12px;">Kelompokkan Jadi Insiden</button>
+      </div>
+      <div id="nbcGroupMsg" style="margin-top:8px;font-size:12.5px;"></div>`;
+  } else {
+    html += `<div class="nbc-placeholder">Semua event untuk periode ini sudah dikelompokkan.</div>`;
+  }
+  body.innerHTML = html;
+  const btn = document.getElementById('nbcGroupBtn');
+  if(btn) btn.onclick = async ()=>{
+    const ids = Array.from(document.querySelectorAll('.nbc-ev-chk:checked')).map(c=>parseInt(c.dataset.id));
+    const msg = document.getElementById('nbcGroupMsg');
+    if(!ids.length){ msg.innerHTML = '<span style="color:#B3261E;">Pilih minimal 1 event.</span>'; return; }
+    msg.innerHTML = '⏳ Mengelompokkan…';
+    try{
+      const res = await sbRpc('breakage_group_events', {
+        p_event_ids: ids,
+        p_responsibility: document.getElementById('nbcGroupResp').value || null,
+        p_pic: document.getElementById('nbcGroupPic').value || null
+      });
+      msg.innerHTML = `<span style="color:#1E7B34;font-weight:700;">✓ ${res.events_grouped} event digabung jadi 1 insiden (${fmtNum(res.qty_box)} box).</span>`;
+      // Guard against a race: only refresh THIS sub-tab's content if the user is still on it —
+      // otherwise a delayed refresh can clobber whatever sub-tab they've since switched to.
+      setTimeout(()=>{ if(NBC3_SUB==='incident') renderNbcIncidentDetail(scopeRdc); }, 900);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+async function renderNbcActionTracker(scopeRdc){
+  const body = document.getElementById('nbc3-body');
+  const [actions, incidents] = await Promise.all([
+    sbRpc('breakage_action_list', {p_rdc: scopeRdc, p_status: 'ALL'}),
+    sbRpc('breakage_incident_list', {p_period: NBC_PERIOD, p_rdc: scopeRdc})
+  ]);
+  const incOpts = incidents.map(i=>`<option value="${i.incident_id}">${esc(i.incident_no)} — ${esc(i.sub_category)} (${esc(i.rdc)})</option>`).join('');
+  let html = `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;">
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Tambah / Update Action</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <select id="nbcActIncident" style="font-size:12px;padding:6px;grid-column:1/-1;">${incOpts||'<option value="">Tidak ada insiden untuk periode ini</option>'}</select>
+      <input id="nbcActProblem" placeholder="Problem" style="font-size:12px;padding:6px;">
+      <input id="nbcActRoot" placeholder="Root Cause" style="font-size:12px;padding:6px;">
+      <input id="nbcActCorrective" placeholder="Corrective Action" style="font-size:12px;padding:6px;grid-column:1/-1;">
+      <input id="nbcActOwner" placeholder="Owner/PIC" style="font-size:12px;padding:6px;">
+      <input id="nbcActDue" type="date" style="font-size:12px;padding:6px;">
+      <select id="nbcActStatus" style="font-size:12px;padding:6px;">
+        <option>OPEN</option><option>INVESTIGATION</option><option>IN PROGRESS</option><option>CLOSED</option></select>
+    </div>
+    <button class="btn-primary" id="nbcActSave" style="padding:7px 14px;font-size:12px;">Simpan Action</button>
+    <div id="nbcActMsg" style="margin-top:6px;font-size:12px;"></div>
+  </div>
+  <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Daftar Action (${actions.length})</div>`;
+  html += actions.length ? `<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+    <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+      <th style="padding:5px 8px;">Incident</th><th style="padding:5px 8px;">Problem</th><th style="padding:5px 8px;">Corrective Action</th>
+      <th style="padding:5px 8px;">Owner</th><th style="padding:5px 8px;">Due</th><th style="padding:5px 8px;">Status</th></tr></thead>
+    <tbody>${actions.map(a=>`<tr style="border-bottom:1px solid var(--border);${a.overdue?'background:#FCEBE9;':''}">
+      <td style="padding:5px 8px;font-weight:600;">${esc(a.incident_no)}</td><td style="padding:5px 8px;">${esc(a.problem||'-')}</td>
+      <td style="padding:5px 8px;">${esc(a.corrective_action||'-')}</td><td style="padding:5px 8px;">${esc(a.owner_pic||'-')}</td>
+      <td style="padding:5px 8px;">${esc(a.due_date||'-')}</td>
+      <td style="padding:5px 8px;font-weight:700;color:${a.overdue?'#B3261E':a.status==='CLOSED'?'#1E7B34':'#946200'};">${a.overdue?'OVERDUE':esc(a.status)}</td></tr>`).join('')}</tbody>
+    </table>` : `<div class="nbc-placeholder">Belum ada action tercatat.</div>`;
+  body.innerHTML = html;
+  document.getElementById('nbcActSave').onclick = async ()=>{
+    const msg = document.getElementById('nbcActMsg');
+    const incId = parseInt(document.getElementById('nbcActIncident').value);
+    if(!incId){ msg.innerHTML = '<span style="color:#B3261E;">Pilih insiden dulu.</span>'; return; }
+    msg.innerHTML = '⏳ Menyimpan…';
+    try{
+      await sbRpc('breakage_action_save', {
+        p_incident_id: incId, p_problem: document.getElementById('nbcActProblem').value,
+        p_root_cause: document.getElementById('nbcActRoot').value,
+        p_corrective_action: document.getElementById('nbcActCorrective').value,
+        p_owner_pic: document.getElementById('nbcActOwner').value,
+        p_due_date: document.getElementById('nbcActDue').value,
+        p_status: document.getElementById('nbcActStatus').value
+      });
+      msg.innerHTML = '<span style="color:#1E7B34;font-weight:700;">✓ Tersimpan.</span>';
+      setTimeout(()=>{ if(NBC3_SUB==='action') renderNbcActionTracker(scopeRdc); }, 700);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
 
 </script>
 </body>
