@@ -4459,16 +4459,8 @@ async function openKpiDetail(key){
     return;
   }
   if(key==='sla'){
-    ws.innerHTML = kpiDetailShell('SLA', `
-      <div style="background:#F0EEE8;border-radius:8px;padding:14px;font-size:13px;line-height:1.7;">
-        <b>DATA DEFINITION REQUIRED</b> — SLA belum punya definisi di sistem manapun (tidak ada tabel, formula, atau target).<br><br>
-        Yang perlu ditentukan sebelum dibangun:
-        <ol style="margin:8px 0 0 18px;">
-          <li>SLA untuk proses apa? (Order-to-Delivery / Complaint Handling / Putaway / lainnya)</li>
-          <li>Titik mulai dan titik selesai pengukurannya?</li>
-          <li>Target durasi, dan pengecualian apa saja (libur, force majeure)?</li>
-          <li>Ada cut-off time?</li>
-        </ol></div>`);
+    ws.innerHTML = kpiDetailShell('SLA (Phase-1: SO → Customer Lead Time)', '<div id="slaDetailBody"></div>');
+    renderSlaDetail(document.getElementById('slaDetailBody'));
     return;
   }
   if(key==='otif'){
@@ -4521,6 +4513,159 @@ renderKPI = function(rdcName){
   _renderKPI_pre_priority(rdcName);
   renderPriorityKpiStrip();
 };
+
+
+
+// ============ SLA PHASE-1 (Delivery Lead Time) ============
+// Parses the Distribution Team's "Data Kiriman" format. Optionally enriches with the
+// "Data mentah" raw file for Transporter (Fwd Agent), joined on SO No.
+// NEVER computes a compliance % — target not finalized (Fang's explicit instruction).
+function parseSlaKiriman(wb){
+  const out = [];
+  for(const sn of wb.SheetNames){
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:null, cellDates:true});
+    let hr = -1;
+    for(let i=0;i<Math.min(g.length,6);i++){
+      const h = (g[i]||[]).map(x=>String(x||'').trim());
+      if(h.includes('SO No') && h.includes('SO Date') && h.includes('PGI Date')) { hr=i; break; }
+    }
+    if(hr<0) continue;
+    const H = (g[hr]||[]).map(x=>String(x||'').trim());
+    const col = name => H.indexOf(name);
+    const cED=col('ED No'), cODO=col('ODO No'), cSO=col('SO No'), cSOD=col('SO Date'), cPGI=col('PGI Date'),
+          cCust=col('Tgl Customer Terima Barang'), cSoldTo=col('Sold To Party'),
+          cName=col('Sold To Party Name1'), cCity=col('Delivery City'), cShip=col('Shipment No'),
+          cPlat=col('Plat No'), cTon=col('Tonase / Truk');
+    for(let r=hr+1; r<g.length; r++){
+      const row = g[r]; if(!row) continue;
+      const soNo = row[cSO]; if(!soNo) continue;
+      const isDate = v => v instanceof Date;
+      out.push({
+        ed_no: cED>=0 ? String(row[cED]||'') : '', odo_no: cODO>=0 ? String(row[cODO]||'') : '',
+        so_no: String(soNo), so_date: isDate(row[cSOD]) ? row[cSOD].toISOString().slice(0,10) : null,
+        pgi_date: isDate(row[cPGI]) ? row[cPGI].toISOString().slice(0,10) : null,
+        customer_receive_date: cCust>=0 && isDate(row[cCust]) ? row[cCust].toISOString().slice(0,10) : null,
+        sold_to_party: cSoldTo>=0 ? String(row[cSoldTo]||'') : '',
+        customer_name: cName>=0 ? String(row[cName]||'') : '',
+        delivery_city: cCity>=0 ? String(row[cCity]||'') : '',
+        shipment_no: cShip>=0 ? String(row[cShip]||'') : '',
+        plat_no: cPlat>=0 ? String(row[cPlat]||'') : '',
+        tonase_truk: cTon>=0 ? Number(row[cTon])||null : null,
+        transporter: null  // filled by enrichment step if a "Data mentah" file is also uploaded
+      });
+    }
+  }
+  return out;
+}
+// Enrich with Transporter from the raw line-item file (join on SO No), normalizing trailing-period variants.
+function enrichSlaTransporter(rows, wbRaw){
+  const g = XLSX.utils.sheet_to_json(wbRaw.Sheets[wbRaw.SheetNames[0]], {header:1, defval:null});
+  const H = (g[0]||[]).map(x=>String(x||'').trim());
+  const cSO = H.indexOf('SO No'), cAgent = H.indexOf('Fwd Agent');
+  if(cSO<0 || cAgent<0) return rows;
+  const map = {};
+  for(let r=1;r<g.length;r++){
+    const row = g[r]; if(!row) continue;
+    const so = row[cSO]; const agent = row[cAgent];
+    if(so && agent) map[String(so).trim()] = String(agent).trim().replace(/\.$/,''); // normalize trailing period
+  }
+  rows.forEach(r=>{ if(map[r.so_no]) r.transporter = map[r.so_no]; });
+  return rows;
+}
+
+let SLA_PARSED_ROWS = null;
+function renderSlaUploadUI(container){
+  container.innerHTML = `
+    <div class="hint">Upload file "Data Kiriman" Tim Distribusi (wajib), lalu opsional file "Data mentah" untuk melengkapi Transporter.</div>
+    <div style="margin-bottom:10px;"><label style="font-size:11.5px;font-weight:600;color:var(--stone);">1. File Data Kiriman (wajib)</label><br>
+      <input type="file" id="slaFileMain" accept=".xlsx,.xls"></div>
+    <div style="margin-bottom:10px;"><label style="font-size:11.5px;font-weight:600;color:var(--stone);">2. File Data Mentah — untuk Transporter (opsional)</label><br>
+      <input type="file" id="slaFileRaw" accept=".xlsx,.xls"></div>
+    <button class="btn-primary" id="slaParseBtn" style="padding:8px 16px;">Proses File</button>
+    <div id="slaUploadMsg" style="margin-top:10px;font-size:13px;"></div>`;
+  document.getElementById('slaParseBtn').onclick = async ()=>{
+    const msg = document.getElementById('slaUploadMsg');
+    const mainFile = document.getElementById('slaFileMain').files[0];
+    const rawFile = document.getElementById('slaFileRaw').files[0];
+    if(!mainFile){ msg.innerHTML = '<span style="color:#B3261E;">Pilih file Data Kiriman dulu.</span>'; return; }
+    msg.innerHTML = '⏳ Membaca…';
+    try{
+      const mainBuf = await mainFile.arrayBuffer();
+      const wb = XLSX.read(mainBuf, {cellDates:true});
+      let rows = parseSlaKiriman(wb);
+      if(!rows.length){ msg.innerHTML = '<span style="color:#B3261E;">Format tidak dikenali — kolom SO No/SO Date/PGI Date tidak ditemukan.</span>'; return; }
+      if(rawFile){
+        const rawBuf = await rawFile.arrayBuffer();
+        const wbRaw = XLSX.read(rawBuf, {cellDates:true});
+        rows = enrichSlaTransporter(rows, wbRaw);
+      }
+      SLA_PARSED_ROWS = rows;
+      const withTransporter = rows.filter(r=>r.transporter).length;
+      const withCustDate = rows.filter(r=>r.customer_receive_date).length;
+      msg.innerHTML = `<span style="color:#1E7B34;font-weight:700;">✓ ${rows.length} baris terbaca</span>
+        <div style="font-size:12px;color:var(--stone);margin-top:4px;">
+        ${withCustDate}/${rows.length} punya tanggal terima customer · ${withTransporter}/${rows.length} punya data transporter
+        ${!rows.some(r=>r.transporter) ? ' · <b>Tidak ada kolom RDC di sumber — perlu ditentukan manual sebelum import.</b>' : ''}</div>
+        <button class="btn-primary" id="slaImportBtn" style="margin-top:10px;padding:8px 16px;">Import ${rows.length} baris</button>`;
+      document.getElementById('slaImportBtn').onclick = doSlaImport;
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+async function doSlaImport(){
+  const msg = document.getElementById('slaUploadMsg');
+  msg.innerHTML += '<div>⏳ Mengimpor…</div>';
+  try{
+    const res = await sbRpc('sla_import_rows', {p_rows: SLA_PARSED_ROWS});
+    msg.innerHTML = `<div style="color:#1E7B34;font-weight:700;">✓ ${res.imported} baris berhasil diimpor.</div>`;
+  }catch(e){ msg.innerHTML += `<div style="color:#B3261E;">Gagal import: ${esc(e.message)}</div>`; }
+}
+
+async function renderSlaDetail(container){
+  container.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  const period = NBC_PERIOD || new Date().toISOString().slice(0,7);
+  const [y,m] = period.split('-').map(Number);
+  const fromP = new Date(y, m-1-2, 1);
+  const fromStr = fromP.getFullYear()+'-'+String(fromP.getMonth()+1).padStart(2,'0');
+  try{
+    const d = await sbRpc('sla_summary', {p_from: fromStr, p_to: period, p_rdc: 'ALL'});
+    if(d.status==='DATA REQUIRED'){
+      container.innerHTML = `<div style="background:#F0EEE8;border-radius:8px;padding:14px;font-size:13px;">
+        <b>DATA REQUIRED</b> — ${esc(d.message)}</div>
+        <div style="margin-top:12px;"><button class="btn-primary" id="slaShowUpload" style="padding:8px 16px;">Upload Data Kiriman</button></div>
+        <div id="slaUploadArea" style="margin-top:12px;"></div>`;
+      document.getElementById('slaShowUpload').onclick = ()=>renderSlaUploadUI(document.getElementById('slaUploadArea'));
+      return;
+    }
+    const [dist, topLate] = await Promise.all([
+      sbRpc('sla_distribution', {p_from: fromStr, p_to: period, p_metric: 'end_to_end', p_rdc: 'ALL'}),
+      sbRpc('sla_top_late', {p_from: fromStr, p_to: period, p_rdc: 'ALL', p_limit: 5})
+    ]);
+    container.innerHTML = `
+      <div style="background:#FDF3DF;border-radius:8px;padding:10px 12px;font-size:11.5px;margin-bottom:12px;">
+        <b>SO → Customer Lead Time</b> (bukan "SLA Compliance") — SO Date belum dikonfirmasi sebagai start event resmi. ${fmtNum(d.total_so)} SO dianalisis.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+        ${['internal_fulfillment','transport_delivery','end_to_end'].map(k=>`
+          <div class="nbc-rate-card"><div class="lbl">${esc(d[k].label)}</div>
+            <div class="val" style="font-size:22px;">${d[k].avg} <small>hari (avg)</small></div>
+            <div style="font-size:11px;color:var(--stone);">Median: ${d[k].median} hari</div></div>`).join('')}
+      </div>
+      <div class="nbc-rate-card" style="margin-bottom:14px;">
+        <div class="lbl">Distribusi End-to-End Lead Time</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;">
+        <thead><tr style="background:#F0EEE8;"><th style="padding:5px;">0 Hari</th><th style="padding:5px;">1</th><th style="padding:5px;">2</th>
+          <th style="padding:5px;">3</th><th style="padding:5px;">4</th><th style="padding:5px;">5</th><th style="padding:5px;">&gt;5</th></tr></thead>
+        <tbody><tr>${['0','1','2','3','4','5','5plus'].map(k=>`<td style="padding:5px;text-align:center;border:1px solid var(--border);">${dist.buckets[k]}</td>`).join('')}</tr></tbody></table>
+      </div>
+      <div class="nbc-rate-card">
+        <div class="lbl">Top 5 SO Paling Lambat (End-to-End)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;">
+        <thead><tr style="background:var(--navy);color:#fff;"><th style="padding:5px;text-align:left;">SO No</th><th style="padding:5px;text-align:left;">Customer</th>
+          <th style="padding:5px;">Hari</th></tr></thead>
+        <tbody>${topLate.map(t=>`<tr style="border-bottom:1px solid var(--border);"><td style="padding:5px;">${esc(t.so_no)}</td>
+          <td style="padding:5px;">${esc(t.customer||'-')}</td><td style="padding:5px;text-align:right;font-weight:700;">${t.end_to_end_days}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+  }catch(e){ container.innerHTML = `<div style="color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
 
 </script>
 </body>
