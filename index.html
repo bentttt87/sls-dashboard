@@ -331,6 +331,10 @@
         <div class="header-summary" id="headerSummary"></div>
         <div id="executiveStatement" style="font-size:12.5px;color:var(--ink-soft);font-style:italic;margin:10px 0 4px;line-height:1.6;"></div>
 
+        <div class="section-label">Priority KPI Control <span class="tag">Early Warning</span></div>
+        <div id="priorityKpiStrip" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;"></div>
+        <div id="kpiDetailWorkspace" style="display:none;margin-bottom:14px;"></div>
+
         <div class="section-label">Business Priorities <span class="tag">Top 5</span></div>
         <div id="top5Grid"></div>
 
@@ -4384,6 +4388,139 @@ async function renderNbcActionTracker(scopeRdc){
     }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
   };
 }
+
+
+
+// ============ PRIORITY KPI CONTROL (addendum) ============
+// 4 cards: Breakage (real, via V43), SLA (definition required), OTIF (data required),
+// Logistic Cost (data required). Never fabricates a status — always driven by priority_kpi_summary().
+let PRIORITY_KPI_OPEN = null;
+
+function pkPillColor(status){
+  return {RED:'#B3261E', AMBER:'#946200', GREEN:'#1E7B34',
+    'DATA REQUIRED':'#6E6A63', 'DATA DEFINITION REQUIRED':'#6E6A63', CALCULATED:'#1F3864'}[status] || '#6E6A63';
+}
+async function renderPriorityKpiStrip(){
+  const el = document.getElementById('priorityKpiStrip');
+  if(!el) return;
+  el.innerHTML = '<div class="nbc-placeholder" style="grid-column:1/-1;">⏳ Memuat…</div>';
+  try{
+    const period = (NBC_PERIOD || new Date().toISOString().slice(0,7));
+    const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+    const d = await sbRpc('priority_kpi_summary', {p_period: period, p_rdc: scopeRdc});
+    const cards = [
+      {key:'breakage', title:'BREAKAGE', unit:'/10k', data:d.breakage},
+      {key:'sla', title:'SLA', unit:'', data:d.sla},
+      {key:'otif', title:'OTIF', unit:'', data:d.otif},
+      {key:'logistic_cost', title:'LOGISTIC COST', unit:'', data:d.logistic_cost}
+    ];
+    el.innerHTML = cards.map(c=>{
+      const st = c.data.status;
+      const col = pkPillColor(st);
+      const hasReal = st==='RED'||st==='AMBER'||st==='GREEN'||st==='CALCULATED';
+      return `<div class="priority-kpi-card" data-pk="${c.key}" style="border:1px solid var(--border);border-left:4px solid ${col};
+        border-radius:8px;padding:11px 12px;cursor:pointer;background:#fff;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--stone);">${c.title}</div>
+        <div style="font-size:19px;font-weight:800;color:var(--navy);margin:4px 0 2px;">
+          ${hasReal && c.data.current!=null ? c.data.current+c.unit : (st==='CALCULATED'?'Lihat detail':st)}</div>
+        <div style="font-size:10px;color:${col};font-weight:700;">${st}${c.data.gap!=null?' · Gap '+(c.data.gap>0?'+':'')+c.data.gap:''}</div>
+        <div style="font-size:10.5px;color:var(--navy);margin-top:6px;font-weight:600;">Lihat Detail →</div>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('.priority-kpi-card').forEach(c=>c.addEventListener('click', ()=>openKpiDetail(c.dataset.pk)));
+  }catch(e){ el.innerHTML = `<div class="nbc-placeholder" style="grid-column:1/-1;background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+
+function closeKpiDetail(){
+  document.getElementById('kpiDetailWorkspace').style.display = 'none';
+  PRIORITY_KPI_OPEN = null;
+}
+function kpiDetailShell(title, bodyHtml){
+  return `<div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-weight:700;font-size:14px;color:var(--navy);">${esc(title)} — KPI Detail Workspace</div>
+      <button class="export-btn" onclick="closeKpiDetail()" style="padding:5px 10px;font-size:11.5px;">✕ Tutup</button>
+    </div>${bodyHtml}</div>`;
+}
+async function openKpiDetail(key){
+  PRIORITY_KPI_OPEN = key;
+  const ws = document.getElementById('kpiDetailWorkspace');
+  ws.style.display = 'block';
+  ws.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  ws.scrollIntoView({behavior:'smooth', block:'nearest'});
+
+  if(key==='breakage'){
+    // Per spec: Breakage detail MUST open the EXISTING V43 module, not a second one.
+    ws.innerHTML = kpiDetailShell('Breakage', `
+      <div style="font-size:13px;margin-bottom:12px;">Breakage memakai <b>National Breakage Control (V43)</b> yang sudah berjalan penuh — Overview, Rekap &amp; Trend, Root Cause &amp; Action, Upload &amp; Reconciliation.</div>
+      <button class="btn-primary" style="padding:9px 18px;" onclick="switchView('ops');
+        setTimeout(()=>document.getElementById('nbcWrap')?.scrollIntoView({behavior:'smooth'}),300);">
+        Buka National Breakage Control →</button>`);
+    return;
+  }
+  if(key==='sla'){
+    ws.innerHTML = kpiDetailShell('SLA', `
+      <div style="background:#F0EEE8;border-radius:8px;padding:14px;font-size:13px;line-height:1.7;">
+        <b>DATA DEFINITION REQUIRED</b> — SLA belum punya definisi di sistem manapun (tidak ada tabel, formula, atau target).<br><br>
+        Yang perlu ditentukan sebelum dibangun:
+        <ol style="margin:8px 0 0 18px;">
+          <li>SLA untuk proses apa? (Order-to-Delivery / Complaint Handling / Putaway / lainnya)</li>
+          <li>Titik mulai dan titik selesai pengukurannya?</li>
+          <li>Target durasi, dan pengecualian apa saja (libur, force majeure)?</li>
+          <li>Ada cut-off time?</li>
+        </ol></div>`);
+    return;
+  }
+  if(key==='otif'){
+    try{
+      const period = (NBC_PERIOD || new Date().toISOString().slice(0,7));
+      const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+      const d = await sbRpc('otif_detail', {p_period: period, p_rdc: scopeRdc});
+      if(d.status==='DATA REQUIRED'){
+        ws.innerHTML = kpiDetailShell('OTIF', `<div style="background:#F0EEE8;border-radius:8px;padding:14px;font-size:13px;">
+          <b>DATA REQUIRED</b> — ${esc(d.message)}</div>
+          <div style="font-size:11.5px;color:var(--stone);margin-top:10px;">
+          Formula (sudah ditetapkan, menunggu data): OTIF = ON TIME (actual ≤ planned delivery) DAN IN FULL (qty delivered ≥ qty ordered).<br>
+          <b>Bukan</b> Delivery Speed — KPI itu tetap terpisah.</div>`);
+      } else {
+        ws.innerHTML = kpiDetailShell('OTIF', `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:var(--navy);color:#fff;"><th style="padding:6px;text-align:left;">RDC</th>
+            <th style="padding:6px;">On Time %</th><th style="padding:6px;">In Full %</th><th style="padding:6px;">OTIF %</th></tr></thead>
+          <tbody>${(d.by_rdc||[]).map(r=>`<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px;">${esc(r.rdc)}</td><td style="padding:6px;text-align:right;">${r.on_time_pct}%</td>
+            <td style="padding:6px;text-align:right;">${r.in_full_pct}%</td><td style="padding:6px;text-align:right;font-weight:700;">${r.otif_pct}%</td></tr>`).join('')}</tbody></table>`);
+      }
+    }catch(e){ ws.innerHTML = kpiDetailShell('OTIF', `<div style="color:#B3261E;">Gagal: ${esc(e.message)}</div>`); }
+    return;
+  }
+  if(key==='logistic_cost'){
+    try{
+      const period = (NBC_PERIOD || new Date().toISOString().slice(0,7));
+      const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+      const d = await sbRpc('logistic_cost_detail', {p_period: period, p_rdc: scopeRdc});
+      if(d.status==='DATA REQUIRED'){
+        ws.innerHTML = kpiDetailShell('Logistic Cost', `<div style="background:#F0EEE8;border-radius:8px;padding:14px;font-size:13px;">
+          <b>DATA REQUIRED</b> — ${esc(d.message)}</div>`);
+      } else {
+        ws.innerHTML = kpiDetailShell('Logistic Cost', `
+          <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:10px;">Rp ${fmtNum(d.total_cost)}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:var(--navy);color:#fff;"><th style="padding:6px;text-align:left;">RDC</th>
+            <th style="padding:6px;">Total Cost</th><th style="padding:6px;">Trips</th><th style="padding:6px;">Cost/KM</th></tr></thead>
+          <tbody>${(d.by_rdc||[]).map(r=>`<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:6px;">${esc(r.rdc)}</td><td style="padding:6px;text-align:right;">${fmtNum(r.total_cost)}</td>
+            <td style="padding:6px;text-align:right;">${fmtNum(r.trips)}</td><td style="padding:6px;text-align:right;">${fmtNum(r.cost_per_km)}</td></tr>`).join('')}</tbody></table>`);
+      }
+    }catch(e){ ws.innerHTML = kpiDetailShell('Logistic Cost', `<div style="color:#B3261E;">Gagal: ${esc(e.message)}</div>`); }
+    return;
+  }
+}
+
+const _renderKPI_pre_priority = renderKPI;
+renderKPI = function(rdcName){
+  _renderKPI_pre_priority(rdcName);
+  renderPriorityKpiStrip();
+};
 
 </script>
 </body>
