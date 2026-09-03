@@ -12,9 +12,6 @@
     --clay:#C1573C; --stone:#8B8378; --stone-light:#E4DFD6;
     --green:#16A34A; --amber:#F59E0B; --red:#DC2626; --blue:#2563EB;
     --ink:#1C1B19; --ink-soft:#6B6459; --border:#E7E2D8;
-    /* Roman brand accents — dipakai sebagai aksen (header tabel, garis KPI, highlight),
-       bukan mengganti palet navy/clay yang sudah dipakai seluruh dashboard. */
-    --roman-red:#E31D2B; --roman-red-deep:#B3121D; --roman-yellow:#F7C600;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);font-family:'Inter',sans-serif;color:var(--ink);}
@@ -211,46 +208,12 @@
   .manager-kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;margin-bottom:8px;}
   .manager-kpi-card{background:#fff;border:1px solid var(--border);border-top:4px solid var(--stone);border-radius:10px;padding:12px 11px;min-height:142px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;transition:.18s ease;}
   .manager-kpi-card:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(31,56,100,.12);}
-  .manager-kpi-card .mk-title{font-size:13px;font-weight:800;line-height:1.35;color:var(--navy);}
-  .manager-kpi-card .mk-value{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:800;color:var(--navy);margin:9px 0 2px;line-height:1.08;overflow-wrap:anywhere;}
-  .manager-kpi-card .mk-value.mk-long{font-size:20px;}
-  .manager-kpi-card .mk-value.mk-empty{font-size:15px;color:var(--stone);letter-spacing:.3px;}
-  .manager-kpi-card .mk-unit{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:3px;}
-  .manager-kpi-card .mk-meta{font-size:11px;line-height:1.45;color:var(--stone);}
-  .manager-kpi-card .mk-source{font-size:10px;line-height:1.4;color:var(--ink-soft);margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
-  .manager-kpi-card .mk-source b{color:var(--navy);font-weight:800;}
+  .manager-kpi-card .mk-title{font-size:11px;font-weight:800;line-height:1.35;color:var(--navy);}
+  .manager-kpi-card .mk-value{font-size:20px;font-weight:800;color:var(--navy);margin:8px 0 2px;}
+  .manager-kpi-card .mk-meta{font-size:10px;line-height:1.45;color:var(--stone);}
   .manager-kpi-card .mk-weight{font-size:10px;font-weight:800;color:var(--ink-soft);margin-top:8px;}
-  .mk-conn{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.4px;border-radius:20px;padding:2px 7px;margin-top:6px;border:1px solid;}
-  .mk-conn.on{color:#1E7B34;border-color:#1E7B3455;background:#1E7B340F;}
-  .mk-conn.off{color:#6E6A63;border-color:#6E6A6344;background:#6E6A630F;}
-  .weight-check{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;color:#1E7B34;background:#1E7B340F;border:1px solid #1E7B3444;border-radius:20px;padding:3px 10px;margin-left:8px;vertical-align:middle;}
-  .monthly-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0;}
-  .monthly-stat{background:var(--navy-deep);color:#fff;border-radius:10px;padding:13px 15px;}
-  .monthly-stat .ms-label{font-size:10px;color:#AFC0DA;text-transform:uppercase;letter-spacing:.6px;font-weight:700;}
-  .monthly-stat .ms-value{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:800;line-height:1.15;margin-top:5px;}
-  .monthly-stat .ms-note{font-size:10.5px;color:#CDD7E7;margin-top:4px;}
-  /* max-height + sticky thead = "freeze-like header": judul kolom tetap terlihat
-     saat management men-scroll tabel di laptop maupun layar presentasi. */
-  .management-table-wrap{overflow:auto;max-height:66vh;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 3px 12px rgba(31,56,100,.05);-webkit-overflow-scrolling:touch;}
-  .management-table{width:100%;min-width:1380px;border-collapse:separate;border-spacing:0;font-size:12.5px;}
-  .management-table th{position:sticky;top:0;z-index:3;background:var(--navy);color:#fff;text-align:left;padding:13px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.35px;white-space:nowrap;box-shadow:inset 0 -3px 0 var(--roman-yellow);}
-  .management-table td{padding:15px 11px;border-bottom:1px solid var(--border);vertical-align:middle;line-height:1.5;}
-  .management-table tr:last-child td{border-bottom:none;}
-  .management-table tr:hover td{background:#FAF8F4;}
-  .management-table .mt-kpi{font-size:13.5px;font-weight:800;color:var(--navy);min-width:200px;border-left:4px solid transparent;}
-  .management-table .mt-number{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--navy);white-space:nowrap;letter-spacing:-.3px;}
-  .management-table .mt-number.mt-empty{font-size:11.5px;white-space:nowrap;font-family:'Inter',sans-serif;font-weight:800;color:var(--stone);letter-spacing:.3px;min-width:120px;}
-  .management-table .mt-weight{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:800;text-align:center;white-space:nowrap;}
-  .management-table .mt-action{min-width:250px;font-weight:600;}
-  .management-table .mt-pic{min-width:140px;font-weight:700;}
-  .management-table .mt-deadline{min-width:120px;font-weight:800;white-space:nowrap;}
-  .management-table .mt-progress{min-width:150px;font-weight:700;}
-  .mt-set{background:none;border:1px dashed var(--border);border-radius:6px;color:var(--navy);font-size:10.5px;font-weight:800;padding:4px 8px;cursor:pointer;font-family:inherit;}
-  .mt-set:hover{border-color:var(--roman-red);color:var(--roman-red);}
-  .mt-overdue{color:var(--roman-red);font-weight:800;}
-  .monthly-note{font-size:11px;color:var(--stone);margin-top:8px;line-height:1.5;}
   @media(max-width:1180px){.manager-kpi-grid{grid-template-columns:repeat(3,1fr);}}
-  @media(max-width:720px){.manager-kpi-grid{grid-template-columns:repeat(2,1fr);}.monthly-stat-grid{grid-template-columns:1fr;}}
+  @media(max-width:720px){.manager-kpi-grid{grid-template-columns:repeat(2,1fr);}}
   .offline-banner{background:#7A5300;color:#fff;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
   @media print{
     .sidebar, #detailModalOverlay, #loginOverlay, .filters, .export-btn, .logout-btn, .btn-primary, .dropzone, .upload-tab, .manual-tab, #manualFormBox, #rangePickerBox, #rangePickerLabel, #viewTabsWrap { display:none !important; }
@@ -310,6 +273,7 @@
   .detail-row.total{margin-top:6px;padding-top:12px;border-top:2px solid var(--navy);}
   .detail-row.total .value{font-size:15px;}
   .detail-section-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--stone);margin:14px 0 4px;}
+  .legacy-hidden{display:none !important;}
 </style>
 </head>
 <body>
@@ -330,12 +294,12 @@
   <div class="login-box">
     <svg class="roman-logo" role="img" aria-label="Roman"><use href="#romanLogo"></use></svg>
     <div class="login-title">SLS Control Tower</div>
-    <div class="login-sub">Masukkan ID dan password (sama seperti WMS)</div>
-    <input type="text" id="loginId" placeholder="ID pengguna" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <div class="login-sub">Masukkan User ID dan password akun SLS</div>
+    <input type="text" id="loginUsername" placeholder="User ID" autocomplete="username" autocapitalize="none" spellcheck="false">
     <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
     <button id="loginBtn">Masuk</button>
     <div class="login-error" id="loginError"></div>
-    <div class="login-hint">ID <b>master</b> = akses penuh (kelola RDC &amp; data).<br>ID per RDC (jakarta, semarang, surabaya, denpasar, palembang) = lihat data RDC sendiri.</div>
+    <div class="login-hint">Gunakan akun sesuai role &amp; RDC. Master melihat Nasional; user RDC dibatasi ke RDC masing-masing.</div>
   </div>
 </div>
 
@@ -358,11 +322,12 @@
     <div class="nav-scroll">
       <div class="nav-item active" data-page="dashboard"><span class="nav-dot"></span>Dashboard Utama</div>
       <div class="nav-item" id="navWms" title="Buka WMS SLS pada tab baru"><span class="nav-dot"></span>WMS Operational ↗</div>
+      <div class="nav-item" id="navBreakageApp" title="Buka SLS Breakage Monitoring pada tab baru"><span class="nav-dot"></span>Breakage Monitoring ↗</div>
       <div class="nav-item" data-page="about"><span class="nav-dot"></span>About Dashboard</div>
       <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-dot"></span>Kelola RDC (Master)</div>
-      <div class="nav-item" data-page="upload" id="navUpload"><span class="nav-dot"></span>Upload Data</div>
-      <div class="nav-item" data-page="manual" id="navManual"><span class="nav-dot"></span>Input Manual</div>
-      <div class="nav-item" id="navBreakage" style="cursor:pointer;"><span class="nav-dot"></span>Breakage Monitoring ↗</div>
+      <div class="nav-item legacy-hidden" data-page="upload" id="navUpload"><span class="nav-dot"></span>Upload Data</div>
+      <div class="nav-item legacy-hidden" data-page="manual" id="navManual"><span class="nav-dot"></span>Input Manual</div>
+      <div class="nav-item legacy-hidden" data-page="breakage" id="navBreakage"><span class="nav-dot"></span>Breakage Control</div>
     </div>
     <button class="logout-btn" id="logoutBtn" style="flex-shrink:0;">⎋ Keluar</button>
   </div>
@@ -394,28 +359,9 @@
         <div class="header-summary" id="headerSummary"></div>
         <div id="executiveStatement" style="font-size:12.5px;color:var(--ink-soft);font-style:italic;margin:10px 0 4px;line-height:1.6;"></div>
 
-        <div class="section-label" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span>6 KPI Resmi Warehouse &amp; Logistics</span>
-          <span class="weight-check" id="weightCheck">✓ Total bobot 100%</span>
-          <span style="margin-left:auto;display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:normal;font-weight:600;">
-            <label for="mgmtPeriod" style="font-size:10.5px;font-weight:800;color:var(--stone);text-transform:uppercase;letter-spacing:.5px;">Periode</label>
-            <select id="mgmtPeriod" style="font-size:12.5px;font-weight:700;padding:7px 10px;border-radius:7px;border:1px solid var(--border);color:var(--navy);background:#fff;"></select>
-          </span>
-        </div>
+        <div class="section-label">Warehouse &amp; Logistics Manager KPI <span class="tag">Bobot 100%</span></div>
         <div id="managerKpiScorecard" class="manager-kpi-grid"></div>
         <div id="managerKpiRecap" class="impact-card blue" style="margin-top:10px;"></div>
-
-        <div class="section-label">Rekap KPI Management Bulanan <span class="tag" id="managementMonthlyPeriod">Selected Month</span></div>
-        <div id="managementMonthlyStats" class="monthly-stat-grid"></div>
-        <div class="management-table-wrap">
-          <table class="management-table" aria-label="Rekap KPI Management Bulanan">
-            <thead><tr>
-              <th>KPI Management</th><th>Bobot</th><th>Current</th><th>Target</th><th>Gap</th><th>Status</th><th>Action / Next Step</th><th>PIC</th><th>Deadline</th><th>Progress / Closure</th>
-            </tr></thead>
-            <tbody id="managementMonthlyBody"></tbody>
-          </table>
-        </div>
-        <div class="monthly-note">Rekap mengikuti periode yang dipilih. Nilai tanpa sumber atau target authoritative tetap ditandai DATA REQUIRED dan tidak ikut membentuk skor.</div>
 
         <div class="section-label">Priority KPI Control <span class="tag">Early Warning</span></div>
         <div id="priorityKpiStrip" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px;"></div>
@@ -481,7 +427,7 @@
         <div class="kpi-grid" id="kpiGridQuality"></div>
         <div id="breakageDetailSection"></div>
         <div style="font-size:11.5px;margin-top:6px;">
-          <span class="detail-link" onclick="window.open(BREAKAGE_APP_URL,'_blank','noopener,noreferrer')">Buka Breakage Monitoring (aplikasi terpisah) ↗</span>
+          <span class="detail-link" onclick="window.open('https://sls-breakage.vercel.app/','_blank','noopener,noreferrer')">Buka SLS Breakage Monitoring ↗</span>
         </div>
 
         <div class="section-label">RDC Benchmarking</div>
@@ -687,7 +633,6 @@
         <div class="manual-tab" data-mtab="serah_terima_spb" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Serah Terima SPB</div>
         <div class="manual-tab" data-mtab="drop_point" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Drop Point</div>
         <div class="manual-tab" data-mtab="operasional_harian" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Operasional Harian</div>
-        <div class="manual-tab" data-mtab="opname_akunting" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Opname Akunting</div>
         <div class="manual-tab" data-mtab="lainnya" style="padding:10px 16px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--stone);border-bottom:2px solid transparent;">Lainnya</div>
       </div>
 
@@ -699,6 +644,40 @@
       <div id="manualPanelContent"></div>
     </div>
 
+    <div id="page-breakage" class="page legacy-hidden" aria-hidden="true">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+        <div>
+          <h2 style="margin:0;font-size:18px;color:var(--navy);">National Breakage Control</h2>
+          <div style="font-size:12px;color:var(--stone);">Monitoring, Incident, dan Reconciliation — terpisah dari Operational View</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="nbcPeriod" style="font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);"></select>
+          <button class="export-btn" id="nbcDownload" style="padding:6px 10px;font-size:11.5px;">⬇ Download</button>
+          <button class="btn-primary" id="nbcOpenInput" style="padding:7px 14px;font-size:12px;">+ Input Breakage</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin:14px 0;">
+        <div class="nbc-tab active" data-nbc="overview">Overview</div>
+        <div class="nbc-tab" data-nbc="rekap">Rekap &amp; Trend</div>
+        <div class="nbc-tab" data-nbc="incident">Incident</div>
+        <div class="nbc-tab" data-nbc="reconcile">Monthly Reconciliation</div>
+      </div>
+      <div id="nbc-overview" class="nbc-page active"></div>
+      <div id="nbc-rekap" class="nbc-page"></div>
+      <div id="nbc-incident" class="nbc-page"></div>
+      <div id="nbc-reconcile" class="nbc-page"></div>
+
+      <!-- Input Breakage: an ACTION (guided upload wizard), separate from the monitoring tabs above -->
+      <div id="nbcInputModal" style="display:none;position:fixed;inset:0;background:rgba(20,22,26,.55);z-index:200;">
+        <div style="max-width:820px;margin:40px auto;background:#fff;border-radius:12px;padding:20px;max-height:88vh;overflow-y:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:15px;color:var(--navy);">Input Breakage — Upload SAP MB51</div>
+            <button class="export-btn" id="nbcCloseInput" style="padding:5px 10px;font-size:11.5px;">✕ Tutup</button>
+          </div>
+          <div id="nbc-upload"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -717,6 +696,8 @@
 
 <script>
 const SUPABASE_URL = 'https://mfdckngkvjnemwgmkiiv.supabase.co';
+const CONTROL_TOWER_URL = 'https://sls-supply-chain-control-tower.vercel.app/';
+const BREAKAGE_APP_URL = 'https://sls-breakage.vercel.app/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZGNrbmdrdmpuZW13Z21raWl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMDcxMjUsImV4cCI6MjEwMTU4MzEyNX0.mFhv9hgQvjzg6AYfmEI2GiJ71I2xSkOozC43mwFcogU';
 
 // SLS-AUTH: real Supabase Auth session (JWT), established after login. Used instead of the bare anon key
@@ -728,15 +709,11 @@ function authHeader(){
   return AUTH_SESSION && AUTH_SESSION.access_token ? AUTH_SESSION.access_token : SUPABASE_ANON_KEY;
 }
 let AUTH_SESSION_ERROR = '';
-async function establishAuthSession(password, username){
+async function establishAuthSession(username, password){
   AUTH_SESSION_ERROR = '';
   try{
-    // Overload 2-argumen dipakai kalau username tersedia (login ID+password);
-    // fallback ke overload lama supaya sesi tersimpan tetap bisa dipulihkan.
-    const emailRes = username
-      ? await sbRpc('get_login_email', {input_username: username, input_password: password})
-      : await sbRpc('get_login_email', {input_password: password});
-    if(!emailRes){ AUTH_SESSION_ERROR = 'get_login_email tidak menemukan akun (hasil kosong).'; return false; }
+    const emailRes = await sbRpc('get_login_email', {input_username: username, input_password: password});
+    if(!emailRes){ AUTH_SESSION_ERROR = 'User ID tidak ditemukan atau akun tidak aktif.'; return false; }
     const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method:'POST',
       headers:{ 'apikey':SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
@@ -778,7 +755,6 @@ let CONFIG = { occ_underused_pct: 50, occ_watch_pct: 85, occ_overload_pct: 100,
   invdays_target: 45, invdays_watch: 60, invdays_critical: 75, invdays_minimum: 20, stale_hours: 48 };
 let RDC_MASTER = {};
 let CURRENT_PASSWORD = '';
-let CURRENT_USERNAME = '';
 let CURRENT_ROLE = '';
 let IS_OFFLINE_MODE = false;
 let CURRENT_RDC_SCOPE = null; // null = master (sees all); RDC name = locked to that RDC only
@@ -1915,6 +1891,9 @@ document.getElementById('rdcSelector').addEventListener('change', e=>{
 document.getElementById('navWms').addEventListener('click', ()=>{
   window.open('https://sls-wms.vercel.app/', '_blank', 'noopener,noreferrer');
 });
+document.getElementById('navBreakageApp').addEventListener('click', ()=>{
+  window.open(BREAKAGE_APP_URL, '_blank', 'noopener,noreferrer');
+});
 document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
   el.addEventListener('click', ()=>{
     document.querySelectorAll('.nav-item[data-page]').forEach(x=>x.classList.remove('active'));
@@ -1924,6 +1903,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     if(el.dataset.page==='kelola') loadKelola();
     if(el.dataset.page==='upload') loadUploadPage();
     if(el.dataset.page==='manual') loadManualPage();
+    if(el.dataset.page==='breakage') loadBreakagePage();
     if(el.dataset.page==='dashboard') render(CURRENT_RDC);
   });
 });
@@ -2169,24 +2149,20 @@ function loadOfflineCache(){
 }
 
 async function doLogin(){
-  const id = (document.getElementById('loginId').value||'').trim();
+  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
   const pw = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
-  if(!id){ errEl.textContent='ID pengguna wajib diisi.'; return; }
-  if(!pw){ errEl.textContent='Password wajib diisi.'; return; }
+  if(!username || !pw){ errEl.textContent='User ID dan password wajib diisi.'; return; }
   try{
-    // ID + password, sama seperti WMS. verify_login() mencocokkan username DAN password,
-    // sehingga password yang benar milik akun lain tidak bisa dipakai lintas RDC.
-    const account = await sbRpc('verify_login', {input_username: id, input_password: pw});
-    if(!account){ errEl.textContent = 'ID atau password salah.'; return; }
-    CURRENT_PASSWORD = pw;
-    CURRENT_USERNAME = account.username || id;
-    CURRENT_ROLE = account.role;
-    CURRENT_RDC_SCOPE = account.rdc_name;
-    sessionStorage.setItem('sls_pw', pw);
-    sessionStorage.setItem('sls_user', CURRENT_USERNAME);
-    AUTH_SESSION_OK = await establishAuthSession(pw, CURRENT_USERNAME); // non-blocking for login itself
+    AUTH_SESSION_OK = await establishAuthSession(username, pw);
+    if(!AUTH_SESSION_OK){ errEl.textContent = AUTH_SESSION_ERROR || 'User ID / password salah.'; return; }
+    const access = await sbRpc('breakage_my_access_v44', {});
+    if(!access || !access.role){ errEl.textContent='Role akun tidak ditemukan / tidak aktif.'; AUTH_SESSION=null; return; }
+    CURRENT_PASSWORD = pw; // hanya di memory untuk kompatibilitas fungsi legacy; tidak disimpan di browser
+    CURRENT_ROLE = access.role;
+    CURRENT_RDC_SCOPE = access.is_master ? null : access.rdc_name;
+    sessionStorage.setItem('sls_dashboard_username', username);
     await bootDashboard();
   }catch(e){
     const cache = loadOfflineCache();
@@ -2199,20 +2175,21 @@ async function doLogin(){
         bootDashboardOffline(cache.savedAt);
       });
     } else {
-      errEl.textContent = 'Gagal terhubung ke server, dan belum ada data tersimpan untuk mode offline (perlu login online minimal 1x dulu).';
+      errEl.textContent = 'Gagal terhubung ke server. Periksa koneksi lalu coba kembali.';
     }
   }
 }
 document.getElementById('loginBtn').addEventListener('click', doLogin);
-document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-document.getElementById('loginId').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('loginPassword').focus(); });
-document.getElementById('navBreakage').addEventListener('click', ()=>{
-  window.open(BREAKAGE_APP_URL, '_blank', 'noopener,noreferrer');
-});
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
-  sessionStorage.removeItem('sls_role');
+['loginUsername','loginPassword'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); }));
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  try{
+    if(AUTH_SESSION?.access_token){
+      await fetch(`${SUPABASE_URL}/auth/v1/logout`, {method:'POST', headers:{apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${AUTH_SESSION.access_token}`}});
+    }
+  }catch(_){ }
+  AUTH_SESSION = null; AUTH_SESSION_OK = false; CURRENT_PASSWORD='';
+  sessionStorage.removeItem('sls_dashboard_username');
   sessionStorage.removeItem('sls_pw');
-  sessionStorage.removeItem('sls_user');
   location.reload();
 });
 
@@ -3470,23 +3447,8 @@ function bootDashboardOffline(savedAt){
   render(CURRENT_RDC_SCOPE || 'Semua');
 }
 
-(async function init(){
-  const savedPw = sessionStorage.getItem('sls_pw');
-  const savedUser = sessionStorage.getItem('sls_user');
-  if(savedPw && savedUser){
-    try{
-      const account = await sbRpc('verify_login', {input_username: savedUser, input_password: savedPw});
-      if(account){ CURRENT_PASSWORD = savedPw; CURRENT_USERNAME = account.username || savedUser; CURRENT_ROLE = account.role; CURRENT_RDC_SCOPE = account.rdc_name; AUTH_SESSION_OK = await establishAuthSession(savedPw, CURRENT_USERNAME); await bootDashboard(); return; }
-    }catch(e){
-      const cache = loadOfflineCache();
-      if(cache){
-        RDC = cache.RDC; RDC_MASTER = cache.RDC_MASTER; CONFIG = cache.CONFIG;
-        CURRENT_ROLE = cache.CURRENT_ROLE; CURRENT_RDC_SCOPE = cache.CURRENT_RDC_SCOPE;
-        IS_OFFLINE_MODE = true;
-        bootDashboardOffline(cache.savedAt);
-      }
-    }
-  }
+(function init(){
+  document.getElementById('loginUsername').value = sessionStorage.getItem('sls_dashboard_username') || '';
 })();
 
 function exportPDF(){
@@ -3525,15 +3487,8 @@ async function exportExcel(){
   const wb = XLSX.utils.book_new();
   const rdcNames = Object.keys(RDC).filter(n=>n!=='Semua');
 
-  const managerRows = [['KPI Management','Bobot %','Current','Target','Gap','Status','Action / Next Step','PIC','Deadline','Progress / Closure','Sub-indikator','Sumber Data']];
-  (MANAGER_KPI_LAST||[]).forEach(k=>{
-    const a = k.trackedAction;
-    managerRows.push([k.title, k.weight, k.monthlyCurrent||k.value, k.target||'DATA REQUIRED', k.gap||'DATA REQUIRED',
-      k.status, k.action||'-', (a&&a.owner)||k.pic||'-',
-      (a&&a.deadline)||'BELUM DITETAPKAN', (a&&a.status)||'BELUM DITETAPKAN', k.meta, k.source]);
-  });
-  managerRows.push([]);
-  managerRows.push(['TOTAL BOBOT', (MANAGER_KPI_LAST||[]).reduce((s,k)=>s+Number(k.weight||0),0)]);
+  const managerRows = [['KPI Manager','Bobot %','Nilai / Status','Status Data','Sub-indikator','Sumber']];
+  (MANAGER_KPI_LAST||[]).forEach(k=>managerRows.push([k.title,k.weight,k.value,k.status,k.meta,k.source]));
   if(managerRows.length===1) managerRows.push(['Data KPI Manager belum dimuat. Buka Dashboard Utama lalu ulangi download.']);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(managerRows), '6 KPI Manager');
 
@@ -3739,86 +3694,10 @@ function manualRdcSelectorHtml(){
     </div>` : `<div style="margin-bottom:10px;font-size:12px;color:var(--stone);">RDC: <b>${CURRENT_RDC_SCOPE}</b></div>`;
 }
 
-// ============ INPUT MANUAL — OPNAME AKUNTING (siklus 6 bulan) ============
-// Satu-satunya sumber authoritative untuk KPI Inventory Accuracy. Menulis ke tabel
-// inventory_accuracy lewat RPC (RLS tetap berlaku: RDC hanya boleh input miliknya sendiri).
-// Submit ulang untuk RDC + tanggal yang sama akan MENGGANTI baris lama, bukan menambah.
-async function renderManualOpnameTab(el){
-  const rdc = CURRENT_RDC_SCOPE || MANUAL_RDC_FILTER;
-  let existing = [];
-  try{ existing = await sbSelect('inventory_accuracy', `&rdc_name=eq.${encodeURIComponent(rdc)}&order=check_date.desc&limit=200`); }catch(e){ existing = []; }
-  const dates = [...new Set(existing.map(r=>r.check_date))];
-
-  el.innerHTML = `${manualRdcSelectorHtml()}
-    <div class="about-box" style="margin-bottom:14px;padding:14px 16px;">
-      <b style="color:var(--navy);">Hasil Stock Opname Akunting</b>
-      <div style="font-size:12px;color:var(--ink-soft);margin-top:5px;line-height:1.55;">
-        Akurasi dihitung sebagai <b>(1 − Σ|selisih| ÷ Σ stock sistem) × 100%</b>. Isi per SKU.
-        Submit ulang untuk RDC dan tanggal yang sama akan menimpa data lama, jadi aman untuk koreksi.</div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;">
-      <div><label class="mlabel">Tanggal Opname</label><br><input type="date" id="opnDate" class="minput" style="width:100%;"></div>
-      <div><label class="mlabel">Label Periode</label><br><input type="text" id="opnLabel" class="minput" style="width:100%;" placeholder="mis. Opname Akunting Semester I 2026"></div>
-      <div><label class="mlabel">Pelaksana / PIC Opname</label><br><input type="text" id="opnBy" class="minput" style="width:100%;" placeholder="mis. Tim Akunting + SPV Gudang"></div>
-    </div>
-    <div style="margin-bottom:8px;"><label class="mlabel">Baris SKU — tempel dari Excel (SKU, Stock Sistem, Stock Fisik) atau isi manual</label>
-      <textarea id="opnLines" rows="9" class="minput" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px;"
-        placeholder="Satu SKU per baris, pisahkan dengan TAB / koma / titik koma:&#10;GRN60X60-ABU&#9;1200&#9;1195&#10;RMN30X30-PUTIH&#9;840&#9;846"></textarea></div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <button class="btn-primary" id="opnSubmit" style="padding:10px 20px;">Simpan Hasil Opname</button>
-      <span id="opnMsg" style="font-size:12px;font-weight:700;"></span>
-    </div>
-    <div class="section-label" style="margin-top:22px;">Riwayat Opname — ${esc(rdc)}</div>
-    ${dates.length ? `<div class="management-table-wrap" style="max-height:none;"><table class="management-table" style="min-width:640px;">
-        <thead><tr><th>Tanggal Opname</th><th>SKU</th><th>Stock Sistem</th><th>Stock Fisik</th><th>Selisih Absolut</th><th>Akurasi</th></tr></thead>
-        <tbody>${dates.map(d=>{
-          const rs = existing.filter(r=>r.check_date===d);
-          const sys = rs.reduce((s,r)=>s+Number(r.system_qty||0),0);
-          const phy = rs.reduce((s,r)=>s+Number(r.physical_qty||0),0);
-          const av  = rs.reduce((s,r)=>s+Math.abs(Number(r.variance_qty ?? (Number(r.physical_qty||0)-Number(r.system_qty||0)))),0);
-          const acc = sys>0 ? ((1-av/sys)*100).toFixed(2)+'%' : 'DATA REQUIRED';
-          return `<tr><td class="mt-kpi" style="min-width:auto;">${esc(fmtDateID(d))}</td><td class="mt-weight">${rs.length}</td>
-            <td class="mt-number" style="font-size:16px;">${fmtNum(sys)}</td><td class="mt-number" style="font-size:16px;">${fmtNum(phy)}</td>
-            <td class="mt-number" style="font-size:16px;color:var(--roman-red);">${fmtNum(av)}</td>
-            <td class="mt-number" style="font-size:18px;">${acc}</td></tr>`;
-        }).join('')}</tbody></table></div>`
-      : `<div class="about-box" style="padding:16px;font-size:12.5px;color:var(--stone);"><b>DATA REQUIRED</b> — belum ada hasil opname akunting tersimpan untuk ${esc(rdc)}.</div>`}`;
-
-  document.getElementById('opnSubmit').onclick = async ()=>{
-    const msg = document.getElementById('opnMsg');
-    const date = document.getElementById('opnDate').value;
-    const raw  = document.getElementById('opnLines').value;
-    if(!date){ msg.style.color='var(--roman-red)'; msg.textContent='Tanggal opname wajib diisi.'; return; }
-    const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
-      const p = l.split(/\t|;|,/).map(x=>x.trim()).filter(x=>x!=='');
-      if(p.length < 3) return null;
-      const sysq = Number(String(p[1]).replace(/\./g,'').replace(',','.'));
-      const phyq = Number(String(p[2]).replace(/\./g,'').replace(',','.'));
-      if(!Number.isFinite(sysq) || !Number.isFinite(phyq)) return null;
-      return {sku:p[0], system_qty:sysq, physical_qty:phyq};
-    }).filter(Boolean);
-    if(!lines.length){ msg.style.color='var(--roman-red)'; msg.textContent='Tidak ada baris valid. Format: SKU, stock sistem, stock fisik.'; return; }
-    msg.style.color='var(--ink-soft)'; msg.textContent='Menyimpan…';
-    try{
-      const r = await sbRpc('inventory_accuracy_opname_submit', {p_payload:{
-        rdc_name: rdc, check_date: date,
-        opname_label: document.getElementById('opnLabel').value || null,
-        counted_by:   document.getElementById('opnBy').value || null,
-        lines
-      }});
-      msg.style.color='#1E7B34';
-      msg.textContent = `Tersimpan: ${r.inserted} SKU${r.replaced?` (mengganti ${r.replaced} baris lama)`:''}.`;
-      renderManualPanel();
-      renderManagerKpiScorecard();
-    }catch(e){ msg.style.color='var(--roman-red)'; msg.textContent='Gagal: '+(e.message||e); }
-  };
-}
-
 async function renderManualPanel(){
   const el = document.getElementById('manualPanelContent');
   el.innerHTML = '<div style="padding:20px;color:var(--stone);">Memuat...</div>';
   if(MANUAL_TAB === 'breakage') await renderManualBreakageTab(el);
-  else if(MANUAL_TAB === 'opname_akunting') await renderManualOpnameTab(el);
   else await renderManualGenericTab(el, MANUAL_TAB);
   if(!CURRENT_RDC_SCOPE){
     const sel = document.getElementById('manualRdcSelect');
@@ -3966,10 +3845,14 @@ async function exportManualExcel(){
 document.getElementById('manualExcelBtn').addEventListener('click', exportManualExcel);
 
 
+// ============ NATIONAL BREAKAGE CONTROL (v43 module — Quality/Breakage) ============
+// Numerator/denominator are always summed separately across RDC scope, never averaged
+// as pre-baked rates — matches Fang's "SUM/SUM, JANGAN average rate RDC" requirement.
 let NBC_PERIOD = null;
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
 function populateNbcPeriods(){
-  const sel = document.getElementById('mgmtPeriod');
+  const sel = document.getElementById('nbcPeriod');
   if(!sel) return;
   const now = new Date();
   const opts = [];
@@ -3980,52 +3863,617 @@ function populateNbcPeriods(){
   }
   sel.innerHTML = opts.join('');
   NBC_PERIOD = sel.value;
-  sel.addEventListener('change', ()=>{
-    NBC_PERIOD = sel.value;
-    renderManagerKpiScorecard();
-    renderPriorityKpiStrip();
-  });
+  sel.addEventListener('change', ()=>{ NBC_PERIOD = sel.value; renderNbcOverview(); });
 }
+
+document.querySelectorAll('.nbc-tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.nbc-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.nbc-page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('nbc-'+t.dataset.nbc).classList.add('active');
+    if(t.dataset.nbc==='rekap') renderNbcRekapTrend();
+    if(t.dataset.nbc==='incident') renderNbcRootCause();
+    if(t.dataset.nbc==='reconcile') renderNbcReconciliationHistory();
+  });
+});
+document.getElementById('nbcOpenInput').addEventListener('click', ()=>{
+  document.getElementById('nbcInputModal').style.display = 'block';
+  renderNbcUploadStep1();
+});
+document.getElementById('nbcCloseInput').addEventListener('click', ()=>{
+  document.getElementById('nbcInputModal').style.display = 'none';
+});
+
+function nbcRateCardHtml(title, sub, m, unit){
+  if(m.rate == null){
+    return `<div class="nbc-rate-card">
+      <div class="lbl">${title}</div>
+      <div class="val" style="font-size:15px;color:var(--stone);">DATA REQUIRED</div>
+      <div style="font-size:11.5px;color:var(--stone);">${sub} — denominator belum tersedia untuk periode ini.</div>
+    </div>`;
+  }
+  const gapUp = m.gap > 0;
+  const trendKnown = m.trend_pct != null;
+  return `<div class="nbc-rate-card">
+    <div class="lbl">${title}</div>
+    <div class="val">${m.rate}<small> / 10.000 ${unit}</small></div>
+    <div style="font-size:11px;color:var(--stone);">${sub}</div>
+    <div class="nbc-rate-row">
+      <span>Target Final: <b>${m.target_final}</b></span>
+      <span class="${gapUp?'nbc-gap-up':'nbc-gap-down'}">${gapUp?'▲':'▼'} Gap ${gapUp?'+':''}${m.gap} (${gapUp?'+':''}${m.gap_pct}%)</span>
+    </div>
+    ${trendKnown ? `<div class="nbc-rate-row"><span>Trend vs bulan lalu</span>
+      <span class="${m.trend_pct>0?'nbc-gap-up':'nbc-gap-down'}">${m.trend_pct>0?'▲':'▼'} ${Math.abs(m.trend_pct)}%</span></div>` : ''}
+  </div>`;
+}
+
+async function renderNbcOverview(){
+  const el = document.getElementById('nbc-overview');
+  if(!el || !NBC_PERIOD) return;
+  el.innerHTML = '<div class="nbc-placeholder">⏳ Memuat data breakage nasional…</div>';
+  try{
+    const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+    const d = await sbRpc('breakage_overview', { p_period: NBC_PERIOD, p_rdc: scopeRdc });
+    const totalKnown = d.delivery.rate != null || d.warehouse.rate != null;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;margin-bottom:14px;">
+        ${nbcRateCardHtml('Delivery Breakage Rate', 'Pecah Kiriman', d.delivery, 'Delivered Box')}
+        ${nbcRateCardHtml('Warehouse Breakage Rate', 'Pecah Pallet/Gudang', d.warehouse, 'Stock Exposure')}
+        <div class="nbc-rate-card" style="min-width:130px;">
+          <div class="lbl">Total Breakage (${d.period})</div>
+          <div class="val">${totalKnown?fmtNum(d.total_breakage_box):'—'}<small> Box</small></div>
+          <div style="font-size:11.5px;color:var(--stone);margin-top:6px;">RDC Above Target</div>
+          <div style="font-size:15px;font-weight:700;color:var(--navy);">${d.rdc_above_target} / ${d.rdc_count} RDC</div>
+        </div>
+      </div>
+      ${d.delivery.rate!=null ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:14px;margin-bottom:14px;">
+        ${nbcTargetProgress('Delivery Breakage', d.delivery)}
+        ${nbcTargetProgress('Warehouse Breakage', d.warehouse)}
+        <div class="nbc-rate-card" style="min-width:170px;">
+          <div class="lbl">RDC Highlight</div>
+          <div style="font-size:12px;margin-top:8px;line-height:1.9;">
+            <div>Worst RDC: <b style="color:var(--red);">${esc(d.worst_rdc||'-')}</b></div>
+            <div>Best RDC: <b style="color:var(--green);">${esc(d.best_rdc||'-')}</b></div>
+          </div>
+        </div>
+      </div>` : ''}
+      <div style="background:#F7F5F1;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.6;">
+        <b>Management Insight —</b> ${esc(d.insight)}
+      </div>`;
+  }catch(e){
+    el.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal memuat: ${esc(e.message)}</div>`;
+  }
+}
+function nbcTargetProgress(title, m){
+  const pct = m.recovery_pct==null ? 0 : Math.min(100, Math.max(0, m.recovery_pct));
+  return `<div class="nbc-rate-card">
+    <div class="lbl">${title} — Target Progress</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--stone);margin-top:8px;">
+      <span>Baseline<br><b style="font-size:13px;color:var(--ink);">${m.baseline}</b></span>
+      <span>Interim (12 mgg)<br><b style="font-size:13px;color:var(--ink);">≤${m.interim}</b></span>
+      <span>Final<br><b style="font-size:13px;color:var(--ink);">≤${m.target_final}</b></span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:6px;margin:10px 0 4px;overflow:hidden;">
+      <div style="background:${pct>=100?'var(--green)':'var(--clay)'};height:100%;width:${pct}%;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--stone);">Current <b>${m.rate}</b> · Recovery ${m.recovery_pct!=null?m.recovery_pct+'%':'-'}</div>
+  </div>`;
+}
+
+// Menus 2-4: not built yet this phase — shown honestly, not hidden or faked.
 function renderNbcPlaceholders(){
   // rekap & root now render live content on first tab click (see tab-click hook above);
   // nothing to pre-fill here anymore.
 }
+document.getElementById('nbcDownload')?.addEventListener('click', ()=>{
+  alert('Download Excel/PDF untuk module ini akan tersedia setelah Menu 2-4 selesai dibangun (data yang diekspor harus berasal dari sumber yang sama dengan yang ditampilkan).');
+});
+
+// NOTE: NBC (National Breakage Control) is now its own standalone page (#page-breakage),
+// initialized by loadBreakagePage() below — NOT auto-rendered on every dashboard render.
+
+
+
+// ============ MENU 4: UPLOAD & RECONCILIATION ============
+// Extends the EXISTING parseMB51Pecah pattern (same column detection, same plate/pallet regex
+// already verified against real Jakarta Jan-Jul 2026 data) — this time keeping row-level detail
+// instead of discarding it after aggregation, and classifying into the 10 Pareto sub-categories.
+const PLATE_RE_V43 = /\b[A-Z]{1,2}\s?\d{3,5}\s?[A-Z]{1,3}\b/;
+function classifySubCategory(dht, mvt){
+  const t = String(dht||'').toUpperCase();
+  if(PLATE_RE_V43.test(t)) return {main:'delivery', sub:'Transport'};
+  if(mvt==='602') return {main:'delivery', sub:'Loading'};
+  if(/PECAH/.test(t) && /PALET|PALLET/.test(t)) return {main:'warehouse', sub:'Packaging / Pallet'};
+  if(/PERSIAPAN/.test(t)) return {main:'warehouse', sub:'Handling / Picking'};
+  if(/PERAPIHAN/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/\bSO\b|STOCK OPNAME/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/GUDANG/.test(t)) return {main:'warehouse', sub:'Storage / Penyimpanan'};
+  if(/SELISIH SERI/.test(t)) return {main:'warehouse', sub:'Unknown'};
+  if(t.trim()==='') return {main:'warehouse', sub:'Unknown'};
+  return {main:'warehouse', sub:'Other'};
+}
+function parseMB51EventDetail(wb){
+  const sheetName = wb.SheetNames.find(n=>{
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:null});
+    const h = (g[0]||[]).map(x=>String(x||'').trim());
+    return h.includes('Posting Date') && h.includes('Movement Type') && h.includes('Storage Location');
+  });
+  if(!sheetName) return null;
+  const grid = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:null, raw:true, cellDates:true});
+  const header = grid[0].map(x=>String(x||'').trim());
+  const col = name => header.indexOf(name);
+  const cDate=col('Posting Date'), cQty=col('Quantity'), cSloc=col('Storage Location'),
+        cMvt=col('Movement Type'), cDht=col('Document Header Text'), cRdc=col('Name 1'),
+        cMat=col('Material'), cDesc=col('Material Description'), cDoc=col('Material Document');
+  if([cDate,cQty,cSloc,cMvt,cDht,cRdc].some(c=>c<0)) return null;
+
+  const out = [];
+  for(let r=1;r<grid.length;r++){
+    const row = grid[r]; if(!row) continue;
+    const mt = String(row[cMvt]||'').trim();
+    const qty = Number(row[cQty])||0;
+    const dateVal = row[cDate];
+    if(!(dateVal instanceof Date)) continue;
+    const period = dateVal.getFullYear()+'-'+String(dateVal.getMonth()+1).padStart(2,'0')+'-01';
+    const rdc = String(row[cRdc]||'').trim().replace(/^RDC\s+/i,'');
+    if(!rdc) continue;
+    const dht = String(row[cDht]||'').trim();
+    let qtyToUse = null, cls = null;
+    if(mt==='311' && row[cSloc]==='RFB1' && qty>0){ qtyToUse = qty; cls = classifySubCategory(dht, mt); }
+    else if(mt==='602'){ qtyToUse = Math.abs(qty); cls = classifySubCategory(dht, mt); }
+    if(qtyToUse==null) continue;
+    out.push({rdc, period, posting_date: dateVal.toISOString().slice(0,10),
+      main_category: cls.main, sub_category: cls.sub,
+      material: cMat>=0?String(row[cMat]||'').trim():'', material_desc: cDesc>=0?String(row[cDesc]||''):'',
+      qty: qtyToUse, sap_document: cDoc>=0?String(row[cDoc]||''):'',
+      driver_vendor: cls.sub==='Transport'?dht:'',
+      movement_type: mt, storage_location: String(row[cSloc]||''), document_header_text: dht});
+  }
+  return out.length ? out : null;
+}
+
+let NBC_UPLOAD_STATE = null; // {batch_id, rdc, period}
+function nbcUploadStepIndicator(active){
+  const steps = ['Upload SAP','Preview Data','Reconciliation','Confirm & Publish'];
+  return `<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">` +
+    steps.map((s,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;
+      font-size:11.5px;font-weight:600;background:${i+1===active?'var(--navy)':i+1<active?'#E7F6EC':'#F0EEE8'};
+      color:${i+1===active?'#fff':i+1<active?'#1E7B34':'var(--stone)'};">
+      <span style="width:16px;height:16px;border-radius:50%;background:${i+1<=active?'currentColor':'transparent'};
+        border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;
+        font-size:9px;color:${i+1===active?'var(--navy)':'#fff'};">${i+1<active?'✓':i+1}</span>${s}</div>`).join('')
+    + `</div>`;
+}
+function renderNbcUploadStep1(){
+  const el = document.getElementById('nbc-upload');
+  el.innerHTML = nbcUploadStepIndicator(1) + `
+    <input type="file" id="nbcFile" accept=".xlsx,.xls" style="display:none">
+    <div style="border:2px dashed var(--border);border-radius:10px;padding:34px 16px;text-align:center;cursor:pointer;"
+      id="nbcDropzone">
+      <div style="font-size:13px;color:var(--stone);margin-bottom:10px;">Drag &amp; drop file SAP MB51 di sini, atau</div>
+      <button class="btn-primary" style="padding:8px 18px;" id="nbcPickFile">Pilih File</button>
+      <div style="font-size:11px;color:var(--stone);margin-top:10px;">Format .xlsx / .xls — kolom Posting Date, Movement Type, Storage Location, Name 1, dll (sama seperti tarikan MB51 yang sudah dipakai)</div>
+    </div>
+    <div id="nbcUploadMsg" style="margin-top:12px;font-size:13px;"></div>`;
+  document.getElementById('nbcPickFile').onclick = ()=>document.getElementById('nbcFile').click();
+  document.getElementById('nbcDropzone').onclick = ()=>document.getElementById('nbcFile').click();
+  document.getElementById('nbcFile').addEventListener('change', e=>{
+    if(e.target.files.length) handleNbcFile(e.target.files[0]);
+  });
+}
+function handleNbcFile(file){
+  const msg = document.getElementById('nbcUploadMsg');
+  msg.innerHTML = '⏳ Membaca file…';
+  const fr = new FileReader();
+  fr.onload = async ev=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'binary', cellDates:true});
+      const rows = parseMB51EventDetail(wb);
+      if(!rows){ msg.innerHTML = '<span style="color:#B3261E;">File tidak dikenali sebagai tarikan MB51 (kolom wajib tidak ditemukan).</span>'; return; }
+      msg.innerHTML = `⏳ Mengunggah ${rows.length} baris…`;
+      const res = await sbRpc('breakage_stage', { p_filename: file.name, p_rows: rows });
+      NBC_UPLOAD_STATE = { batch_id: res.upload_batch_id, rdc: res.rdc, period: res.period };
+      renderNbcUploadStep2(res);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+  fr.readAsBinaryString(file);
+}
+function renderNbcUploadStep2(res){
+  const el = document.getElementById('nbc-upload');
+  const cats = Object.entries(res.by_category||{});
+  el.innerHTML = nbcUploadStepIndicator(2) + `
+    <div style="font-size:13px;margin-bottom:10px;"><b>${esc(res.rdc)}</b> · Periode ${esc(res.period)} ·
+      ${fmtNum(res.total_rows)} baris · ${fmtNum(res.total_qty)} box</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+        <th style="padding:6px 10px;">Kategori</th><th style="padding:6px 10px;">Sub-Kategori</th>
+        <th style="padding:6px 10px;text-align:right;">Qty (Box)</th><th style="padding:6px 10px;text-align:right;">Baris</th></tr></thead>
+      <tbody>${cats.map(([k,v])=>{ const [main,sub]=k.split('|'); return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;">${esc(main)}</td><td style="padding:6px 10px;">${esc(sub)}</td>
+        <td style="padding:6px 10px;text-align:right;">${fmtNum(v.qty)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(v.rows)}</td></tr>`;}).join('')}</tbody>
+    </table>
+    <button class="btn-primary" style="margin-top:14px;padding:8px 18px;" id="nbcToStep3">Lanjut ke Reconciliation →</button>`;
+  document.getElementById('nbcToStep3').onclick = renderNbcUploadStep3;
+}
+async function renderNbcUploadStep3(){
+  const el = document.getElementById('nbc-upload');
+  el.innerHTML = nbcUploadStepIndicator(3) + '<div class="nbc-placeholder">⏳ Membandingkan dengan data existing…</div>';
+  try{
+    const res = await sbRpc('breakage_reconcile', { p_upload_id: NBC_UPLOAD_STATE.batch_id });
+    const rows = res.detail || [];
+    const badge = s => s==='MATCH' ? '<span style="color:#1E7B34;font-weight:700;">MATCH</span>'
+      : s==='VARIANCE' ? '<span style="color:#946200;font-weight:700;">VARIANCE</span>'
+      : '<span style="color:#B3261E;font-weight:700;">'+s.replace(/_/g,' ')+'</span>';
+    el.innerHTML = nbcUploadStepIndicator(3) + `
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+          <th style="padding:6px 10px;">Kategori</th><th style="padding:6px 10px;">Sub</th>
+          <th style="padding:6px 10px;text-align:right;">Existing</th><th style="padding:6px 10px;text-align:right;">SAP</th>
+          <th style="padding:6px 10px;text-align:right;">Variance</th><th style="padding:6px 10px;">Status</th>
+          <th style="padding:6px 10px;">Keputusan</th></tr></thead>
+        <tbody>${rows.map((r,i)=>`<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px 10px;">${esc(r.main_category)}</td><td style="padding:6px 10px;">${esc(r.sub_category)}</td>
+          <td style="padding:6px 10px;text-align:right;">${fmtNum(r.existing_qty)}</td>
+          <td style="padding:6px 10px;text-align:right;">${fmtNum(r.sap_qty)}</td>
+          <td style="padding:6px 10px;text-align:right;">${r.variance>0?'+':''}${fmtNum(r.variance)}</td>
+          <td style="padding:6px 10px;">${badge(r.status)}</td>
+          <td style="padding:6px 10px;"><select id="nbcDecision_${i}" style="font-size:11.5px;padding:3px 6px;">
+            <option value="USE_SAP" ${r.status!=='MATCH'?'selected':''}>Pakai Data SAP</option>
+            <option value="KEEP_EXISTING">Pertahankan Existing</option>
+            <option value="SKIP">Lewati</option></select></td></tr>`).join('')}</tbody></table>
+      <button class="btn-primary" style="margin-top:14px;padding:8px 18px;" id="nbcToStep4">Lanjut ke Confirm &amp; Publish →</button>`;
+    document.getElementById('nbcToStep4').onclick = ()=>{
+      // Read every decision select BEFORE the DOM that holds them gets replaced.
+      const decisions = rows.map((r,i)=>({
+        main_category: r.main_category, sub_category: r.sub_category,
+        action: document.getElementById('nbcDecision_'+i).value
+      }));
+      renderNbcUploadStep4(decisions);
+    };
+  }catch(e){ el.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function renderNbcUploadStep4(decisions){
+  const el = document.getElementById('nbc-upload');
+  const useSap = decisions.filter(d=>d.action==='USE_SAP').length;
+  el.innerHTML = nbcUploadStepIndicator(4) + `
+    <div style="font-size:13px;margin-bottom:12px;">Periksa sekali lagi sebelum publish. ${useSap} dari ${decisions.length} kategori akan dipublikasikan ("Pakai Data SAP") — kategori lain tidak disentuh.</div>
+    <div id="nbcPublishMsg" style="margin-bottom:10px;"></div>
+    <button class="btn-primary" style="padding:9px 20px;" id="nbcPublishBtn">✓ Confirm &amp; Publish</button>`;
+  document.getElementById('nbcPublishBtn').onclick = async ()=>{
+    const msg = document.getElementById('nbcPublishMsg');
+    msg.innerHTML = '⏳ Mempublikasikan…';
+    try{
+      await sbRpc('breakage_publish', { p_upload_id: NBC_UPLOAD_STATE.batch_id, p_decisions: decisions });
+      msg.innerHTML = '<span style="color:#1E7B34;font-weight:700;">✓ Berhasil dipublikasikan. Menutup dan memperbarui monitoring…</span>';
+      renderNbcOverview();
+      setTimeout(()=>{
+        document.getElementById('nbcInputModal').style.display = 'none';
+        const activeTab = document.querySelector('.nbc-tab.active')?.dataset.nbc;
+        if(activeTab==='reconcile') renderNbcReconciliationHistory();
+        if(activeTab==='rekap') renderNbcRekapTrend();
+      }, 1400);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+
+
+
+// ============ MENU 2: REKAP & TREND ============
+let NBC2_SUB = 'rekap';
+function renderNbcRekapTrend(){
+  const el = document.getElementById('nbc-rekap');
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <div class="nbc-subtab active" data-s2="rekap" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;background:var(--navy);color:#fff;">Rekap Bulanan</div>
+      <div class="nbc-subtab" data-s2="trend" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Trend</div>
+      <div class="nbc-subtab" data-s2="compare" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">RDC Comparison</div>
+    </div>
+    <div id="nbc2-body"></div>`;
+  el.querySelectorAll('.nbc-subtab').forEach(t=>t.addEventListener('click', ()=>{
+    el.querySelectorAll('.nbc-subtab').forEach(x=>{x.style.background='';x.style.color='var(--stone)';});
+    t.style.background='var(--navy)'; t.style.color='#fff';
+    NBC2_SUB = t.dataset.s2;
+    renderNbc2Body();
+  }));
+  renderNbc2Body();
+}
+async function renderNbc2Body(){
+  const body = document.getElementById('nbc2-body');
+  if(!body || !NBC_PERIOD) return;
+  body.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+  const [y,m] = NBC_PERIOD.split('-').map(Number);
+  const fromP = new Date(y, m-1-5, 1); // 6-month window ending at selected period
+  const fromStr = fromP.getFullYear()+'-'+String(fromP.getMonth()+1).padStart(2,'0');
+  try{
+    if(NBC2_SUB==='rekap'){
+      const d = await sbRpc('breakage_rekap_bulanan', {p_from: fromStr, p_to: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcRekapTableHtml(d);
+    } else if(NBC2_SUB==='trend'){
+      const d = await sbRpc('breakage_trend', {p_from: fromStr, p_to: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcTrendHtml(d.series||[]);
+    } else {
+      const d = await sbRpc('breakage_rdc_comparison', {p_period: NBC_PERIOD});
+      body.innerHTML = nbcComparisonHtml(d.rows||[]);
+    }
+  }catch(e){ body.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function nbcRekapTableHtml(d){
+  const all = d.all_rdc||[], rows = d.rows||[];
+  if(!all.length) return '<div class="nbc-placeholder">Belum ada data breakage untuk rentang periode ini.</div>';
+  const th = `<tr style="background:var(--navy);color:#fff;text-align:right;">
+    <th style="padding:6px 10px;text-align:left;">Bulan</th><th style="padding:6px 10px;text-align:left;">RDC</th>
+    <th style="padding:6px 10px;">Pecah Kiriman</th><th style="padding:6px 10px;">Delivered</th><th style="padding:6px 10px;">D-Rate</th>
+    <th style="padding:6px 10px;">Pecah Gudang</th><th style="padding:6px 10px;">Stock Exp.</th><th style="padding:6px 10px;">W-Rate</th></tr>`;
+  const tr = (label, r, bold) => `<tr style="border-bottom:1px solid var(--border);${bold?'background:#F7F5F1;font-weight:700;':''}">
+    <td style="padding:6px 10px;text-align:left;">${esc(r.bulan||r.period)}</td><td style="padding:6px 10px;text-align:left;">${esc(label)}</td>
+    <td style="padding:6px 10px;text-align:right;">${fmtNum(r.pecah_kiriman)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(r.delivered)}</td>
+    <td style="padding:6px 10px;text-align:right;">${r.d_rate??'-'}</td>
+    <td style="padding:6px 10px;text-align:right;">${fmtNum(r.pecah_gudang)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(r.stock_exposure)}</td>
+    <td style="padding:6px 10px;text-align:right;">${r.w_rate??'-'}</td></tr>`;
+  const rdcRows = rows.map(r=>tr(r.rdc, r, false)).join('');
+  const allRows = all.map(r=>tr('ALL RDC (SUM/SUM)', r, true)).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead>${th}</thead><tbody>${rdcRows}${allRows}</tbody></table>
+    <div style="font-size:11px;color:var(--stone);margin-top:8px;">Baris "ALL RDC" selalu dihitung SUM(numerator)/SUM(denominator) — bukan rata-rata rate antar-RDC.</div>`;
+}
+function nbcTrendHtml(series){
+  if(!series.length) return '<div class="nbc-placeholder">Belum ada data tren untuk rentang ini.</div>';
+  const W=700,H=160,pad=30;
+  function chart(key, targetKey, title, color){
+    const vals = series.map(s=>s[key]).filter(v=>v!=null);
+    if(!vals.length) return `<div class="nbc-rate-card"><div class="lbl">${title}</div>
+      <div style="padding:20px;text-align:center;color:var(--stone);font-size:12px;">DATA REQUIRED</div></div>`;
+    const allVals = series.map(s=>s[key]).filter(v=>v!=null).concat(series.map(s=>s[targetKey]).filter(v=>v!=null));
+    const min=0, max=Math.max(...allVals)*1.15;
+    const n = series.length;
+    const x = i => pad + i*((W-2*pad)/(n-1||1));
+    const y = v => H-pad - (v-min)/(max-min||1)*(H-2*pad);
+    const pts = series.map((s,i)=> s[key]!=null ? `${x(i).toFixed(1)},${y(s[key]).toFixed(1)}` : null).filter(Boolean).join(' ');
+    const tgt = series[0][targetKey];
+    const tgtLine = tgt!=null ? `<line x1="${pad}" y1="${y(tgt).toFixed(1)}" x2="${W-pad}" y2="${y(tgt).toFixed(1)}" stroke="#9A6300" stroke-dasharray="4,3" stroke-width="1.4"/>` : '';
+    const labels = series.map((s,i)=>`<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="9" fill="#6E6A63" text-anchor="middle">${esc(s.bulan)}</text>`).join('');
+    const dots = series.map((s,i)=> s[key]!=null ? `<circle cx="${x(i).toFixed(1)}" cy="${y(s[key]).toFixed(1)}" r="2.6" fill="${color}"/>` : '').join('');
+    return `<div class="nbc-rate-card">
+      <div class="lbl">${title}</div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:6px;">
+        ${tgtLine}<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}${labels}
+      </svg>
+      <div style="font-size:10.5px;color:var(--stone);">— Actual &nbsp;&nbsp; ┅ Target (${tgt??'-'})</div>
+    </div>`;
+  }
+  return `<div style="display:grid;grid-template-columns:1fr;gap:14px;">
+    ${chart('delivery_rate','delivery_target','Delivery Breakage Rate — Trend','#1F3864')}
+    ${chart('warehouse_rate','warehouse_target','Warehouse Breakage Rate — Trend','#C46A1F')}
+  </div>`;
+}
+function nbcComparisonHtml(rows){
+  if(!rows.length) return '<div class="nbc-placeholder">Belum ada data untuk periode ini.</div>';
+  const th = `<tr style="background:var(--navy);color:#fff;text-align:right;">
+    <th style="padding:6px 10px;text-align:left;">RDC</th>
+    <th style="padding:6px 10px;">Delivery Rate</th><th style="padding:6px 10px;">Gap</th><th style="padding:6px 10px;">Trend</th>
+    <th style="padding:6px 10px;">Warehouse Rate</th><th style="padding:6px 10px;">Gap</th><th style="padding:6px 10px;">Trend</th>
+    <th style="padding:6px 10px;text-align:left;">Status</th></tr>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead>${th}</thead><tbody>
+    ${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;font-weight:600;">${esc(r.rdc)}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.d_rate??'-'}</td>
+      <td style="padding:6px 10px;text-align:right;color:${r.d_gap>0?'#B3261E':'#1E7B34'};">${r.d_gap!=null?(r.d_gap>0?'+':'')+r.d_gap:'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.d_trend!=null?(r.d_trend>0?'▲':'▼')+' '+Math.abs(r.d_trend)+'%':'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.w_rate??'-'}</td>
+      <td style="padding:6px 10px;text-align:right;color:${r.w_gap>0?'#B3261E':'#1E7B34'};">${r.w_gap!=null?(r.w_gap>0?'+':'')+r.w_gap:'-'}</td>
+      <td style="padding:6px 10px;text-align:right;">${r.w_trend!=null?(r.w_trend>0?'▲':'▼')+' '+Math.abs(r.w_trend)+'%':'-'}</td>
+      <td style="padding:6px 10px;"><span style="font-size:10.5px;font-weight:700;color:${r.status==='ABOVE TARGET'?'#B3261E':r.status==='ON TARGET'?'#1E7B34':'#946200'};">${esc(r.status)}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ============ MENU 3: ROOT CAUSE & ACTION ============
+let NBC3_SUB = 'pareto';
+let NBC3_SELECTED_EVENTS = new Set();
+function renderNbcRootCause(){
+  const el = document.getElementById('nbc-incident');
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <div class="nbc-subtab active" data-s3="pareto" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;background:var(--navy);color:#fff;">Pareto Cause</div>
+      <div class="nbc-subtab" data-s3="incident" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Incident Detail</div>
+      <div class="nbc-subtab" data-s3="action" style="padding:6px 12px;font-size:12px;font-weight:600;
+        cursor:pointer;border-radius:6px;color:var(--stone);">Action Tracker</div>
+    </div>
+    <div id="nbc3-body"></div>`;
+  el.querySelectorAll('.nbc-subtab').forEach(t=>t.addEventListener('click', ()=>{
+    el.querySelectorAll('.nbc-subtab').forEach(x=>{x.style.background='';x.style.color='var(--stone)';});
+    t.style.background='var(--navy)'; t.style.color='#fff';
+    NBC3_SUB = t.dataset.s3;
+    renderNbc3Body();
+  }));
+  renderNbc3Body();
+}
+async function renderNbc3Body(){
+  const body = document.getElementById('nbc3-body');
+  if(!body || !NBC_PERIOD) return;
+  body.innerHTML = '<div class="nbc-placeholder">⏳ Memuat…</div>';
+  const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+  try{
+    if(NBC3_SUB==='pareto'){
+      const d = await sbRpc('breakage_pareto', {p_period: NBC_PERIOD, p_rdc: scopeRdc});
+      body.innerHTML = nbcParetoHtml(d);
+    } else if(NBC3_SUB==='incident'){
+      await renderNbcIncidentDetail(scopeRdc);
+    } else {
+      await renderNbcActionTracker(scopeRdc);
+    }
+  }catch(e){ body.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
+function nbcParetoHtml(d){
+  const rows = d.rows||[];
+  if(!rows.length) return '<div class="nbc-placeholder">Belum ada data breakage untuk periode ini.</div>';
+  const W=680,H=220,pad=40, barW=(W-2*pad)/rows.length*0.6;
+  const maxQty = Math.max(...rows.map(r=>r.qty));
+  const bars = rows.map((r,i)=>{
+    const cx = pad + i*((W-2*pad)/rows.length) + (W-2*pad)/rows.length/2;
+    const bh = (r.qty/maxQty)*(H-2*pad-20);
+    return `<rect x="${(cx-barW/2).toFixed(1)}" y="${(H-pad-bh).toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="#1F3864"/>
+      <text x="${cx.toFixed(1)}" y="${H-pad+14}" font-size="9" fill="#6E6A63" text-anchor="middle">${esc(r.sub_category)}</text>
+      <text x="${cx.toFixed(1)}" y="${(H-pad-bh-6).toFixed(1)}" font-size="9.5" fill="#14161A" text-anchor="middle" font-weight="700">${fmtNum(r.qty)}</text>`;
+  }).join('');
+  const cumPts = rows.map((r,i)=>{
+    const cx = pad + i*((W-2*pad)/rows.length) + (W-2*pad)/rows.length/2;
+    const cy = H-pad-20 - (r.cum_pct/100)*(H-2*pad-20);
+    return `${cx.toFixed(1)},${cy.toFixed(1)}`;
+  }).join(' ');
+  return `<div class="nbc-rate-card">
+    <div class="lbl">Pareto Cause — ${esc(d.period)} (Total ${fmtNum(d.total)} Box)</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:8px;">
+      ${bars}<polyline points="${cumPts}" fill="none" stroke="#C46A1F" stroke-width="1.8"/>
+      ${rows.map((r,i)=>{const cx=pad+i*((W-2*pad)/rows.length)+(W-2*pad)/rows.length/2;
+        const cy=H-pad-20-(r.cum_pct/100)*(H-2*pad-20);
+        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.5" fill="#C46A1F"/>`;}).join('')}
+    </svg>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:10px;">
+      <thead><tr style="background:#F0EEE8;text-align:right;"><th style="padding:5px 8px;text-align:left;">Sub-Kategori</th>
+        <th style="padding:5px 8px;">Qty</th><th style="padding:5px 8px;">%</th><th style="padding:5px 8px;">Kumulatif %</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;">${esc(r.sub_category)}</td><td style="padding:5px 8px;text-align:right;">${fmtNum(r.qty)}</td>
+        <td style="padding:5px 8px;text-align:right;">${r.pct}%</td><td style="padding:5px 8px;text-align:right;">${r.cum_pct}%</td></tr>`).join('')}</tbody>
+    </table></div>`;
+}
+async function renderNbcIncidentDetail(scopeRdc){
+  const body = document.getElementById('nbc3-body');
+  const [incidents, ungrouped] = await Promise.all([
+    sbRpc('breakage_incident_list', {p_period: NBC_PERIOD, p_rdc: scopeRdc}),
+    sbRpc('breakage_ungrouped_events', {p_period: NBC_PERIOD, p_rdc: scopeRdc})
+  ]);
+  NBC3_SELECTED_EVENTS = new Set();
+  let html = `<div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Insiden Tercatat (${incidents.length})</div>`;
+  html += incidents.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;">
+    <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+      <th style="padding:6px 10px;">Incident No</th><th style="padding:6px 10px;">RDC</th><th style="padding:6px 10px;">Sub-Kategori</th>
+      <th style="padding:6px 10px;text-align:right;">Qty</th><th style="padding:6px 10px;">PIC</th><th style="padding:6px 10px;">Status</th></tr></thead>
+    <tbody>${incidents.map(i=>`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;font-weight:600;">${esc(i.incident_no)}</td><td style="padding:6px 10px;">${esc(i.rdc)}</td>
+      <td style="padding:6px 10px;">${esc(i.sub_category)}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(i.qty_box)}</td>
+      <td style="padding:6px 10px;">${esc(i.pic||'-')}</td><td style="padding:6px 10px;">${esc(i.status)}</td></tr>`).join('')}</tbody>
+    </table>` : `<div class="nbc-placeholder" style="margin-bottom:16px;">Belum ada insiden yang dikelompokkan untuk periode ini.</div>`;
+
+  html += `<div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Event Belum Dikelompokkan (${ungrouped.length})</div>`;
+  if(ungrouped.length){
+    html += `<div style="font-size:11px;color:var(--stone);margin-bottom:8px;">Pilih event dengan RDC, kategori, dan sub-kategori yang SAMA untuk digabung jadi satu insiden.</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#F0EEE8;text-align:left;"><th style="padding:5px 8px;"></th>
+        <th style="padding:5px 8px;">RDC</th><th style="padding:5px 8px;">Tanggal</th><th style="padding:5px 8px;">Sub-Kategori</th>
+        <th style="padding:5px 8px;">Material</th><th style="padding:5px 8px;text-align:right;">Qty</th><th style="padding:5px 8px;">SAP Doc</th><th style="padding:5px 8px;">Driver/Vendor</th></tr></thead>
+      <tbody>${ungrouped.map(e=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;"><input type="checkbox" class="nbc-ev-chk" data-id="${e.id}"></td>
+        <td style="padding:5px 8px;">${esc(e.rdc)}</td><td style="padding:5px 8px;">${esc(e.posting_date||'-')}</td>
+        <td style="padding:5px 8px;">${esc(e.sub_category)}</td><td style="padding:5px 8px;">${esc(e.material_code||'-')}</td>
+        <td style="padding:5px 8px;text-align:right;">${fmtNum(e.qty_box)}</td>
+        <td style="padding:5px 8px;">${esc(e.sap_document||'-')}</td><td style="padding:5px 8px;">${esc(e.driver_vendor||'-')}</td></tr>`).join('')}</tbody>
+      </table>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input id="nbcGroupResp" placeholder="Responsibility" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+        <input id="nbcGroupPic" placeholder="PIC" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+        <button class="btn-primary" id="nbcGroupBtn" style="padding:7px 14px;font-size:12px;">Kelompokkan Jadi Insiden</button>
+      </div>
+      <div id="nbcGroupMsg" style="margin-top:8px;font-size:12.5px;"></div>`;
+  } else {
+    html += `<div class="nbc-placeholder">Semua event untuk periode ini sudah dikelompokkan.</div>`;
+  }
+  body.innerHTML = html;
+  const btn = document.getElementById('nbcGroupBtn');
+  if(btn) btn.onclick = async ()=>{
+    const ids = Array.from(document.querySelectorAll('.nbc-ev-chk:checked')).map(c=>parseInt(c.dataset.id));
+    const msg = document.getElementById('nbcGroupMsg');
+    if(!ids.length){ msg.innerHTML = '<span style="color:#B3261E;">Pilih minimal 1 event.</span>'; return; }
+    msg.innerHTML = '⏳ Mengelompokkan…';
+    try{
+      const res = await sbRpc('breakage_group_events', {
+        p_event_ids: ids,
+        p_responsibility: document.getElementById('nbcGroupResp').value || null,
+        p_pic: document.getElementById('nbcGroupPic').value || null
+      });
+      msg.innerHTML = `<span style="color:#1E7B34;font-weight:700;">✓ ${res.events_grouped} event digabung jadi 1 insiden (${fmtNum(res.qty_box)} box).</span>`;
+      // Guard against a race: only refresh THIS sub-tab's content if the user is still on it —
+      // otherwise a delayed refresh can clobber whatever sub-tab they've since switched to.
+      setTimeout(()=>{ if(NBC3_SUB==='incident') renderNbcIncidentDetail(scopeRdc); }, 900);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+async function renderNbcActionTracker(scopeRdc){
+  const body = document.getElementById('nbc3-body');
+  const [actions, incidents] = await Promise.all([
+    sbRpc('breakage_action_list', {p_rdc: scopeRdc, p_status: 'ALL'}),
+    sbRpc('breakage_incident_list', {p_period: NBC_PERIOD, p_rdc: scopeRdc})
+  ]);
+  const incOpts = incidents.map(i=>`<option value="${i.incident_id}">${esc(i.incident_no)} — ${esc(i.sub_category)} (${esc(i.rdc)})</option>`).join('');
+  let html = `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;">
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Tambah / Update Action</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <select id="nbcActIncident" style="font-size:12px;padding:6px;grid-column:1/-1;">${incOpts||'<option value="">Tidak ada insiden untuk periode ini</option>'}</select>
+      <input id="nbcActProblem" placeholder="Problem" style="font-size:12px;padding:6px;">
+      <input id="nbcActRoot" placeholder="Root Cause" style="font-size:12px;padding:6px;">
+      <input id="nbcActCorrective" placeholder="Corrective Action" style="font-size:12px;padding:6px;grid-column:1/-1;">
+      <input id="nbcActOwner" placeholder="Owner/PIC" style="font-size:12px;padding:6px;">
+      <input id="nbcActDue" type="date" style="font-size:12px;padding:6px;">
+      <select id="nbcActStatus" style="font-size:12px;padding:6px;">
+        <option>OPEN</option><option>INVESTIGATION</option><option>IN PROGRESS</option><option>CLOSED</option></select>
+    </div>
+    <button class="btn-primary" id="nbcActSave" style="padding:7px 14px;font-size:12px;">Simpan Action</button>
+    <div id="nbcActMsg" style="margin-top:6px;font-size:12px;"></div>
+  </div>
+  <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Daftar Action (${actions.length})</div>`;
+  html += actions.length ? `<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+    <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+      <th style="padding:5px 8px;">Incident</th><th style="padding:5px 8px;">Problem</th><th style="padding:5px 8px;">Corrective Action</th>
+      <th style="padding:5px 8px;">Owner</th><th style="padding:5px 8px;">Due</th><th style="padding:5px 8px;">Status</th></tr></thead>
+    <tbody>${actions.map(a=>`<tr style="border-bottom:1px solid var(--border);${a.overdue?'background:#FCEBE9;':''}">
+      <td style="padding:5px 8px;font-weight:600;">${esc(a.incident_no)}</td><td style="padding:5px 8px;">${esc(a.problem||'-')}</td>
+      <td style="padding:5px 8px;">${esc(a.corrective_action||'-')}</td><td style="padding:5px 8px;">${esc(a.owner_pic||'-')}</td>
+      <td style="padding:5px 8px;">${esc(a.due_date||'-')}</td>
+      <td style="padding:5px 8px;font-weight:700;color:${a.overdue?'#B3261E':a.status==='CLOSED'?'#1E7B34':'#946200'};">${a.overdue?'OVERDUE':esc(a.status)}</td></tr>`).join('')}</tbody>
+    </table>` : `<div class="nbc-placeholder">Belum ada action tercatat.</div>`;
+  body.innerHTML = html;
+  document.getElementById('nbcActSave').onclick = async ()=>{
+    const msg = document.getElementById('nbcActMsg');
+    const incId = parseInt(document.getElementById('nbcActIncident').value);
+    if(!incId){ msg.innerHTML = '<span style="color:#B3261E;">Pilih insiden dulu.</span>'; return; }
+    msg.innerHTML = '⏳ Menyimpan…';
+    try{
+      await sbRpc('breakage_action_save', {
+        p_incident_id: incId, p_problem: document.getElementById('nbcActProblem').value,
+        p_root_cause: document.getElementById('nbcActRoot').value,
+        p_corrective_action: document.getElementById('nbcActCorrective').value,
+        p_owner_pic: document.getElementById('nbcActOwner').value,
+        p_due_date: document.getElementById('nbcActDue').value,
+        p_status: document.getElementById('nbcActStatus').value
+      });
+      msg.innerHTML = '<span style="color:#1E7B34;font-weight:700;">✓ Tersimpan.</span>';
+      setTimeout(()=>{ if(NBC3_SUB==='action') renderNbcActionTracker(scopeRdc); }, 700);
+    }catch(e){ msg.innerHTML = `<span style="color:#B3261E;">Gagal: ${esc(e.message)}</span>`; }
+  };
+}
+
+
 
 // ============ WAREHOUSE & LOGISTICS MANAGER KPI (official scorecard) ============
 // KPI weights are taken from the official manager KPI workbook. A score is only
 // shown when an authoritative source is available; missing inputs remain explicit.
 const WMS_APP_URL = 'https://sls-wms.vercel.app/';
-// Breakage Monitoring kini aplikasi eksekusi tersendiri (seperti WMS/TMS). Dashboard hanya
-// menampilkan angkanya sebagai KPI management review, lalu menautkan ke aplikasinya.
-const BREAKAGE_APP_URL = 'https://sls-breakage.vercel.app/';
 let MANAGER_KPI_LAST = [];
 
-// PENTING: string "DATA REQUIRED" mengandung potongan kata "RED". Pencocokan dengan
-// includes() membuat setiap KPI yang datanya kosong ikut diwarnai merah dan terhitung
-// sebagai "perlu perhatian" — padahal artinya cuma belum ada data. Karena itu status
-// kosong diperiksa lebih dulu, dan sisanya memakai batas kata (\b).
-function isNoDataStatus(status){
-  return /(DATA\s+REQUIRED|DATA\s+DEFINITION\s+REQUIRED|BELUM\s+DITETAPKAN)/i.test(String(status||''));
-}
-function isAttentionStatus(status){
-  if(isNoDataStatus(status)) return false;
-  return /\b(RED|AMBER|CRITICAL|WATCH)\b/i.test(String(status||''));
-}
 function managerKpiColor(status){
   const s = String(status||'').toUpperCase();
-  if(isNoDataStatus(s)) return '#8B8378';
-  if(/\b(RED|CRITICAL|OVERDUE)\b/.test(s)) return '#DC2626';
-  if(/\b(AMBER|WATCH)\b/.test(s)) return '#F59E0B';
-  if(/\b(GREEN|LIVE|DONE|SELESAI|TERHUBUNG)\b/.test(s)) return '#16A34A';
-  if(/\b(CALCULATED|OPEN|IN PROGRESS)\b/.test(s)) return '#2563EB';
+  if(s.includes('RED') || s.includes('CRITICAL')) return '#DC2626';
+  if(s.includes('AMBER') || s.includes('WATCH')) return '#F59E0B';
+  if(s.includes('GREEN') || s.includes('LIVE') || s.includes('TERHUBUNG')) return '#16A34A';
+  if(s.includes('CALCULATED')) return '#2563EB';
   return '#8B8378';
-}
-// Nilai numerik yang benar-benar ada. Number(null) === 0, jadi tanpa penjagaan ini
-// KPI tanpa data akan tampil sebagai angka 0 yang terlihat seperti actual.
-function numOrNull(v){
-  if(v===null || v===undefined || v==='') return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
 }
 function hasAuthoritativeValue(item){
   return item && item.current!==null && item.current!==undefined && item.current!=='';
@@ -4035,82 +4483,6 @@ function dataValue(item, prefix='', suffix=''){
   const numeric = Number(item.current);
   const value = Number.isFinite(numeric) ? fmtNum(numeric) : String(item.current);
   return `${prefix}${value}${suffix}`;
-}
-function managerMetricValue(value, prefix='', suffix=''){
-  if(value===null || value===undefined || value==='') return 'DATA REQUIRED';
-  const numeric = Number(value);
-  const shown = Number.isFinite(numeric) ? fmtNum(numeric) : String(value);
-  return `${prefix}${shown}${suffix}`;
-}
-function managerPeriodLabel(period){
-  if(!/^\d{4}-\d{2}$/.test(String(period||''))) return String(period||'Periode terpilih');
-  return new Intl.DateTimeFormat('id-ID',{month:'long',year:'numeric'}).format(new Date(`${period}-01T00:00:00`));
-}
-function renderManagementMonthlyTable(period){
-  const body = document.getElementById('managementMonthlyBody');
-  const stats = document.getElementById('managementMonthlyStats');
-  const periodEl = document.getElementById('managementMonthlyPeriod');
-  if(!body || !stats || !periodEl) return;
-  periodEl.textContent = managerPeriodLabel(period);
-  const rows = MANAGER_KPI_LAST || [];
-  const dataGaps = rows.filter(k=>isNoDataStatus(k.value) || isNoDataStatus(k.target));
-  const attention = rows.filter(k=>isAttentionStatus(k.status));
-  const activeSources = rows.filter(k=>!/DATA REQUIRED/i.test(String(k.value)));
-  stats.innerHTML = `
-    <div class="monthly-stat"><div class="ms-label">Sumber KPI Aktif</div><div class="ms-value">${activeSources.length}/6</div><div class="ms-note">Terhubung atau memiliki indikator aktual</div></div>
-    <div class="monthly-stat"><div class="ms-label">Perlu Perhatian</div><div class="ms-value">${attention.length}</div><div class="ms-note">Status RED / AMBER / WATCH</div></div>
-    <div class="monthly-stat"><div class="ms-label">Data / Target Gap</div><div class="ms-value">${dataGaps.length}</div><div class="ms-note">Belum boleh dihitung sebagai skor</div></div>`;
-  body.innerHTML = rows.map(k=>{
-    const color = managerKpiColor(k.status);
-    const numCell = (v)=>{
-      const s = String(v==null||v==='' ? 'DATA REQUIRED' : v);
-      const empty = isNoDataStatus(s);
-      return {cls: empty ? 'mt-number mt-empty' : 'mt-number', txt:s};
-    };
-    const cur = numCell(k.monthlyCurrent||k.value);
-    const tgt = numCell(k.target);
-    const gap = numCell(k.gap);
-    const act = k.trackedAction || null;
-    const deadline = act && act.deadline ? act.deadline : null;
-    const overdue = deadline && !/done|selesai|closed/i.test(String(act.status||'')) && deadline < todayISO();
-    const deadlineCell = deadline
-      ? `<span class="${overdue?'mt-overdue':''}">${esc(fmtDateID(deadline))}${overdue?' ⚠ OVERDUE':''}</span>`
-      : `<button class="mt-set" onclick="openKpiActionEditor('${escAttr(k.title)}')">+ Tetapkan</button>`;
-    const progressCell = act && act.status
-      ? `<span style="display:inline-block;background:${managerKpiColor(act.status)}14;color:${managerKpiColor(act.status)};border:1px solid ${managerKpiColor(act.status)}44;border-radius:20px;padding:4px 9px;font-size:10.5px;font-weight:800;">${esc(act.status)}</span>`
-      : `<span style="color:var(--stone);font-weight:700;font-size:11px;">BELUM DITETAPKAN</span>`;
-    return `<tr>
-      <td class="mt-kpi" style="border-left-color:${color};">${esc(k.title)}<div style="font-size:10.5px;font-weight:500;color:var(--stone);margin-top:4px;">${esc(k.meta)}</div></td>
-      <td class="mt-weight">${k.weight}%</td>
-      <td class="${cur.cls}">${esc(cur.txt)}</td>
-      <td class="${tgt.cls}">${esc(tgt.txt)}</td>
-      <td class="${gap.cls}" style="${gap.cls.includes('mt-empty')?'':`color:${color};`}">${esc(gap.txt)}</td>
-      <td><span style="display:inline-block;background:${color}18;color:${color};border:1px solid ${color}55;border-radius:20px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap;">${esc(k.status)}</span></td>
-      <td class="mt-action">${esc(k.action)}</td>
-      <td class="mt-pic">${esc(act && act.owner ? act.owner : k.pic)}</td>
-      <td class="mt-deadline">${deadlineCell}</td>
-      <td class="mt-progress">${progressCell}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="10" style="padding:18px;text-align:center;color:var(--stone);">Data KPI sedang dimuat…</td></tr>';
-}
-function todayISO(){ return new Date().toISOString().slice(0,10); }
-function fmtDateID(d){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d||''))) return String(d||'');
-  return new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(d+'T00:00:00'));
-}
-// Deadline/PIC/Progress untuk baris KPI disimpan di action_tracker yang sudah ada
-// (issue = "KPI: <nama>"), jadi tidak perlu tabel baru dan tetap ikut RLS.
-function kpiIssueKey(title){ return 'KPI: ' + title; }
-function findKpiAction(title){
-  const scope = CURRENT_RDC_SCOPE || '';
-  return (ACTION_TRACKER||[]).find(a=>a.issue===kpiIssueKey(title) && (a.rdc_name||'')===scope) || null;
-}
-async function openKpiActionEditor(title){
-  const row = (MANAGER_KPI_LAST||[]).find(k=>k.title===title);
-  const existing = findKpiAction(title);
-  await openActionEditor(kpiIssueKey(title), CURRENT_RDC_SCOPE||null,
-    (row && row.action) || 'Tindak lanjut KPI', existing ? existing.id : null);
-  renderManagerKpiScorecard();
 }
 function openManagerKpiDetail(key){
   if(key==='inventory'){
@@ -4145,16 +4517,10 @@ async function renderManagerKpiScorecard(){
   let summary = {};
   let summaryError = '';
   let wmsConnected = false;
-  let invAcc = {};
   try{ summary = await sbRpc('priority_kpi_summary', {p_period:period, p_rdc:scopeRdc}) || {}; }
   catch(e){ summaryError = e && e.message ? e.message : String(e); }
   try{ await sbRpc('wms_home_stats', {p_rdc:wmsRdc}); wmsConnected = true; }
   catch(e){ wmsConnected = false; }
-  // Inventory Accuracy = hasil stock opname akunting per 6 bulan (sumber authoritative
-  // yang ditetapkan Bent). Status koneksi WMS TIDAK boleh menjadi nilai KPI ini.
-  try{ invAcc = await sbRpc('inventory_accuracy_summary', {p_period:period, p_rdc:scopeRdc}) || {}; }
-  catch(e){ invAcc = {status:'DATA REQUIRED', note:'Sumber opname belum dapat dibaca.'}; }
-  try{ if(!ACTION_TRACKER || !ACTION_TRACKER.length) await loadActionTracker(); }catch(e){}
 
   const sla = summary.sla || {};
   const otif = summary.otif || {};
@@ -4162,196 +4528,53 @@ async function renderManagerKpiScorecard(){
   const cost = summary.logistic_cost || {};
   const local = RDC[CURRENT_RDC] || RDC['Semua'] || {};
   const productivity = local.prod;
-  const serviceMetric = hasAuthoritativeValue(otif) ? otif : sla;
-  const serviceSuffix = hasAuthoritativeValue(otif) ? '%' : '';
   const serviceValue = hasAuthoritativeValue(otif) ? dataValue(otif, 'OTIF ', '%')
     : (hasAuthoritativeValue(sla) ? dataValue(sla, 'SLA ', '') : 'DATA REQUIRED');
   const serviceStatus = String(otif.status||sla.status||'DATA REQUIRED');
-  const warehouseValue = productivity!==null && productivity!==undefined
-    ? `${fmtNum(Number(productivity))} box/SDM`
-    : (hasAuthoritativeValue(breakage) ? dataValue(breakage, '', '/10k') : 'DATA REQUIRED');
-  const warehouseMeta = hasAuthoritativeValue(breakage)
-    ? `Produktivitas + Breakage ${fmtNum(Number(breakage.current))}/10k`
-    : 'Produktivitas + Breakage · data breakage diperlukan';
-  const warehouseCurrentParts = [];
-  if(productivity!==null && productivity!==undefined) warehouseCurrentParts.push(`Prod ${fmtNum(Number(productivity))}`);
-  if(hasAuthoritativeValue(breakage)) warehouseCurrentParts.push(`BR ${fmtNum(Number(breakage.current))}/10k`);
-
-  const invAccHas = invAcc && invAcc.current!==null && invAcc.current!==undefined && invAcc.current!=='';
+  const warehouseValue = hasAuthoritativeValue(breakage)
+    ? dataValue(breakage, '', '/10k')
+    : String(breakage.status||'DATA REQUIRED').replaceAll('_',' ');
+  const warehouseMeta = productivity!==null && productivity!==undefined
+    ? `Produktivitas ${fmtNum(Number(productivity))} box/SDM · Breakage ${hasAuthoritativeValue(breakage)?fmtNum(Number(breakage.current))+'/10k':String(breakage.status||'DATA REQUIRED').replaceAll('_',' ')}`
+    : `Breakage ${hasAuthoritativeValue(breakage)?fmtNum(Number(breakage.current))+'/10k':String(breakage.status||'DATA REQUIRED').replaceAll('_',' ')}`;
 
   MANAGER_KPI_LAST = [
     {key:'service', title:'Service Level', weight:20, value:serviceValue, status:serviceStatus,
-      monthlyCurrent:serviceValue, target:managerMetricValue(serviceMetric.target,'',serviceSuffix),
-      gap:managerMetricValue(serviceMetric.gap,'',serviceSuffix), action:hasAuthoritativeValue(serviceMetric)?'Review gap dan recovery action per RDC.':'Lengkapi delivery actual vs promise serta qty order vs delivered.',
-      pic:'Distribution + Warehouse', meta:'OTD & Order Fulfillment Accuracy', source:'Priority KPI / delivery data'},
-    {key:'inventory', title:'Inventory Accuracy', weight:20,
-      value: invAccHas ? `${fmtNum(Number(invAcc.current))}%` : 'DATA REQUIRED',
-      monthlyCurrent: invAccHas ? `${fmtNum(Number(invAcc.current))}%` : 'DATA REQUIRED',
-      target: 'BELUM DITETAPKAN',
-      gap: 'BELUM DITETAPKAN',
-      action: invAccHas
-        ? (invAcc.is_stale ? 'Opname terakhir sudah lewat 6 bulan — jadwalkan opname akunting berikutnya.'
-                           : 'Review selisih per SKU dan tetapkan target akurasi resmi.')
-        : 'Input hasil stock opname akunting (fisik vs sistem per SKU) di menu Input Manual → Opname Akunting.',
-      pic:'Inventory Control + Akunting',
-      status: invAccHas ? String(invAcc.status||'CALCULATED') : 'DATA REQUIRED',
-      meta: invAccHas
-        ? `Opname akunting ${fmtDateID(invAcc.opname_date)} · ${fmtNum(Number(invAcc.sku_count||0))} SKU · selisih ${fmtNum(Number(invAcc.variance_abs||0))} box`
-        : 'Menunggu hasil stock opname akunting (siklus 6 bulan)',
-      source:'Stock opname akunting (6 bulan)',
-      conn: wmsConnected ? 'WMS TERHUBUNG' : 'WMS TIDAK TERHUBUNG',
-      connOn: wmsConnected,
-      connNote:'Status koneksi, bukan nilai akurasi'},
+      meta:'OTD & Order Fulfillment Accuracy', source:'Priority KPI / delivery data'},
+    {key:'inventory', title:'Inventory Accuracy', weight:20, value:wmsConnected?'WMS TERHUBUNG':'DATA REQUIRED',
+      status:wmsConnected?'WMS LIVE':'DATA REQUIRED', meta:'Nilai akurasi menunggu hasil stock opname/cycle count', source:'SLS WMS'},
     {key:'warehouse', title:'Warehouse Operational Performance', weight:20, value:warehouseValue,
-      monthlyCurrent:warehouseCurrentParts.join(' | ')||'DATA REQUIRED',
-      target:hasAuthoritativeValue({current:breakage.target})?`BR ≤ ${managerMetricValue(breakage.target)}/10k`:'DATA REQUIRED',
-      gap:managerMetricValue(breakage.gap,'','/10k'),
-      action:/RED|AMBER|WATCH/i.test(String(breakage.status||''))?'Buka Breakage Monitoring ↗ dan tetapkan owner recovery.':'Review produktivitas receiving, putaway, picking, dan breakage.',
-      pic:'Warehouse Manager + RDC SPV', status:String(breakage.status||'CALCULATED'), meta:warehouseMeta, source:'Dashboard + Breakage Monitoring (app)'},
+      status:String(breakage.status||'CALCULATED'), meta:warehouseMeta, source:'SLS Breakage Monitoring'},
     {key:'cost', title:'Cost Efficiency', weight:15, value:dataValue(cost, 'Rp ', ''),
-      monthlyCurrent:dataValue(cost,'Rp ',''), target:managerMetricValue(cost.target,'Rp ',''), gap:managerMetricValue(cost.gap,'Rp ',''),
-      action:hasAuthoritativeValue(cost)?'Review cost/drop, rute, utilisasi, dan saving vs baseline.':'Lengkapi biaya trip, drop, rute, vendor, storage, dan handling.',
-      pic:'Logistics + Finance', status:String(cost.status||'DATA REQUIRED'), meta:'Warehouse & Distribution Cost / Cost per Drop', source:'Logistic Cost'},
+      status:String(cost.status||'DATA REQUIRED'), meta:'Warehouse & Distribution Cost / Cost per Drop', source:'Logistic Cost'},
     {key:'compliance', title:'SOP & K3 Compliance', weight:15, value:'DATA REQUIRED', status:'DATA REQUIRED',
-      monthlyCurrent:'DATA REQUIRED', target:'DATA REQUIRED', gap:'DATA REQUIRED',
-      action:'Input audit SOP/K3, incident, corrective action, PIC, dan closure.', pic:'HSE + RDC SPV',
       meta:'Audit SOP, K3, incident & corrective action', source:'Input compliance'},
     {key:'people', title:'People Development & Team Performance', weight:10, value:'DATA REQUIRED', status:'DATA REQUIRED',
-      monthlyCurrent:'DATA REQUIRED', target:'DATA REQUIRED', gap:'DATA REQUIRED',
-      action:'Input skill matrix, training, coaching, absensi, dan produktivitas tim.', pic:'Warehouse Manager + HR',
       meta:'Kompetensi, training, coaching & team performance', source:'Input people development'}
   ];
 
-  // Deadline / PIC / progress diambil dari action_tracker (jika sudah ditetapkan management).
-  MANAGER_KPI_LAST.forEach(k=>{ k.trackedAction = findKpiAction(k.title); });
-
   el.innerHTML = MANAGER_KPI_LAST.map(k=>{
     const color = managerKpiColor(k.status);
-    const empty = isNoDataStatus(k.value);
-    const longVal = String(k.value).length > 11;
-    const conn = k.conn ? `<div class="mk-conn ${k.connOn?'on':'off'}" title="${esc(k.connNote||'')}">${esc(k.conn)}</div>` : '';
     return `<div class="manager-kpi-card" data-manager-kpi="${k.key}" style="border-top-color:${color};">
-      <div><div class="mk-title">${esc(k.title)}</div>
-      <div class="mk-value${empty?' mk-empty':(longVal?' mk-long':'')}">${esc(k.value)}</div>
-      <div class="mk-meta">${esc(k.meta)}</div>${conn}</div>
-      <div><div class="mk-source">Sumber: <b>${esc(k.source||'—')}</b></div>
-      <div style="font-size:9.5px;font-weight:800;color:${color};margin-top:6px;">${esc(k.status)}</div>
+      <div><div class="mk-title">${esc(k.title)}</div><div class="mk-value">${esc(k.value)}</div>
+      <div class="mk-meta">${esc(k.meta)}</div></div>
+      <div><div style="font-size:9px;font-weight:800;color:${color};margin-top:7px;">${esc(k.status)}</div>
       <div class="mk-weight">BOBOT ${k.weight}% · Buka detail →</div></div></div>`;
   }).join('');
   el.querySelectorAll('[data-manager-kpi]').forEach(card=>card.addEventListener('click', ()=>openManagerKpiDetail(card.dataset.managerKpi)));
 
-  const wc = document.getElementById('weightCheck');
-  if(wc){
-    const total = MANAGER_KPI_LAST.reduce((s,k)=>s+Number(k.weight||0),0);
-    wc.textContent = total===100 ? '✓ Total bobot 100%' : `⚠ Total bobot ${total}% — tidak valid`;
-    wc.style.color = total===100 ? '#1E7B34' : 'var(--roman-red)';
-    wc.style.borderColor = total===100 ? '#1E7B3444' : 'var(--roman-red)';
-    wc.style.background = total===100 ? '#1E7B340F' : 'rgba(227,29,43,.07)';
-  }
-  renderManagementMonthlyTable(period);
-
-  await renderManagerKpiRecap(recap, {period, scopeRdc, summary, invAcc, invAccHas, wmsConnected, summaryError});
-}
-
-// ============ REKAP MANAGEMENT OTOMATIS ============
-// Mengikuti periode + RDC yang dipilih. Setiap baris menyebut KPI, angka, RDC, dan status
-// data yang benar-benar ada. Tidak ada rekomendasi generik dan tidak ada angka karangan.
-async function renderManagerKpiRecap(recap, ctx){
-  const {period, scopeRdc, summary, invAcc, invAccHas, summaryError} = ctx;
-  const rows = MANAGER_KPI_LAST || [];
-  const missing = rows.filter(k=>isNoDataStatus(k.value));
-  const risks   = rows.filter(k=>isAttentionStatus(k.status));
-  const ready   = rows.length - missing.length;
-  const scopeLabel = scopeRdc==='ALL' ? 'Nasional (5 RDC)' : scopeRdc;
-
-  // --- Gap terbesar (hanya dari KPI yang gap-nya benar-benar numerik) ---
-  const gapRanked = rows
-    .map(k=>({k, g: Number(String(k.gap||'').replace(/[^\d.\-]/g,''))}))
-    .filter(x=>Number.isFinite(x.g) && x.g>0)
-    .sort((a,b)=>b.g-a.g);
-  const biggestGap = gapRanked.length
-    ? `<b>${esc(gapRanked[0].k.title)}</b> — gap ${esc(gapRanked[0].k.gap)} terhadap target ${esc(gapRanked[0].k.target)}`
-    : 'DATA REQUIRED — belum ada KPI dengan target dan actual yang keduanya authoritative, sehingga gap terbesar belum dapat ditentukan.';
-
-  // --- Perubahan vs bulan sebelumnya ---
-  let deltaTxt = 'DATA REQUIRED — pembanding bulan sebelumnya belum tersedia.';
-  try{
-    const prev = prevPeriod(period);
-    const ps = await sbRpc('priority_kpi_summary', {p_period:prev, p_rdc:scopeRdc}) || {};
-    const now = numOrNull(summary?.breakage?.current), was = numOrNull(ps?.breakage?.current);
-    if(now!==null && was!==null){
-      const d = now - was, arrow = d>0?'naik':d<0?'turun':'tetap';
-      deltaTxt = `Delivery Breakage ${arrow} dari <b>${fmtNum(was)}</b> (${managerPeriodLabel(prev)}) ke <b>${fmtNum(now)}</b> per 10.000 box.`;
-    } else {
-      deltaTxt = `DATA REQUIRED — ${managerPeriodLabel(prev)} belum memiliki angka breakage yang dapat dibandingkan.`;
-    }
-  }catch(e){ /* biarkan DATA REQUIRED */ }
-
-  // --- Isu utama per RDC (dari mesin issue dashboard yang sudah ada) ---
-  let rdcTxt = 'Tidak ada isu operasional yang melewati ambang batas pada scope ini.';
-  try{
-    const issues = (calcAllIssues()||[]).sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0)).slice(0,3);
-    if(issues.length) rdcTxt = issues.map(i=>{
-      const t = String(i.issue||'');
-      const rdc = i.rdcName || '';
-      const clean = rdc && t.includes(rdc) ? t.replace(new RegExp('\\s*[—-]\\s*'+rdc+'\\s*$'),'') : t;
-      return `<b>${esc(rdc||scopeLabel)}</b> — ${esc(clean)}`;
-    }).join(' · ');
-  }catch(e){}
-
-  // --- Action, PIC, deadline, overdue ---
-  const tracked  = rows.filter(k=>k.trackedAction);
-  const overdue  = tracked.filter(k=>k.trackedAction.deadline
-                     && !/done|selesai|closed/i.test(String(k.trackedAction.status||''))
-                     && k.trackedAction.deadline < todayISO());
-  const noOwner  = rows.filter(k=>!k.trackedAction);
-  const actionTxt = tracked.length
-    ? tracked.map(k=>`<b>${esc(k.title)}</b> → ${esc(k.trackedAction.owner||k.pic)}, jatuh tempo ${esc(fmtDateID(k.trackedAction.deadline)||'belum ditetapkan')} (${esc(k.trackedAction.status||'Open')})`).join('<br>')
-    : 'Belum ada satupun KPI yang memiliki owner dan deadline resmi. Tetapkan lewat kolom Deadline pada tabel di bawah.';
-  const overdueTxt = overdue.length
-    ? `<span style="color:var(--roman-red);font-weight:800;">${overdue.length} action overdue:</span> ${overdue.map(k=>esc(k.title)+' ('+esc(fmtDateID(k.trackedAction.deadline))+')').join(', ')}`
-    : (tracked.length ? 'Tidak ada action yang melewati deadline.' : 'Belum ada deadline yang dapat dinilai overdue.');
-
-  // --- Business impact: hanya sebut yang benar-benar terukur ---
-  const impacts = [];
-  if(numOrNull(summary?.breakage?.current)!==null)
-    impacts.push('Breakage di atas target menambah biaya replacement, klaim, dan rehandling — nilai rupiahnya <b>DATA REQUIRED</b> sampai Cost Efficiency terisi.');
-  if(invAccHas && Number(invAcc.variance_abs)>0)
-    impacts.push(`Selisih opname <b>${fmtNum(Number(invAcc.variance_abs))} box</b> di ${scopeLabel} berdampak ke akurasi stok dan working capital.`);
-  if(!impacts.length) impacts.push('DATA REQUIRED — dampak finansial belum dapat dihitung karena Cost Efficiency dan Service Level belum memiliki sumber data.');
-
-  // --- Keputusan yang dibutuhkan management ---
-  const decisions = [];
-  const noTarget = rows.filter(k=>isNoDataStatus(k.target));
-  if(noTarget.length) decisions.push(`Kunci target resmi untuk ${noTarget.length} KPI: ${noTarget.map(k=>esc(k.title)).join(', ')}.`);
-  if(missing.length) decisions.push(`Tunjuk PIC penyedia data untuk ${missing.map(k=>esc(k.title)).join(', ')}.`);
-  if(noOwner.length) decisions.push(`Tetapkan owner dan deadline untuk ${noOwner.length} KPI yang belum punya action.`);
-  if(invAccHas && invAcc.is_stale) decisions.push(`Jadwalkan opname akunting berikutnya — hasil terakhir sudah berumur ${invAcc.age_months} bulan.`);
-  if(!decisions.length) decisions.push('Tidak ada keputusan tertunda; lanjutkan monitoring rutin.');
-
-  const row = (label, val)=>`<tr><td style="padding:7px 10px 7px 0;font-size:10.5px;font-weight:800;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;vertical-align:top;">${label}</td><td style="padding:7px 0;font-size:12.5px;line-height:1.55;">${val}</td></tr>`;
-
+  const missing = MANAGER_KPI_LAST.filter(k=>/DATA REQUIRED|CUT-OFF REQUIRED|REVIEW REQUIRED/i.test(String(k.value)+' '+String(k.status)));
+  const risks = MANAGER_KPI_LAST.filter(k=>/RED|AMBER|CRITICAL|WATCH/i.test(k.status));
+  const ready = MANAGER_KPI_LAST.length - missing.length;
+  const actions = [];
+  if(risks.length) actions.push(`Prioritaskan tindakan pada ${risks.map(k=>k.title).join(', ')}.`);
+  if(wmsConnected) actions.push('WMS sudah tersambung; petakan hasil stock opname/cycle count agar Inventory Accuracy menjadi nilai KPI, bukan hanya status koneksi.');
+  else actions.push('Periksa hak akses atau sesi WMS untuk mengaktifkan sumber Inventory Accuracy.');
+  if(missing.length) actions.push(`Lengkapi sumber data ${missing.map(k=>k.title).join(', ')} sebelum menetapkan skor kinerja.`);
+  if(!actions.length) actions.push('Seluruh sumber KPI tersedia; lanjutkan review gap terhadap target dan tetapkan owner tindakan.');
   recap.className = `impact-card ${risks.length?'red':missing.length?'amber':'green'}`;
-  recap.innerHTML = `<span class="dot"></span><div style="width:100%;">
-    <div style="font-size:13px;font-weight:800;color:var(--navy);margin-bottom:2px;">Rekap Management Otomatis — ${esc(managerPeriodLabel(period))} · ${esc(scopeLabel)}</div>
-    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;"><b>${ready}/6</b> KPI bersumber data aktif · <b>${missing.length}/6</b> menunggu data · <b>${risks.length}</b> perlu perhatian</div>
-    <table style="width:100%;border-collapse:collapse;">
-      ${row('Gap terbesar', biggestGap)}
-      ${row('Status RED/AMBER', risks.length ? risks.map(k=>`<b>${esc(k.title)}</b> (${esc(k.status)})`).join(' · ') : 'Tidak ada KPI berstatus RED atau AMBER pada periode ini.')}
-      ${row('vs bulan lalu', deltaTxt)}
-      ${row('Isu per RDC', rdcTxt)}
-      ${row('Business impact', impacts.join('<br>'))}
-      ${row('Action &amp; PIC', actionTxt)}
-      ${row('Overdue', overdueTxt)}
-      ${row('Keputusan diminta', decisions.map(d=>'• '+d).join('<br>'))}
-    </table>
-    ${summaryError?`<div style="color:#B3261E;font-size:11.5px;margin-top:8px;">Catatan integrasi: ${esc(summaryError.slice(0,180))}</div>`:''}
-  </div>`;
-}
-function prevPeriod(p){
-  const d = new Date(String(p)+'-01T00:00:00');
-  d.setMonth(d.getMonth()-1);
-  return d.toISOString().slice(0,7);
+  recap.innerHTML = `<span class="dot"></span><div><b>Recap Management Otomatis:</b> ${ready}/6 KPI memiliki indikator aktif; ${missing.length}/6 masih memerlukan data${risks.length?`; ${risks.length} area perlu perhatian`:''}.<br>
+    <b>Saran:</b> ${actions.join(' ')}` + (summaryError?`<br><span style="color:#B3261E;">Catatan integrasi: ${esc(summaryError.slice(0,180))}</span>`:'') + '</div>';
 }
 
 // ============ PRIORITY KPI CONTROL (addendum) ============
@@ -4633,9 +4856,44 @@ async function renderSlaDetail(container){
 
 
 
+// ============ MONTHLY RECONCILIATION (monitoring view — separate from the Input Breakage action) ============
+async function renderNbcReconciliationHistory(){
+  const el = document.getElementById('nbc-reconcile');
+  el.innerHTML = '<div class="nbc-placeholder">⏳ Memuat riwayat…</div>';
+  try{
+    const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
+    const rows = await sbRpc('breakage_reconciliation_history', {p_rdc: scopeRdc});
+    if(!rows.length){
+      el.innerHTML = `<div class="nbc-placeholder">Belum ada riwayat upload/reconciliation.<br>
+        <button class="btn-primary" style="margin-top:10px;padding:7px 14px;" onclick="document.getElementById('nbcOpenInput').click()">+ Input Breakage</button></div>`;
+      return;
+    }
+    const statusColor = s => ({PREVIEW:'#946200', RECONCILED:'#1F3864', PUBLISHED:'#1E7B34', CANCELLED:'#B3261E'}[s] || '#6E6A63');
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead><tr style="background:var(--navy);color:#fff;text-align:left;">
+        <th style="padding:6px 10px;">Periode</th><th style="padding:6px 10px;">RDC</th><th style="padding:6px 10px;">File</th>
+        <th style="padding:6px 10px;text-align:right;">Baris</th><th style="padding:6px 10px;">Status</th>
+        <th style="padding:6px 10px;">Diupload</th><th style="padding:6px 10px;">Dipublikasikan</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;font-weight:600;">${esc(r.period)}</td><td style="padding:6px 10px;">${esc(r.rdc)}</td>
+        <td style="padding:6px 10px;">${esc(r.filename||'-')}</td><td style="padding:6px 10px;text-align:right;">${fmtNum(r.total_rows)}</td>
+        <td style="padding:6px 10px;"><span style="font-weight:700;font-size:10.5px;color:${statusColor(r.status)};">${esc(r.status)}</span></td>
+        <td style="padding:6px 10px;font-size:11px;color:var(--stone);">${esc(r.uploaded_by||'-')}<br>${esc(r.uploaded_at||'')}</td>
+        <td style="padding:6px 10px;font-size:11px;color:var(--stone);">${esc(r.published_at||'—')}</td></tr>`).join('')}</tbody></table>`;
+  }catch(e){ el.innerHTML = `<div class="nbc-placeholder" style="background:#FCEBE9;color:#B3261E;">Gagal: ${esc(e.message)}</div>`; }
+}
 
 
 
+// Standalone page loader for #page-breakage — mirrors the existing loadUploadPage()/loadManualPage()
+// pattern. Called once per sidebar click; NBC_PERIOD is already set at boot by populateNbcPeriods().
+function loadBreakagePage(){
+  document.querySelectorAll('.nbc-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.nbc-tab[data-nbc="overview"]').classList.add('active');
+  document.querySelectorAll('.nbc-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('nbc-overview').classList.add('active');
+  renderNbcOverview();
+}
 
 </script>
 </body>
