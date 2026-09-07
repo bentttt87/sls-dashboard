@@ -1,0 +1,76 @@
+name: Patch Control Tower Breakage Focus v64
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-breakage-focus-v64.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Align Breakage UI to Pecah Kiriman and Pecah Penyimpanan
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+            ("nbcRateCardHtml('Warehouse Breakage Rate', 'Pecah Pallet/Gudang', d.warehouse, 'Stock Exposure')",
+             "nbcRateCardHtml('Pecah Penyimpanan Rate', 'Pecah Penyimpanan', d.warehouse, 'Stock Exposure')"),
+            ("nbcTargetProgress('Warehouse Breakage', d.warehouse)",
+             "nbcTargetProgress('Pecah Penyimpanan', d.warehouse)"),
+            ("'Warehouse Breakage Rate — Trend'", "'Pecah Penyimpanan Rate — Trend'"),
+            ("title:'Warehouse Operational Performance'", "title:'Breakage Operational Performance'"),
+            ("{key:'breakage', title:'BREAKAGE', unit:'/10k', data:d.breakage}",
+             "{key:'breakage', title:'BREAKAGE · KIRIMAN + PENYIMPANAN', unit:'/10k', data:d.breakage}"),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  print('WARN not found:', old)
+              s = s.replace(old, new)
+
+          old_block = """  const warehouseValue = hasAuthoritativeValue(breakage)
+    ? dataValue(breakage, '', '/10k')
+    : String(breakage.status||'DATA REQUIRED').replaceAll('_',' ');
+  const warehouseMeta = productivity!==null && productivity!==undefined
+    ? `Produktivitas ${fmtNum(Number(productivity))} box/SDM · Breakage ${hasAuthoritativeValue(breakage)?fmtNum(Number(breakage.current))+'/10k':String(breakage.status||'DATA REQUIRED').replaceAll('_',' ')}`
+    : `Breakage ${hasAuthoritativeValue(breakage)?fmtNum(Number(breakage.current))+'/10k':String(breakage.status||'DATA REQUIRED').replaceAll('_',' ')}`;"""
+
+          new_block = """  const storageBreakage = breakage.storage || breakage.warehouse || {};
+  const deliveryBreakage = breakage.delivery || {};
+  const breakageValuePart = m => m && m.current!=null
+    ? fmtNum(Number(m.current))+'/10k'
+    : String((m&&m.status)||'DATA REQUIRED').replaceAll('_',' ');
+  const warehouseValue = breakageValuePart(storageBreakage);
+  const warehouseMeta = `Pecah Kiriman ${breakageValuePart(deliveryBreakage)} · Pecah Penyimpanan ${breakageValuePart(storageBreakage)}`
+    + (productivity!==null && productivity!==undefined ? ` · Produktivitas ${fmtNum(Number(productivity))} box/SDM` : '');"""
+
+          if old_block not in s:
+              print('WARN manager breakage block not found')
+          else:
+              s = s.replace(old_block, new_block)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit patched Control Tower
+        shell: bash
+        run: |
+          git config user.name "SLS Control Tower Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes required"
+            exit 0
+          fi
+          git commit -m "fix: align Control Tower Breakage to Kiriman and Penyimpanan"
+          git push
