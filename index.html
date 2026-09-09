@@ -328,6 +328,44 @@
   .mobile-menu-btn{display:none;position:fixed;left:12px;top:12px;z-index:1201;width:40px;height:40px;border:0;border-radius:10px;background:#17365D;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22);font-size:20px;align-items:center;justify-content:center;cursor:pointer}
   .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(8,20,36,.48);z-index:1198}.mobile-backdrop.show{display:block}
   .top3-note{font-size:10px;color:var(--stone);margin-top:-5px;margin-bottom:8px}
+
+  /* ===== Sticky Management / Operational switch (freeze-pane behavior) ===== */
+  #viewTabsWrap{
+    position:sticky; top:0; z-index:88;
+    background:rgba(246,244,240,.97);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    padding-top:6px;
+    box-shadow:0 5px 12px rgba(21,40,69,.04);
+  }
+  #viewTabsWrap .view-tab{background:transparent;}
+
+  /* ===== Stock Opname Upload ===== */
+  .so-dropzone{background:#fff;border:2px dashed #BFC9D8;border-radius:14px;padding:30px 22px;text-align:center;cursor:pointer;transition:.16s}
+  .so-dropzone:hover,.so-dropzone.dragover{border-color:var(--navy);background:#F4F7FB}
+  .so-file-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+  .so-file-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px}
+  .so-file-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:9px}
+  .so-file-name{font-weight:800;color:var(--navy);font-size:12.5px;word-break:break-word}
+  .so-badge{font-size:9px;font-weight:800;border-radius:10px;padding:3px 7px;background:#E8F3EA;color:#1E7B34;white-space:nowrap}
+  .so-badge.warn{background:#FFF3D6;color:#946200}.so-badge.err{background:#FCEBE9;color:#B3261E}
+  .so-meta-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+  .so-meta-box{background:#F7F5F1;border-radius:8px;padding:8px 9px;min-width:0}
+  .so-meta-box .lbl{font-size:8.5px;color:var(--stone);font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+  .so-meta-box .val{font-size:11.5px;color:var(--navy);font-weight:800;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .so-edit-grid{display:grid;grid-template-columns:1.1fr 1fr 1.2fr;gap:8px;margin-top:9px}
+  .so-edit-grid label{font-size:9px;font-weight:800;color:var(--stone);text-transform:uppercase;letter-spacing:.35px}
+  .so-edit-grid input,.so-edit-grid select{width:100%;margin-top:4px;border:1px solid var(--border);border-radius:7px;padding:7px 8px;font-size:11.5px;background:#fff}
+  .so-preview-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:9px}
+  .so-preview-table th{background:var(--navy);color:#fff;padding:6px 7px;text-align:left;font-size:9.5px}
+  .so-preview-table td{padding:5px 7px;border-bottom:1px solid var(--border)}
+  .so-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+  .so-summary-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 12px}
+  .so-summary-card .lbl{font-size:9px;font-weight:800;color:var(--stone);text-transform:uppercase}
+  .so-summary-card .val{font-size:18px;font-weight:800;color:var(--navy);margin-top:4px}
+  .so-help{font-size:11.5px;line-height:1.6;color:var(--ink-soft)}
+  .so-help b{color:var(--ink)}
+  @media(max-width:900px){.so-meta-grid{grid-template-columns:repeat(2,1fr)}.so-summary-strip{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.so-edit-grid{grid-template-columns:1fr}.so-meta-grid{grid-template-columns:1fr 1fr}.so-summary-strip{grid-template-columns:1fr 1fr}}
   @media(max-width:900px){
     .exposure-v3-grid{grid-template-columns:repeat(2,1fr)}
   }
@@ -405,6 +443,7 @@
 
       <div class="nav-section-title nav-section-gap">EXECUTION APPS</div>
       <div class="nav-item nav-external" id="navWms" title="Buka WMS SLS pada tab baru"><span class="nav-icon">↗</span><span>Open WMS</span></div>
+      <div class="nav-item" data-page="stockopname" id="navStockOpname" title="Upload hasil Stock Opname untuk Inventory Accuracy"><span class="nav-icon">⇧</span><span>Upload Stock Opname</span></div>
 
       <div class="nav-admin-wrap">
         <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-icon">•</span><span>Kelola RDC</span></div>
@@ -558,7 +597,50 @@
 
       <div class="footer-note">
         <b>Sumber data real:</b> DATA_GENERAL_PROFIL (snapshot Jun 2026), DATA_STOCK_HISTORY (2024-2026), DATA_STOCK_OUT_PECAH (2019-2026), DATA_DELIVERY_BREAKDOWN (2024-2026) — disimpan di Supabase, live untuk semua yang buka link ini.<br>
-        <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF, Inventory Accuracy — lihat dokumen Kebutuhan Data untuk detail data yang diperlukan. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
+        <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF. Inventory Accuracy aktif setelah hasil Stock Opname diupload melalui menu Upload Stock Opname. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
+      </div>
+    </div>
+
+    <div id="page-stockopname" class="page">
+      <div class="topbar">
+        <div>
+          <h1>Upload Stock Opname</h1>
+          <div class="period">Sumber Inventory Accuracy — menerima format existing SLS (.xls, .xlsx, .ods)</div>
+        </div>
+      </div>
+
+      <div class="about-box" style="margin-bottom:14px;">
+        <h3 style="margin-bottom:8px;">Cara kerja</h3>
+        <div class="so-help">
+          Sistem membaca file Stock Opname existing tanpa mengubah format sumber. Parser memprioritaskan sheet <b>Report per Material</b>,
+          mendeteksi RDC, tanggal opname, product group, stock fisik, stock buku/SAP, dan variance.
+          <b>Bali otomatis dipetakan ke Denpasar.</b> Untuk KPI nasional, sistem mengambil opname terakhir per RDC + kelompok gudang/product,
+          sehingga file Roman/Grande dan Granit yang tanggalnya berbeda tetap dapat digabung secara benar.
+        </div>
+      </div>
+
+      <div class="warn-box info" style="margin-bottom:12px;">
+        ℹ️ <div><b>Inventory Accuracy utama menggunakan basis BOX</b> jika data BOX tersedia. UOM lain seperti PC tetap disimpan dan ditampilkan sebagai breakdown terpisah agar tidak dicampur secara dimensional.</div>
+      </div>
+
+      <div class="so-dropzone" id="stockOpnameDropzone">
+        <div style="font-size:30px;margin-bottom:7px;">📦</div>
+        <div style="font-weight:800;color:var(--navy);font-size:14px;">Pilih / drop file Stock Opname</div>
+        <div style="font-size:11.5px;color:var(--stone);margin-top:4px;">Boleh upload beberapa file sekaligus — .xls, .xlsx, .ods</div>
+        <input type="file" id="stockOpnameFileInput" accept=".xls,.xlsx,.ods" multiple style="display:none;">
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn-primary" id="stockOpnameParseBtn" style="padding:9px 16px;">Analisa File</button>
+        <button class="btn-primary" id="stockOpnameUploadBtn" style="padding:9px 16px;background:var(--green);" disabled>Konfirmasi & Upload</button>
+        <span id="stockOpnameGlobalMsg" style="font-size:11.5px;color:var(--stone);"></span>
+      </div>
+
+      <div id="stockOpnamePreview" class="so-file-grid"></div>
+
+      <div class="section-label" style="margin-top:22px;">Inventory Accuracy — Data Tersimpan</div>
+      <div id="stockOpnameCurrentSummary" class="about-box">
+        <div class="nbc-placeholder">Buka menu ini setelah login untuk melihat summary terakhir.</div>
       </div>
     </div>
 
@@ -576,7 +658,8 @@
       <div class="about-box"><h3>Status KPI</h3>
         <table>
           <tr><td>5 KPI Real</td><td>Occupancy, Capacity Remaining, Inventory Days (estimasi), Productivity (estimasi), Breakage Rate.</td></tr>
-          <tr><td>5 Belum Tersedia</td><td>OTIF, Inventory Accuracy, Dead Stock per SKU, Logistics Cost, Cost Saving.</td></tr>
+          <tr><td>Inventory Accuracy</td><td>Aktif setelah hasil Stock Opname diupload; parser menerima format existing SLS (.xls/.xlsx/.ods) dan menghitung fisik vs stock buku/SAP.</td></tr>
+          <tr><td>Belum Tersedia</td><td>OTIF, Dead Stock per SKU, Logistics Cost, Cost Saving.</td></tr>
           <tr><td>Direncanakan</td><td>Occupancy per m³ dan tren Rimpil (termasuk pemisahan dead stock vs masih bergerak) — menunggu data kapasitas volume gudang, data Rimpil bulanan, dan riwayat penjualan per SKU.</td></tr>
         </table>
       </div>
@@ -1019,7 +1102,7 @@ function renderHighlightStrip(){
 
 const KPI_EMPTY_BASIC = [
   {label:'OTIF', group:'service', need:'data kelengkapan qty ("in full") — Delivery Speed di bawah ini BUKAN OTIF, baru komponen "on-time"-nya saja'},
-  {label:'Inventory Accuracy', group:'capacity', need:'data stock opname vs sistem'},
+  {key:'inventory_accuracy', label:'Inventory Accuracy', group:'capacity', need:'data stock opname vs sistem'},
   {label:'Dead Stock', group:'capacity', need:'data stock per SKU + tanggal keluar terakhir'},
   {label:'Logistics Cost', group:'financial-only', need:'data biaya pengiriman (Rupiah)'},
   {label:'Cost Saving', group:'financial-only', need:'baseline Logistics Cost'},
@@ -1104,7 +1187,7 @@ function kpiCardHtml(k, d){
   </div>`;
 }
 function kpiEmptyCardHtml(k){
-  return `<div class="kpi-card empty">
+  return `<div class="kpi-card empty"${k.key?` data-empty-kpi="${k.key}"`:''}>
     <div class="kpi-top"><div class="kpi-label">${k.label}</div>${statusBadgeHtml('required')}</div>
     <div class="kpi-value">Data Belum Tersedia</div>
     <div class="kpi-sowhat">Perlu ${k.need}.</div>
@@ -2048,6 +2131,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+el.dataset.page).classList.add('active');
     if(el.dataset.page==='kelola') loadKelola();
+    if(el.dataset.page==='stockopname') renderStockOpnameCurrentSummary();
     if(el.dataset.page==='upload') loadUploadPage();
     if(el.dataset.page==='manual') loadManualPage();
     if(el.dataset.page==='breakage') loadBreakagePage();
@@ -3522,6 +3606,7 @@ function applyRoleUI(){
     badge.className = 'badge-role user';
   }
   document.getElementById('navKelola').style.display = (CURRENT_ROLE==='master' && !IS_OFFLINE_MODE) ? 'flex' : 'none';
+  document.getElementById('navStockOpname').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
   document.getElementById('navUpload').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
   document.getElementById('navManual').style.display = IS_OFFLINE_MODE ? 'none' : 'flex';
   document.getElementById('rdcSelectorWrap').style.display = CURRENT_ROLE==='master' ? 'flex' : 'none';
@@ -4633,7 +4718,8 @@ function dataValue(item, prefix='', suffix=''){
 }
 function openManagerKpiDetail(key){
   if(key==='inventory'){
-    window.open(WMS_APP_URL, '_blank', 'noopener,noreferrer');
+    const nav = document.querySelector('.nav-item[data-page="stockopname"]');
+    if(nav) nav.click();
     return;
   }
   if(key==='warehouse'){
@@ -4664,10 +4750,13 @@ async function renderManagerKpiScorecard(){
   let summary = {};
   let summaryError = '';
   let wmsConnected = false;
+  let invAcc = {};
   try{ summary = await sbRpc('priority_kpi_summary', {p_period:period, p_rdc:scopeRdc}) || {}; }
   catch(e){ summaryError = e && e.message ? e.message : String(e); }
   try{ await sbRpc('wms_home_stats', {p_rdc:wmsRdc}); wmsConnected = true; }
   catch(e){ wmsConnected = false; }
+  try{ invAcc = await sbRpc('inventory_accuracy_summary_v2', {p_period:period, p_rdc:scopeRdc}) || {}; }
+  catch(e){ invAcc = {status:'DATA REQUIRED', current:null, note:e && e.message ? e.message : String(e)}; }
 
   const sla = summary.sla || {};
   const otif = summary.otif || {};
@@ -4688,8 +4777,13 @@ async function renderManagerKpiScorecard(){
   MANAGER_KPI_LAST = [
     {key:'service', title:'Service Level', weight:20, value:serviceValue, status:serviceStatus,
       meta:'OTD & Order Fulfillment Accuracy', source:'Priority KPI / delivery data'},
-    {key:'inventory', title:'Inventory Accuracy', weight:20, value:wmsConnected?'WMS TERHUBUNG':'DATA REQUIRED',
-      status:wmsConnected?'WMS LIVE':'DATA REQUIRED', meta:'Nilai akurasi menunggu hasil stock opname/cycle count', source:'SLS WMS'},
+    {key:'inventory', title:'Inventory Accuracy', weight:20,
+      value:hasAuthoritativeValue(invAcc) ? dataValue(invAcc, '', '%') : 'DATA REQUIRED',
+      status:String(invAcc.status||'DATA REQUIRED'),
+      meta:hasAuthoritativeValue(invAcc)
+        ? `${invAcc.basis||'BOX'} basis · ${invAcc.sku_count||0} SKU · ${invAcc.rdc_count||0} RDC${invAcc.is_stale?' · DATA STALE':''}`
+        : 'Upload hasil stock opname untuk menghitung fisik vs stock buku/SAP',
+      source:'Stock Opname + WMS/SAP'},
     {key:'warehouse', title:'Warehouse Operational Performance', weight:20, value:warehouseValue,
       status:String(breakage.status||'CALCULATED'), meta:warehouseMeta, source:'SLS Breakage Monitoring'},
     {key:'cost', title:'Cost Efficiency', weight:15, value:dataValue(cost, 'Rp ', ''),
@@ -4715,8 +4809,13 @@ async function renderManagerKpiScorecard(){
   const ready = MANAGER_KPI_LAST.length - missing.length;
   const actions = [];
   if(risks.length) actions.push(`Prioritaskan tindakan pada ${risks.map(k=>k.title).join(', ')}.`);
-  if(wmsConnected) actions.push('WMS sudah tersambung; petakan hasil stock opname/cycle count agar Inventory Accuracy menjadi nilai KPI, bukan hanya status koneksi.');
-  else actions.push('Periksa hak akses atau sesi WMS untuk mengaktifkan sumber Inventory Accuracy.');
+  if(hasAuthoritativeValue(invAcc)){
+    actions.push(`Inventory Accuracy sudah terukur ${fmtNum(Number(invAcc.current))}% dari hasil stock opname${invAcc.is_stale?' namun sebagian data sudah stale':''}.`);
+  } else if(wmsConnected){
+    actions.push('WMS sudah tersambung; upload hasil stock opname agar Inventory Accuracy berubah dari status koneksi menjadi nilai KPI.');
+  } else {
+    actions.push('Upload hasil stock opname dan periksa koneksi WMS/SAP untuk mengaktifkan Inventory Accuracy.');
+  }
   if(missing.length) actions.push(`Lengkapi sumber data ${missing.map(k=>k.title).join(', ')} sebelum menetapkan skor kinerja.`);
   if(!actions.length) actions.push('Seluruh sumber KPI tersedia; lanjutkan review gap terhadap target dan tetapkan owner tindakan.');
   recap.className = `impact-card ${risks.length?'red':missing.length?'amber':'green'}`;
@@ -4844,9 +4943,361 @@ async function openKpiDetail(key){
 const _renderKPI_pre_priority = renderKPI;
 renderKPI = function(rdcName){
   _renderKPI_pre_priority(rdcName);
+  renderInventoryAccuracyOperational(rdcName);
   renderManagerKpiScorecard();
   renderPriorityKpiStrip();
 };
+
+// ============ INVENTORY ACCURACY / STOCK OPNAME V2 ============
+let STOCK_OPNAME_PARSED = [];
+
+function soNorm(v){
+  return String(v==null?'':v).trim().replace(/\s+/g,' ').toUpperCase();
+}
+function soNum(v){
+  if(v===null || v===undefined || v==='') return null;
+  if(typeof v==='number' && Number.isFinite(v)) return v;
+  let s=String(v).trim();
+  if(!s) return null;
+  if(/^[-–—]$/.test(s)) return 0;
+  let neg=false;
+  if(/^\(.*\)$/.test(s)){ neg=true; s=s.slice(1,-1); }
+  s=s.replace(/\s/g,'').replace(/[^\d,.\-]/g,'');
+  if(!s || s==='-') return 0;
+  if(s.includes(',') && !s.includes('.')){
+    const parts=s.split(',');
+    if(parts.length>1 && parts.slice(1).every(x=>x.length===3)) s=parts.join('');
+    else s=s.replace(',','.');
+  }else if(s.includes('.') && !s.includes(',')){
+    const parts=s.split('.');
+    if(parts.length>2 && parts.slice(1).every(x=>x.length===3)) s=parts.join('');
+  }else if(s.includes(',') && s.includes('.')){
+    // stock opname quantities are integers in the supplied templates; treat punctuation as grouping.
+    s=s.replace(/[,.]/g,'');
+  }
+  const n=Number(s);
+  return Number.isFinite(n) ? (neg?-Math.abs(n):n) : null;
+}
+function soFmtDate(d){
+  if(!(d instanceof Date) || isNaN(d)) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function soWorkbookText(wb, fileName){
+  const parts=[fileName||''];
+  for(const sn of wb.SheetNames){
+    parts.push(sn);
+    const g=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:false});
+    for(let r=0;r<Math.min(g.length,18);r++){
+      const row=g[r]||[];
+      for(let c=0;c<Math.min(row.length,14);c++) if(row[c]!=null) parts.push(String(row[c]));
+    }
+  }
+  return parts.join(' | ');
+}
+function soDetectRdc(text){
+  const t=soNorm(text);
+  if(t.includes('BALI') || t.includes('DENPASAR')) return 'Denpasar';
+  if(t.includes('JAKARTA')) return 'Jakarta';
+  if(t.includes('SEMARANG')) return 'Semarang';
+  if(t.includes('SURABAYA')) return 'Surabaya';
+  if(t.includes('PALEMBANG')) return 'Palembang';
+  return CURRENT_RDC_SCOPE || '';
+}
+function soGroupInfo(text){
+  const t=soNorm(text);
+  if(/ROMAN\s*&\s*GRANDE|ROMAN\s+DAN\s+GRANDE/.test(t)) return {code:'ROMAN_GRANDE',label:'Roman & Grande'};
+  if(t.includes('GRANIT')) return {code:'GRANIT',label:'Granit'};
+  if(t.includes('GRANDE')) return {code:'GRANDE',label:'Grande'};
+  if(t.includes('ROMAN')) return {code:'ROMAN',label:'Roman'};
+  return {code:'GENERAL',label:'General'};
+}
+function soDetectDate(text){
+  const t=String(text||'').replace(/[–—]/g,'-');
+  const months={JANUARI:1,JANUARY:1,FEBRUARI:2,FEBRUARY:2,MARET:3,MARCH:3,APRIL:4,MEI:5,MAY:5,JUNI:6,JUNE:6,JULI:7,JULY:7,AGUSTUS:8,AUGUST:8,SEPTEMBER:9,OKTOBER:10,OCTOBER:10,NOVEMBER:11,DESEMBER:12,DECEMBER:12};
+  const re=/(\d{1,2})\s*(?:-\s*(\d{1,2})\s*)?(JANUARI|JANUARY|FEBRUARI|FEBRUARY|MARET|MARCH|APRIL|MEI|MAY|JUNI|JUNE|JULI|JULY|AGUSTUS|AUGUST|SEPTEMBER|OKTOBER|OCTOBER|NOVEMBER|DESEMBER|DECEMBER)\s*(20\d{2})/gi;
+  const found=[]; let m;
+  while((m=re.exec(t))){
+    const day=Number(m[2]||m[1]), mon=months[m[3].toUpperCase()], yr=Number(m[4]);
+    const d=new Date(yr,mon-1,day);
+    if(!isNaN(d)) found.push(d);
+  }
+  if(!found.length) return '';
+  found.sort((a,b)=>b-a);
+  // Legacy template dates (e.g. 2017) also exist in several files; latest date is the actual opname.
+  return soFmtDate(found[0]);
+}
+function soFindSheet(wb){
+  const names=wb.SheetNames||[];
+  const exact=names.find(n=>soNorm(n)==='REPORT PER MATERIAL');
+  if(exact) return exact;
+  const fuzzy=names.find(n=>soNorm(n).includes('REPORT PER MATERIAL'));
+  if(fuzzy) return fuzzy;
+  const batch=names.find(n=>soNorm(n).includes('REPORT PER BATCH MATERIAL'));
+  if(batch) return batch;
+  return names.find(n=>soNorm(n).includes('MATERIAL')) || names[0];
+}
+function soHeaderIndex(headers, terms, exclude=[]){
+  for(let i=0;i<headers.length;i++){
+    const h=soNorm(headers[i]);
+    if(!h) continue;
+    if(exclude.some(x=>h.includes(x))) continue;
+    if(terms.some(x=>h===x || h.includes(x))) return i;
+  }
+  return -1;
+}
+function soFindHeader(grid){
+  let best=null;
+  for(let r=0;r<Math.min(grid.length,22);r++){
+    const H=(grid[r]||[]).map(soNorm);
+    const material=soHeaderIndex(H,['MATERIAL'],['GROUP','KODE']);
+    const uom=soHeaderIndex(H,['UOM','BASE UNIT OF MEASURE']);
+    const physical=soHeaderIndex(H,['TOTAL PHYSICAL COUNT','JUMLAH STOCK FISIK','QTY COUNTED','PHYSICAL COUNT','FINAL COUNT']);
+    const system=soHeaderIndex(H,['STOCK BALANCE PER BOOK','QTY PER BOOK','JUMLAH STOCK BUKU','UNRESTRICTED']);
+    const variance=soHeaderIndex(H,['STOCK DIFFERENCE','SELISIH STOCK','GAIN (LOSS) STOCK','GAIN LOSS STOCK','NET STOCK DIFFERENCE']);
+    const group=soHeaderIndex(H,['MATERIAL GROUP','PRODUCT']);
+    const score=[material,uom,physical,system,variance].filter(x=>x>=0).length;
+    if(score>=4 && (!best || score>best.score)) best={row:r,material,uom,physical,system,variance,group,score};
+  }
+  return best;
+}
+function soLooksMaterial(v){
+  const s=String(v==null?'':v).trim();
+  if(!s || s.length<2) return false;
+  const u=soNorm(s);
+  if(/^(TOTAL|GRAND TOTAL|PRODUCT|MATERIAL|PT |STOCK |TANGGAL|A$)/.test(u)) return false;
+  return /[A-Z0-9]/i.test(s);
+}
+function soRowFallback(row){
+  const material=row[0], uom=soNorm(row[1]);
+  if(!soLooksMaterial(material) || !['BOX','PC','PCS','EA','M2','M²'].includes(uom)) return null;
+  const nums=[];
+  for(let i=2;i<Math.min(row.length,14);i++){
+    const n=soNum(row[i]);
+    if(n!==null) nums.push({i,n});
+  }
+  if(nums.length<3) return null;
+  // Prefer the last triple satisfying physical - system = variance.
+  for(let j=nums.length-1;j>=2;j--){
+    const a=nums[j-2], b=nums[j-1], c=nums[j];
+    if(Math.abs((a.n-b.n)-c.n)<0.001 && a.n>=0 && b.n>=0){
+      return {material:String(material).trim(),uom,physical:a.n,system:b.n,variance:c.n};
+    }
+  }
+  const a=nums[nums.length-3],b=nums[nums.length-2],c=nums[nums.length-1];
+  return {material:String(material).trim(),uom,physical:a.n,system:b.n,variance:c.n};
+}
+function soParseWorkbook(wb,fileName){
+  const text=soWorkbookText(wb,fileName);
+  const rdc=soDetectRdc(text);
+  const date=soDetectDate(text);
+  const grp=soGroupInfo((fileName||'')+' | '+text.slice(0,3500));
+  const sheetName=soFindSheet(wb);
+  const grid=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:null,raw:true,cellDates:true});
+  const hdr=soFindHeader(grid);
+  const raw=[];
+  if(hdr){
+    for(let r=hdr.row+1;r<grid.length;r++){
+      const row=grid[r]||[];
+      const material=row[hdr.material];
+      if(!soLooksMaterial(material)) continue;
+      const uom=hdr.uom>=0 ? soNorm(row[hdr.uom]) : 'BOX';
+      const physical=hdr.physical>=0 ? soNum(row[hdr.physical]) : null;
+      const system=hdr.system>=0 ? soNum(row[hdr.system]) : null;
+      let variance=hdr.variance>=0 ? soNum(row[hdr.variance]) : null;
+      if(physical===null || system===null) continue;
+      if(variance===null) variance=physical-system;
+      const rowGroup=hdr.group>=0 && row[hdr.group] ? String(row[hdr.group]).trim() : grp.label;
+      raw.push({sku:String(material).trim(),uom:uom||'BOX',system_qty:system,physical_qty:physical,variance_qty:variance,product_group:rowGroup});
+    }
+  }else{
+    for(let r=0;r<grid.length;r++){
+      const x=soRowFallback(grid[r]||[]);
+      if(x) raw.push({sku:x.material,uom:x.uom,system_qty:x.system,physical_qty:x.physical,variance_qty:x.variance,product_group:grp.label});
+    }
+  }
+  // If a batch-level sheet is the only usable source, aggregate to Material+UOM to avoid double-counted SKU rows.
+  const map=new Map();
+  for(const x of raw){
+    const key=soNorm(x.sku)+'|'+soNorm(x.uom);
+    if(!map.has(key)) map.set(key,{...x});
+    else{
+      const a=map.get(key);
+      a.system_qty+=x.system_qty; a.physical_qty+=x.physical_qty; a.variance_qty+=x.variance_qty;
+    }
+  }
+  const lines=[...map.values()].filter(x=>Number.isFinite(x.system_qty)&&Number.isFinite(x.physical_qty));
+  const stats={};
+  for(const x of lines){
+    const u=x.uom||'UNKNOWN';
+    if(!stats[u]) stats[u]={system:0,physical:0,absvar:0,netvar:0,rows:0};
+    stats[u].system+=x.system_qty; stats[u].physical+=x.physical_qty;
+    stats[u].absvar+=Math.abs(x.variance_qty); stats[u].netvar+=x.variance_qty; stats[u].rows++;
+  }
+  Object.keys(stats).forEach(u=>{stats[u].accuracy=stats[u].system?((1-stats[u].absvar/stats[u].system)*100):null;});
+  const errors=[];
+  if(!rdc) errors.push('RDC tidak terdeteksi');
+  if(!date) errors.push('Tanggal opname tidak terdeteksi');
+  if(!lines.length) errors.push('Baris Material/Physical/System tidak ditemukan');
+  const warnings=[];
+  if(!hdr) warnings.push('Header tidak lengkap; parser memakai pola kolom legacy.');
+  if(!stats.BOX) warnings.push('Tidak ada UOM BOX; KPI akan memakai basis UOM yang tersedia.');
+  return {fileName,rdc,date,group:grp.code,groupLabel:grp.label,sheetName,lines,stats,errors,warnings};
+}
+function soStatusClass(x){return x.errors.length?'err':x.warnings.length?'warn':'';}
+function soAccuracyText(s){
+  if(!s || !Number.isFinite(s.accuracy)) return '—';
+  return s.accuracy.toFixed(2)+'%';
+}
+function soRdcOptions(selected){
+  const names=['Jakarta','Semarang','Surabaya','Denpasar','Palembang'];
+  return names.map(n=>`<option value="${n}"${n===selected?' selected':''}>${n}</option>`).join('');
+}
+function soGroupOptions(selected){
+  const list=[['ROMAN','Roman'],['GRANDE','Grande'],['ROMAN_GRANDE','Roman & Grande'],['GRANIT','Granit'],['GENERAL','General']];
+  return list.map(([v,l])=>`<option value="${v}"${v===selected?' selected':''}>${l}</option>`).join('');
+}
+function renderStockOpnamePreview(){
+  const box=document.getElementById('stockOpnamePreview'), btn=document.getElementById('stockOpnameUploadBtn'), msg=document.getElementById('stockOpnameGlobalMsg');
+  if(!box) return;
+  if(!STOCK_OPNAME_PARSED.length){
+    box.innerHTML=''; btn.disabled=true; msg.textContent='Belum ada file dianalisa.'; return;
+  }
+  box.innerHTML=STOCK_OPNAME_PARSED.map((f,i)=>{
+    const boxStat=f.stats.BOX, pcStat=f.stats.PC||f.stats.PCS;
+    const preview=f.lines.slice(0,5);
+    return `<div class="so-file-card" data-so-index="${i}">
+      <div class="so-file-head"><div class="so-file-name">${esc(f.fileName)}</div>
+        <span class="so-badge ${soStatusClass(f)}">${f.errors.length?'PERLU PERBAIKAN':f.warnings.length?'CHECK':'SIAP'}</span></div>
+      <div class="so-meta-grid">
+        <div class="so-meta-box"><div class="lbl">Sheet</div><div class="val">${esc(f.sheetName||'-')}</div></div>
+        <div class="so-meta-box"><div class="lbl">Rows</div><div class="val">${f.lines.length.toLocaleString('id-ID')} SKU/UOM</div></div>
+        <div class="so-meta-box"><div class="lbl">BOX Accuracy</div><div class="val">${soAccuracyText(boxStat)}</div></div>
+        <div class="so-meta-box"><div class="lbl">PC Accuracy</div><div class="val">${soAccuracyText(pcStat)}</div></div>
+        <div class="so-meta-box"><div class="lbl">Abs Variance BOX</div><div class="val">${boxStat?fmtNum(boxStat.absvar):'—'}</div></div>
+      </div>
+      <div class="so-edit-grid">
+        <div><label>RDC</label><select data-so-field="rdc" data-i="${i}">${soRdcOptions(f.rdc)}</select></div>
+        <div><label>Tanggal Opname</label><input type="date" data-so-field="date" data-i="${i}" value="${escAttr(f.date||'')}"></div>
+        <div><label>Kelompok / Gudang</label><select data-so-field="group" data-i="${i}">${soGroupOptions(f.group)}</select></div>
+      </div>
+      ${(f.errors.length||f.warnings.length)?`<div style="margin-top:8px;font-size:10.5px;color:${f.errors.length?'#B3261E':'#946200'};">${[...f.errors,...f.warnings].map(esc).join(' · ')}</div>`:''}
+      ${preview.length?`<table class="so-preview-table"><thead><tr><th>Material</th><th>UOM</th><th>Stock Buku</th><th>Fisik</th><th>Variance</th></tr></thead><tbody>
+        ${preview.map(x=>`<tr><td>${esc(x.sku)}</td><td>${esc(x.uom)}</td><td>${fmtNum(x.system_qty)}</td><td>${fmtNum(x.physical_qty)}</td><td>${fmtNum(x.variance_qty)}</td></tr>`).join('')}
+      </tbody></table>`:''}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-so-field]').forEach(el=>el.addEventListener('change',()=>{
+    const f=STOCK_OPNAME_PARSED[Number(el.dataset.i)];
+    if(el.dataset.soField==='rdc') f.rdc=el.value;
+    if(el.dataset.soField==='date') f.date=el.value;
+    if(el.dataset.soField==='group'){ f.group=el.value; f.groupLabel=el.options[el.selectedIndex].text; }
+    f.errors=f.errors.filter(e=>!/^RDC tidak|^Tanggal opname/.test(e));
+    if(!f.rdc) f.errors.push('RDC tidak terdeteksi');
+    if(!f.date) f.errors.push('Tanggal opname tidak terdeteksi');
+    renderStockOpnamePreview();
+  }));
+  const valid=STOCK_OPNAME_PARSED.filter(f=>!f.errors.length && f.lines.length);
+  btn.disabled=valid.length!==STOCK_OPNAME_PARSED.length || !valid.length;
+  msg.textContent=`${valid.length}/${STOCK_OPNAME_PARSED.length} file siap upload.`;
+}
+async function parseSelectedStockOpnameFiles(){
+  const inp=document.getElementById('stockOpnameFileInput'), msg=document.getElementById('stockOpnameGlobalMsg');
+  const files=[...(inp?.files||[])];
+  if(!files.length){ msg.textContent='Pilih minimal satu file.'; return; }
+  msg.textContent='Membaca file…'; STOCK_OPNAME_PARSED=[];
+  for(const file of files){
+    try{
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{cellDates:true});
+      const parsed=soParseWorkbook(wb,file.name);
+      if(CURRENT_RDC_SCOPE && parsed.rdc && parsed.rdc!==CURRENT_RDC_SCOPE){
+        parsed.errors.push(`File terdeteksi untuk ${parsed.rdc}, sedangkan akun hanya boleh ${CURRENT_RDC_SCOPE}.`);
+      }
+      STOCK_OPNAME_PARSED.push(parsed);
+    }catch(e){
+      STOCK_OPNAME_PARSED.push({fileName:file.name,rdc:'',date:'',group:'GENERAL',groupLabel:'General',sheetName:'-',lines:[],stats:{},errors:['File gagal dibaca: '+(e.message||e)],warnings:[]});
+    }
+  }
+  renderStockOpnamePreview();
+}
+async function doStockOpnameUpload(){
+  const btn=document.getElementById('stockOpnameUploadBtn'), msg=document.getElementById('stockOpnameGlobalMsg');
+  if(!STOCK_OPNAME_PARSED.length || STOCK_OPNAME_PARSED.some(f=>f.errors.length)){return;}
+  btn.disabled=true; msg.textContent='Mengupload ke Supabase…';
+  const by=(sessionStorage.getItem('sls_dashboard_username')||CURRENT_RDC_SCOPE||'dashboard').toString();
+  let ok=0, fail=0; const results=[];
+  for(const f of STOCK_OPNAME_PARSED){
+    try{
+      const payload={
+        rdc_name:f.rdc, check_date:f.date, source_group:f.group,
+        opname_label:`Stock Opname ${f.groupLabel} — ${f.fileName}`,
+        counted_by:by, source_file:f.fileName, source_sheet:f.sheetName,
+        lines:f.lines
+      };
+      const res=await sbRpc('inventory_accuracy_opname_submit_v2',{p_payload:payload});
+      ok++; results.push(`${f.rdc} ${f.groupLabel}: ${res.inserted||0} baris`);
+    }catch(e){ fail++; results.push(`${f.fileName}: GAGAL — ${e.message||e}`); }
+  }
+  msg.innerHTML=`<span style="color:${fail?'#946200':'#1E7B34'};font-weight:800;">${ok} file berhasil${fail?`, ${fail} gagal`:''}.</span> ${esc(results.join(' | '))}`;
+  btn.disabled=false;
+  await renderStockOpnameCurrentSummary();
+  await renderInventoryAccuracyOperational(CURRENT_RDC);
+  await renderManagerKpiScorecard();
+}
+async function renderStockOpnameCurrentSummary(){
+  const el=document.getElementById('stockOpnameCurrentSummary');
+  if(!el) return;
+  el.innerHTML='<div class="nbc-placeholder">⏳ Memuat Inventory Accuracy…</div>';
+  const period=NBC_PERIOD || new Date().toISOString().slice(0,7);
+  const scope=CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua'?CURRENT_RDC:'ALL');
+  try{
+    const d=await sbRpc('inventory_accuracy_summary_v2',{p_period:period,p_rdc:scope});
+    if(!hasAuthoritativeValue(d)){
+      el.innerHTML=`<div class="warn-box warn" style="margin:0;">Belum ada Stock Opname yang dapat dihitung untuk scope ${esc(scope)}. Upload file di atas.</div>`;
+      return;
+    }
+    const uoms=(d.uom_breakdown||[]).map(x=>`<tr><td>${esc(x.uom)}</td><td style="text-align:right">${fmtNum(x.system_qty)}</td><td style="text-align:right">${fmtNum(x.physical_qty)}</td><td style="text-align:right">${fmtNum(x.variance_abs)}</td><td style="text-align:right"><b>${x.accuracy==null?'—':fmtNum(x.accuracy)+'%'}</b></td></tr>`).join('');
+    const groups=(d.active_groups||[]).map(x=>`${x.rdc} / ${String(x.source_group||'').replaceAll('_',' ')}: ${x.check_date}`).join(' · ');
+    el.innerHTML=`<div class="so-summary-strip">
+      <div class="so-summary-card"><div class="lbl">Inventory Accuracy</div><div class="val">${fmtNum(d.current)}%</div></div>
+      <div class="so-summary-card"><div class="lbl">Basis KPI</div><div class="val">${esc(d.basis||'BOX')}</div></div>
+      <div class="so-summary-card"><div class="lbl">SKU Count</div><div class="val">${fmtNum(d.sku_count||0)}</div></div>
+      <div class="so-summary-card"><div class="lbl">Abs Variance</div><div class="val">${fmtNum(d.variance_abs||0)}</div></div>
+    </div>
+    <div style="font-size:11px;color:${d.is_stale?'#B3261E':'var(--ink-soft)'};margin-bottom:8px;"><b>${d.is_stale?'DATA STALE — ':''}</b>Latest ${esc(d.latest_opname_date||'-')} · oldest active group ${esc(d.oldest_active_group_date||'-')} · ${d.source_group_count||0} kelompok sumber.</div>
+    <table class="so-preview-table"><thead><tr><th>UOM</th><th>Stock Buku</th><th>Fisik</th><th>Abs Variance</th><th>Accuracy</th></tr></thead><tbody>${uoms}</tbody></table>
+    <div style="font-size:10.5px;color:var(--stone);line-height:1.5;margin-top:8px;"><b>Active source groups:</b> ${esc(groups||'-')}</div>`;
+  }catch(e){
+    el.innerHTML=`<div class="warn-box error" style="margin:0;">Gagal memuat Inventory Accuracy: ${esc(e.message||e)}</div>`;
+  }
+}
+async function renderInventoryAccuracyOperational(rdcName){
+  const card=document.querySelector('#kpiGridCapacity [data-empty-kpi="inventory_accuracy"]');
+  if(!card) return;
+  const period=NBC_PERIOD || new Date().toISOString().slice(0,7);
+  const scope=(rdcName && rdcName!=='Semua')?rdcName:'ALL';
+  try{
+    const d=await sbRpc('inventory_accuracy_summary_v2',{p_period:period,p_rdc:scope});
+    if(!hasAuthoritativeValue(d)) return;
+    const cls=String(d.status)==='RED'?'crit':String(d.status)==='AMBER'?'warn':'';
+    card.className=`kpi-card ${cls}`;
+    card.innerHTML=`<div class="kpi-top"><div class="kpi-label">Inventory Accuracy</div>${statusBadgeHtml('real','Stock Opname fisik vs stock buku/SAP. Basis utama BOX jika tersedia.')}</div>
+      <div class="kpi-value">${fmtNum(d.current)}<span class="unit">%</span></div>
+      <div class="kpi-sowhat">${esc(d.basis||'BOX')} basis · ${fmtNum(d.sku_count||0)} SKU · variance absolut ${fmtNum(d.variance_abs||0)}${d.is_stale?' · <b style="color:#B3261E;">DATA STALE</b>':''}. <span class="detail-link" onclick="document.querySelector('.nav-item[data-page=\\'stockopname\\']').click()">Stock Opname →</span></div>`;
+  }catch(e){}
+}
+
+(function setupStockOpnameUpload(){
+  const dz=document.getElementById('stockOpnameDropzone'), inp=document.getElementById('stockOpnameFileInput');
+  if(!dz||!inp) return;
+  dz.addEventListener('click',()=>inp.click());
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover');}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover');}));
+  dz.addEventListener('drop',e=>{if(e.dataTransfer?.files?.length){inp.files=e.dataTransfer.files; document.getElementById('stockOpnameGlobalMsg').textContent=`${e.dataTransfer.files.length} file dipilih.`;}});
+  inp.addEventListener('change',()=>{document.getElementById('stockOpnameGlobalMsg').textContent=`${inp.files.length} file dipilih.`;});
+  document.getElementById('stockOpnameParseBtn').addEventListener('click',parseSelectedStockOpnameFiles);
+  document.getElementById('stockOpnameUploadBtn').addEventListener('click',doStockOpnameUpload);
+})();
 
 
 
