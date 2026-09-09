@@ -297,7 +297,7 @@
   @media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.main{padding:14px}.hero-overlay h2{font-size:24px}.management-storyline{grid-template-columns:1fr 1fr}.story-card{min-height:132px}.priority-redesign{grid-template-columns:1fr!important}.pulse{grid-template-columns:1fr 1fr}.hero-chip{display:none}}
 
 
-  /* ===== MANAGEMENT INSIGHT ENGINE V2 ===== */
+  /* ===== MANAGEMENT INSIGHT ENGINE V3 ===== */
   .insight-v2-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0 16px;}
   .insight-v2-step{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-height:94px;}
   .insight-v2-step .iv2-kicker{font-size:9px;font-weight:800;color:var(--stone);letter-spacing:.6px;text-transform:uppercase;}
@@ -310,6 +310,41 @@
   .engine-badge{display:inline-block;background:#E3F0FF;color:#1E4A7A;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.3px;}
   @media(max-width:1100px){.insight-v2-grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:700px){.insight-v2-grid{grid-template-columns:1fr}}
+
+
+
+  /* ===== MANAGEMENT INSIGHT ENGINE V3 ===== */
+  .v3-details{background:#fff;border:1px solid var(--border);border-radius:12px;margin:8px 0 14px;overflow:hidden;}
+  .v3-details summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:11.5px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .v3-details summary::-webkit-details-marker{display:none}.v3-details summary:after{content:'+';font-size:18px;color:var(--stone)}.v3-details[open] summary:after{content:'−'}
+  .v3-details .v3-detail-body{padding:0 12px 12px;}
+  .exposure-v3-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+  .exposure-v3-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px;min-height:112px;position:relative;overflow:hidden;}
+  .exposure-v3-card:before{content:'';position:absolute;left:0;top:0;right:0;height:3px;background:var(--stone)}
+  .exposure-v3-card.capacity:before{background:#3E7BB6}.exposure-v3-card.quality:before{background:#D05A4E}.exposure-v3-card.service:before{background:#E59624}.exposure-v3-card.financial:before{background:#4F8E63}
+  .exposure-v3-label{font-size:9.5px;font-weight:800;letter-spacing:.6px;color:var(--stone);text-transform:uppercase}.exposure-v3-value{font-size:18px;font-weight:800;color:var(--navy);margin:6px 0 4px}.exposure-v3-sub{font-size:10.5px;line-height:1.4;color:var(--ink-soft)}
+  .decision-none{background:#F2F8F4;border:1px solid #CFE7D6;border-radius:10px;padding:12px 14px;font-size:11.5px;color:#245A35;}
+  .decision-required-badge{display:inline-flex;padding:2px 7px;border-radius:10px;background:#FCEBE9;color:#B3261E;font-size:9px;font-weight:800;white-space:nowrap}.decision-operational-badge{display:inline-flex;padding:2px 7px;border-radius:10px;background:#EEF3F9;color:#1E4A7A;font-size:9px;font-weight:800;white-space:nowrap}
+  .mobile-menu-btn{display:none;position:fixed;left:12px;top:12px;z-index:1201;width:40px;height:40px;border:0;border-radius:10px;background:#17365D;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.22);font-size:20px;align-items:center;justify-content:center;cursor:pointer}
+  .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(8,20,36,.48);z-index:1198}.mobile-backdrop.show{display:block}
+  .top3-note{font-size:10px;color:var(--stone);margin-top:-5px;margin-bottom:8px}
+  @media(max-width:900px){
+    .exposure-v3-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:820px){
+    body.mobile-nav-open{overflow:hidden}.mobile-menu-btn{display:flex}
+    .app{display:block!important}.sidebar{position:fixed!important;left:0;top:0;bottom:0;width:248px;height:100vh!important;z-index:1200;transform:translateX(-105%);transition:transform .22s ease;overflow-y:auto;padding-top:58px}.sidebar.mobile-open{transform:translateX(0)}
+    .main{padding:62px 12px 24px!important;max-width:none!important}.topbar{gap:8px}.topbar h1{font-size:18px}.topbar .period{font-size:10.5px}
+    .hero-control-tower{min-height:150px}.hero-overlay{padding:20px 18px}.hero-overlay h2{font-size:22px}.hero-overlay p{font-size:11px}
+    .management-storyline{display:flex!important;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;padding-bottom:5px}.management-storyline::-webkit-scrollbar{display:none}.story-card{min-width:76%;min-height:142px;scroll-snap-align:start}.story-arrow{display:none!important}
+    .header-summary{grid-template-columns:1fr 1fr!important;padding:14px;gap:12px}.header-summary .hs-item:last-child{grid-column:1/-1}
+    .manager-kpi-grid{grid-template-columns:1fr 1fr!important}.manager-kpi-card{min-height:132px}
+    .management-two-col{grid-template-columns:1fr!important}.pulse{grid-template-columns:1fr 1fr!important}
+    .exposure-v3-grid{grid-template-columns:1fr 1fr}.decision-meta{gap:8px;flex-wrap:wrap}
+  }
+  @media(max-width:520px){
+    .story-card{min-width:84%}.manager-kpi-grid{grid-template-columns:1fr!important}.pulse{grid-template-columns:1fr!important}.exposure-v3-grid{grid-template-columns:1fr}.header-summary{grid-template-columns:1fr!important}.header-summary .hs-item:last-child{grid-column:auto}.priority-redesign{grid-template-columns:1fr!important}
+  }
 
 </style>
 </head>
@@ -340,6 +375,8 @@
   </div>
 </div>
 
+<button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Buka menu">☰</button>
+<div id="mobileBackdrop" class="mobile-backdrop"></div>
 <div class="app" id="appRoot" style="display:none;">
   <div class="sidebar">
     <div class="brand"><svg class="roman-logo" role="img" aria-label="Roman"><use href="#romanLogo"></use></svg><span>SLS CONTROL TOWER</span></div>
@@ -439,8 +476,8 @@
 
         <div class="management-two-col">
           <div>
-            <div class="section-label redesign-label">Business Priorities <span class="tag">Top 5</span></div>
-            <div id="top5Grid"></div>
+            <div class="section-label redesign-label">Business Priorities <span class="tag">Top 3</span></div>
+            <div class="top3-note">Hanya 3 prioritas tertinggi agar management fokus pada tindakan paling material.</div><div id="top5Grid"></div>
           </div>
           <div>
             <div class="section-label redesign-label" id="pulseSectionLabel">National RDC Insight</div>
@@ -450,12 +487,14 @@
         </div>
 
         <div id="managementFinancialSection">
-          <div class="section-label redesign-label">Management Insight Engine <span class="tag">v2 · auto-analysis</span></div>
-          <div id="impactGrid"></div>
           <div class="management-two-col financial-decision-grid">
-            <div><div class="section-label redesign-label">Business Exposure &amp; Financial Readiness</div><div class="kpi-grid" id="financialGrid"></div></div>
+            <div><div class="section-label redesign-label">Business Exposure</div><div id="financialGrid"></div></div>
             <div><div class="section-label redesign-label">Management Decision Required</div><div id="decisionGrid"></div></div>
           </div>
+          <details class="v3-details">
+            <summary><span>Management Insight Engine — Analysis Detail</span><span class="tag">v3 · evidence based</span></summary>
+            <div class="v3-detail-body"><div id="impactGrid"></div></div>
+          </details>
         </div>
 
         <div class="management-two-col">
@@ -1107,7 +1146,7 @@ function renderMgmtKpiStrip(rdcName){
 // Management View: dynamic one-line executive statement generated from actual issue data — never a canned string
 function renderExecutiveStatement(rdcName){
   const el=document.getElementById('executiveStatement'); if(!el) return;
-  const issues=calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore); const top=issues[0];
+  const issues=calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore); const top=issues[0]; const decisionIssue=issues.find(isManagementDecisionRequired);
   if(!top){ el.textContent='Kondisi seluruh RDC dalam rentang sehat pada periode ini — tidak ada isu signifikan yang terdeteksi.'; return; }
   el.innerHTML=`<b>Management Insight:</b> ${top.insight} <b>Exposure:</b> ${top.exposureValue} <b>Decision:</b> ${top.managementDecision} <span class="confidence-chip ${top.confidenceCls}">Confidence ${top.confidence}%</span>`;
 }
@@ -1150,29 +1189,21 @@ function renderMgmtBenchmarkSummary(rdcName){
 }
 
 function renderFinancialGrid(){
-  const grid = document.getElementById('financialGrid');
-  const total = FINANCIAL_KPI_DEFS.length;
-  const available = 0; // none of the 7 financial metrics have real source data anywhere in the system yet
-  grid.innerHTML = `
-    <div class="header-summary" style="grid-template-columns:1.4fr 1fr;background:linear-gradient(135deg,var(--navy-deep),var(--navy));margin-bottom:14px;">
-      <div class="hs-item">
-        <div class="hs-label">Financial Value Readiness</div>
-        <div class="hs-value">DATA REQUIRED</div>
-        <div style="font-size:10.5px;color:#9FB0CC;margin-top:4px;">Breakdown: Working Capital · Dead Stock · Breakage · Logistics · Other — semua perlu data biaya/nilai dari Finance sebelum bisa dihitung.</div>
-      </div>
-      <div class="hs-item">
-        <div class="hs-label">Data Readiness</div>
-        <div class="hs-value">${available} / ${total} metrics</div>
-        <div style="font-size:10.5px;color:#9FB0CC;margin-top:4px;">Detail kebutuhan data lengkap ada di About Dashboard.</div>
-      </div>
-    </div>
-    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));">
-      ${FINANCIAL_KPI_DEFS.map(k=>`
-        <div class="kpi-card empty" style="padding:12px;min-height:auto;" title="Perlu: ${k.need}">
-          <div class="kpi-top"><div class="kpi-label" style="font-size:10px;">${k.label}</div></div>
-          <div style="font-size:11px;color:var(--stone);margin-top:4px;">DATA REQUIRED</div>
-        </div>`).join('')}
-    </div>`;
+  const grid=document.getElementById('financialGrid'); if(!grid) return;
+  const issues=calcAllIssues();
+  const scopeRdcs=CURRENT_RDC_SCOPE?[CURRENT_RDC_SCOPE]:Object.keys(RDC).filter(n=>n!=='Semua');
+  const overload=scopeRdcs.filter(n=>RDC[n]&&RDC[n].occ_now>CONFIG.occ_overload_pct);
+  const excessBoxes=overload.reduce((s,n)=>s+Math.max(0,-RDC[n].caprem),0);
+  const breakageHigh=scopeRdcs.filter(n=>RDC[n]&&RDC[n].pecah_now>0.1);
+  const worstBreakage=breakageHigh.length?breakageHigh.sort((a,b)=>RDC[b].pecah_now-RDC[a].pecah_now)[0]:null;
+  const invRisk=scopeRdcs.filter(n=>RDC[n]&&(RDC[n].invdays>60||RDC[n].invdays<20));
+  const serviceIssue=issues.find(i=>/Perputaran Sangat Cepat/i.test(i.issue));
+  grid.innerHTML=`<div class="exposure-v3-grid">
+    <div class="exposure-v3-card capacity"><div class="exposure-v3-label">Capacity Exposure</div><div class="exposure-v3-value">${excessBoxes?excessBoxes.toLocaleString('id-ID')+' box':'NORMAL'}</div><div class="exposure-v3-sub">${excessBoxes?`${overload.length} RDC di atas design capacity.`:'Tidak ada RDC overload pada scope ini.'}</div></div>
+    <div class="exposure-v3-card quality"><div class="exposure-v3-label">Quality Exposure</div><div class="exposure-v3-value">${worstBreakage?RDC[worstBreakage].pecah_now.toFixed(3)+'%':'NORMAL'}</div><div class="exposure-v3-sub">${worstBreakage?`${breakageHigh.length} RDC di atas threshold legacy; root cause wajib dari Breakage Monitoring.`:'Tidak ada aggregate breakage di atas threshold legacy.'}</div></div>
+    <div class="exposure-v3-card service"><div class="exposure-v3-label">Service / Inventory Exposure</div><div class="exposure-v3-value">${invRisk.length?invRisk.length+' RDC':'NOT QUANTIFIED'}</div><div class="exposure-v3-sub">${invRisk.length?'Inventory-days berada di luar rentang sehat; validasi dengan demand/aging.':'SLA/OTIF authoritative belum cukup untuk kuantifikasi service exposure.'}</div></div>
+    <div class="exposure-v3-card financial"><div class="exposure-v3-label">Financial Exposure</div><div class="exposure-v3-value">NOT YET QUANTIFIED</div><div class="exposure-v3-sub">Nilai Rupiah menunggu cost/value authoritative dari Finance, TMS, dan sumber biaya terkait.</div></div>
+  </div>`;
 }
 
 
@@ -1653,7 +1684,7 @@ function enrichInsightV2(iss){
     evidence=[`Aggregate breakage ${d.pecah_now}% vs threshold 0.100%`,`Gap +${(d.pecah_now-0.1).toFixed(3)} ppt`,r?`Rank ${r.rank}/${r.total} breakage tertinggi`:null,t.text].filter(Boolean);
     insight=`Indikator breakage agregat dashboard berada ${ratio.toFixed(1)}× di atas threshold legacy. Ini bukan pengganti KPI resmi Delivery Breakage Rate dan Warehouse Breakage Rate; penyebab belum boleh diasumsikan sebelum drill-down incident, item, vendor/driver dan cause di Breakage Monitoring.`;
     exposureLabel='Quality Exposure'; exposureValue=`Gap +${(d.pecah_now-0.1).toFixed(3)} ppt di atas threshold; exposure finansial belum dihitung karena nilai/box belum tersedia.`;
-    decision=`Minta Pareto root cause dari Breakage Monitoring. Corrective action baru diarahkan setelah dominant cause / repeat incident teridentifikasi.`;
+    decision=`Tidak perlu approval management saat ini. SPV/RDC Manager lakukan root cause investigation di Breakage Monitoring; eskalasi hanya bila repeat incident, vendor issue, policy national, atau kebutuhan budget terkonfirmasi.`;
   } else if(iss.issue?.includes('Perputaran Stock Lambat') && d){
     const excess=Math.max(0,d.invdays-45); evidence=[`Inventory Days ${d.invdays} vs target ~45`,`Excess ${excess.toFixed(0)} hari`,`Status ${invDaysStatus(d.invdays).label}`];
     insight=`Stock exposure lebih lama dari target. Ini indikasi working-capital/space pressure, tetapi SKU slow-moving/dead stock belum dapat dipastikan tanpa aging per SKU.`;
@@ -1706,7 +1737,7 @@ function calcRdcIssues(rdcName){
       current:`${d.pecah_now}%`, target:'0.100%', gap:`+${(d.pecah_now-0.1).toFixed(3)}% — Di Atas Ambang/Perlu Perhatian`,
       businessImpact:'Kerugian nilai barang & potensi komplain toko.',
       financialImpact:'DATA REQUIRED', financialNote:'Rata-rata nilai produk per box (Finance/Commercial)',
-      action:`Audit prosedur handling dan packaging di ${dn}.`, benefit:'DATA REQUIRED', dataStatus:'real', severity: 60+d.pecah_now*50 });
+      action:`Buka Breakage Monitoring untuk identifikasi Pareto root cause, repeat incident, item, vendor/driver, dan cause di ${dn}.`, benefit:'DATA REQUIRED', dataStatus:'real', severity: 60+d.pecah_now*50 });
   }
 
   if(d.invdays>60){
@@ -1815,7 +1846,7 @@ function renderImpactCardV2(iss){
   const status = iss.actionStatus || 'Open';
   return `<div class="impact-card-v2 ${iss.status}">
     <div class="icv2-head">
-      <div><div class="icv2-issue">${statusIcon(iss.status)} ${iss.issue}</div><div style="margin-top:4px;"><span class="engine-badge">INSIGHT ENGINE V2</span> <span class="confidence-chip ${iss.confidenceCls}">Confidence ${iss.confidence}% · ${iss.confidenceLabel}</span></div></div>
+      <div><div class="icv2-issue">${statusIcon(iss.status)} ${iss.issue}</div><div style="margin-top:4px;"><span class="engine-badge">INSIGHT ENGINE V3</span> <span class="confidence-chip ${iss.confidenceCls}">Confidence ${iss.confidence}% · ${iss.confidenceLabel}</span></div></div>
       ${statusBadgeHtml(iss.dataStatus)}
     </div>
     <div class="icv2-grid">
@@ -1854,45 +1885,52 @@ function renderImpact(rdcName){
       financialImpact:'-', action:'Pertahankan kondisi saat ini, tidak ada tindakan mendesak diperlukan.', benefit:'-', dataStatus:'real'});
   }
   enrichWithAction(issues);
-  grid.innerHTML = issues.map(renderImpactCardV2).join('');
+  grid.innerHTML = issues.sort((a,b)=>{enrichInsightV2(a);enrichInsightV2(b);const pa=calcPriorityScore(a).score,pb=calcPriorityScore(b).score;return pb-pa;}).slice(0,2).map(renderImpactCardV2).join('');
 }
 
 function renderTop5(){
-  const grid = document.getElementById('top5Grid');
-  const all = calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore).slice(0,5);
-  if(all.length===0){ grid.innerHTML = `<div class="opp-card"><div class="opp-body">✅ Tidak ada peluang/isu signifikan yang perlu diprioritaskan saat ini.</div></div>`; return; }
-  grid.innerHTML = all.map((iss,i)=>`
+  const grid=document.getElementById('top5Grid');
+  const all=calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore).slice(0,3);
+  if(all.length===0){grid.innerHTML=`<div class="opp-card"><div class="opp-body">✅ Tidak ada peluang/isu signifikan yang perlu diprioritaskan saat ini.</div></div>`;return;}
+  grid.innerHTML=all.map((iss,i)=>`
     <div class="opp-card">
-      <div class="opp-rank">#${i+1}<div style="font-size:10px;font-weight:700;color:var(--stone);margin-top:2px;">Score ${iss.priorityScore}</div></div>
+      <div class="opp-rank">#${i+1}<div style="font-size:10px;font-weight:700;color:var(--stone);margin-top:2px;">${iss.priorityScore}</div></div>
       <div class="opp-body">
-        <div class="opp-title">${statusIcon(iss.status)} ${iss.issue} ${iss.rdcName?`<span style="font-size:10.5px;color:var(--stone);font-weight:600;">(${iss.rdcName})</span>`:''}</div>
-        <div style="display:flex;gap:6px;align-items:center;margin:3px 0 6px;flex-wrap:wrap;"><span class="confidence-chip ${iss.confidenceCls}">Confidence ${iss.confidence}%</span><span style="font-size:10px;color:var(--stone);">${iss.priorityLabel}</span></div>
+        <div class="opp-title">${statusIcon(iss.status)} ${iss.issue}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin:3px 0 6px;flex-wrap:wrap;"><span class="confidence-chip ${iss.confidenceCls}">Confidence ${iss.confidence}%</span>${isManagementDecisionRequired(iss)?'<span class="decision-required-badge">DECISION REQUIRED</span>':'<span class="decision-operational-badge">OPERATIONAL ACTION</span>'}</div>
         <div><b>Fact:</b> ${iss.fact}</div>
         <div><b>Insight:</b> ${iss.insight}</div>
         <div><b>${iss.exposureLabel}:</b> ${iss.exposureValue}</div>
-        <div><b>Action:</b> ${iss.action}</div>
-        <div><b>Decision:</b> ${iss.managementDecision}</div>
+        <div><b>Next Action:</b> ${iss.action}</div>
       </div>
     </div>`).join('');
 }
 
+function isManagementDecisionRequired(iss){
+  const text=`${iss.issue||''} ${iss.managementDecision||''} ${iss.action||''}`.toLowerCase();
+  if(/occupancy overload|peluang transfer antar-rdc/.test(text)) return true;
+  if(/capex|budget|approve|vendor change|ganti vendor|policy national|kebijakan nasional|cross-rdc|antar-rdc|external storage|sewa gudang/.test(text)) return true;
+  // Breakage without identified root cause is an operational investigation, not a management approval.
+  if(/breakage tinggi/.test(text)) return false;
+  return false;
+}
+
 function renderDecisions(){
-  const grid = document.getElementById('decisionGrid');
-  const opsGrid = document.getElementById('opsActionTracker');
-  const all = calcAllIssues().filter(i=>i.status==='red'||i.status==='amber').sort((a,b)=>b.priorityScore-a.priorityScore).slice(0,5);
-  if(all.length===0){ const empty=`<div class="decision-card">✅ Tidak ada keputusan mendesak yang diperlukan saat ini.</div>`; grid.innerHTML=empty; if(opsGrid) opsGrid.innerHTML=empty; return; }
-  const html = all.map(iss=>{
+  const grid=document.getElementById('decisionGrid'); const opsGrid=document.getElementById('opsActionTracker');
+  const all=calcAllIssues().filter(isManagementDecisionRequired).sort((a,b)=>b.priorityScore-a.priorityScore).slice(0,3);
+  if(all.length===0){const empty=`<div class="decision-none">✅ Tidak ada approval management yang diperlukan saat ini. Issue lain tetap dipantau sebagai operational action.</div>`;grid.innerHTML=empty;if(opsGrid)opsGrid.innerHTML=empty;return;}
+  const html=all.map(iss=>{
     const act=findActionFor(iss.issue,iss.rdcName); const owner=act?.owner||'Pending Assignment'; const deadline=act?.deadline?new Date(act.deadline).toLocaleDateString('id-ID'):'Pending Assignment'; const status=act?.status||'Open'; const actId=act?.id||'';
     return `<div class="decision-card ${iss.status==='red'?'red':''}">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap;"><b>${statusIcon(iss.status)} ${iss.issue}</b><span class="confidence-chip ${iss.confidenceCls}">Priority ${iss.priorityScore} · Confidence ${iss.confidence}%</span></div>
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap;"><b>${statusIcon(iss.status)} ${iss.issue}</b><span class="decision-required-badge">DECISION REQUIRED</span></div>
       <div style="margin-top:6px;"><b>Evidence:</b> ${iss.evidence.slice(0,3).join(' · ')}</div>
-      <div style="margin-top:4px;"><b>Management Decision:</b> ${iss.managementDecision}</div>
+      <div style="margin-top:4px;"><b>Decision:</b> ${iss.managementDecision}</div>
       <div style="margin-top:4px;color:var(--ink-soft);"><b>Next Action:</b> ${iss.action}</div>
-      <div class="decision-meta"><span>Owner: ${owner}</span><span>Deadline: ${deadline}</span><span>Status: ${status}</span></div>
+      <div class="decision-meta"><span>Priority ${iss.priorityScore}</span><span>Confidence ${iss.confidence}%</span><span>Owner: ${owner}</span><span>Deadline: ${deadline}</span><span>Status: ${status}</span></div>
       ${CURRENT_ROLE==='master'?`<button class="btn-small btn-save" style="margin-top:8px;" onclick="openActionEditor('${escAttr(iss.issue)}','${escAttr(iss.rdcName||'')}','${escAttr(iss.action)}',${actId||'null'})">✏️ ${act?'Update':'Assign'} Owner/Deadline</button>`:''}
     </div>`;
   }).join('');
-  grid.innerHTML=html; if(opsGrid) opsGrid.innerHTML=html;
+  grid.innerHTML=html; if(opsGrid)opsGrid.innerHTML=html;
 }
 
 function calcDimensionScores(d){
@@ -1939,7 +1977,7 @@ function calcHealthScore(rdcName){
 function renderHeaderSummary(){
   const el=document.getElementById('headerSummary');
   const allIssues=calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore); const high=allIssues.filter(i=>i.status==='red').length; const medium=allIssues.filter(i=>i.status==='amber'||i.status==='blue').length;
-  const top=allIssues[0]; const topIssue=top?top.issue:'Tidak ada isu signifikan'; const topDecision=top?top.managementDecision:'—';
+  const top=allIssues[0]; const topIssue=top?top.issue:'Tidak ada isu signifikan'; const decisionIssue=allIssues.find(isManagementDecisionRequired); const topDecision=decisionIssue?decisionIssue.managementDecision:'Tidak ada approval management saat ini';
   const scopeRdcs=CURRENT_RDC_SCOPE?[CURRENT_RDC_SCOPE]:Object.keys(RDC).filter(n=>n!=='Semua'); const healthScores=scopeRdcs.map(n=>calcHealthScore(n).score); const avgHealth=Math.round(healthScores.reduce((a,b)=>a+b,0)/healthScores.length); const hs=calcHealthScore(CURRENT_RDC_SCOPE||(scopeRdcs[0])); const healthEmoji=avgHealth>=80?'🟢':avgHealth>=60?'🟡':'🔴';
   const avgConf=allIssues.length?Math.round(allIssues.reduce((s,i)=>s+(i.confidence||0),0)/allIssues.length):100;
   el.innerHTML=`
@@ -5031,11 +5069,24 @@ function syncManagementStoryline(){
     set('storyProblem',`<b>#1 ${top.issue}</b><br><span style="font-size:10px;color:var(--stone);">Priority ${top.priorityScore} · Confidence ${top.confidence}%</span>`);
     set('storyImpact',`<b>${top.exposureLabel}</b><br>${top.exposureValue}`);
     set('storyAction',top.action);
-    set('storyDecision',top.managementDecision);
+    set('storyDecision',decisionIssue?decisionIssue.managementDecision:'Tidak ada approval management; lanjutkan operational action.');
   }catch(e){}
 }
 setInterval(syncManagementStoryline,2000);
 setTimeout(syncManagementStoryline,1200);
+
+
+// ===== MOBILE NAV DRAWER V3 =====
+(function(){
+  const btn=document.getElementById('mobileMenuBtn'), side=document.querySelector('.sidebar'), back=document.getElementById('mobileBackdrop');
+  if(!btn||!side||!back) return;
+  const close=()=>{side.classList.remove('mobile-open');back.classList.remove('show');document.body.classList.remove('mobile-nav-open');btn.textContent='☰';};
+  const open=()=>{side.classList.add('mobile-open');back.classList.add('show');document.body.classList.add('mobile-nav-open');btn.textContent='×';};
+  btn.addEventListener('click',()=>side.classList.contains('mobile-open')?close():open()); back.addEventListener('click',close);
+  side.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{if(window.innerWidth<=820)close();}));
+  window.addEventListener('resize',()=>{if(window.innerWidth>820)close();});
+})();
+
 </script>
 </body>
 </html>
