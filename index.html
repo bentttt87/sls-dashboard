@@ -329,15 +329,58 @@
   .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(8,20,36,.48);z-index:1198}.mobile-backdrop.show{display:block}
   .top3-note{font-size:10px;color:var(--stone);margin-top:-5px;margin-bottom:8px}
 
-  /* ===== Sticky Management / Operational switch (freeze-pane behavior) ===== */
-  #viewTabsWrap{
-    position:sticky; top:0; z-index:88;
-    background:rgba(246,244,240,.97);
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-    padding-top:6px;
-    box-shadow:0 5px 12px rgba(21,40,69,.04);
+  /* ===== Full dashboard freeze-pane: title + period + RDC + Management/Operational ===== */
+  #dashboardStickyHeader{
+    position:sticky;
+    top:0;
+    z-index:90;
+    background:rgba(246,244,240,.975);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    margin:-18px -26px 18px;
+    padding:18px 26px 0;
+    border-bottom:1px solid rgba(231,226,216,.92);
+    transition:padding .18s ease, box-shadow .18s ease, background .18s ease;
   }
-  #viewTabsWrap .view-tab{background:transparent;}
+  #dashboardStickyHeader .topbar{margin-bottom:8px;transition:margin .18s ease;}
+  #dashboardStickyHeader #viewTabsWrap{
+    position:relative;
+    top:auto;
+    z-index:auto;
+    margin-bottom:0!important;
+    background:transparent;
+    padding-top:0;
+    box-shadow:none;
+  }
+  #dashboardStickyHeader.compact{
+    padding-top:8px;
+    box-shadow:0 7px 18px rgba(21,40,69,.10);
+  }
+  #dashboardStickyHeader.compact .topbar{margin-bottom:2px;align-items:center;}
+  #dashboardStickyHeader.compact .topbar h1{font-size:16px;margin-bottom:1px;}
+  #dashboardStickyHeader.compact .topbar .period{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:760px;}
+  #dashboardStickyHeader.compact #rdcSelectorWrap{padding:6px 10px!important;}
+  #dashboardStickyHeader.compact .view-tab{padding:7px 14px;font-size:10.5px;}
+  #mgmtView [id], #opsView [id]{scroll-margin-top:118px;}
+  @media(max-width:820px){
+    #dashboardStickyHeader{margin:-62px -12px 14px;padding:62px 12px 0;}
+    #dashboardStickyHeader.compact{padding:8px 12px 0;}
+    #dashboardStickyHeader.compact .topbar{padding-left:48px;}
+    #dashboardStickyHeader .topbar{flex-wrap:nowrap;align-items:flex-start;}
+    #dashboardStickyHeader .topbar>div:first-child{min-width:0;flex:1 1 auto;}
+    #dashboardStickyHeader .filters{flex:0 0 auto;}
+    #dashboardStickyHeader .topbar h1{line-height:1.15;}
+    #dashboardStickyHeader .topbar .period{max-width:58vw;}
+    #dashboardStickyHeader #rdcSelectorWrap{padding:6px 8px!important;}
+    #dashboardStickyHeader #rdcSelector{max-width:150px;font-size:11px!important;}
+    #dashboardStickyHeader #rdcSelectorWrap label{font-size:9px!important;}
+    #mgmtView [id], #opsView [id]{scroll-margin-top:126px;}
+  }
+  @media(max-width:520px){
+    #dashboardStickyHeader.compact .topbar h1{font-size:14px;}
+    #dashboardStickyHeader.compact .topbar .period{display:none;}
+    #dashboardStickyHeader #rdcSelector{max-width:120px;}
+  }
 
   /* ===== Stock Opname Upload ===== */
   .so-dropzone{background:#fff;border:2px dashed #BFC9D8;border-radius:14px;padding:30px 22px;text-align:center;cursor:pointer;transition:.16s}
@@ -458,22 +501,24 @@
   <div class="main">
     <div id="page-dashboard" class="page active">
       <div id="offlineBanner" class="offline-banner" style="display:none;"></div>
-      <div class="topbar">
-        <div>
-          <h1 id="mainTitle">SLS Supply Chain Profitability Control Tower</h1>
-          <div class="period" id="periodLine">Memuat data...</div>
-        </div>
-        <div class="filters" id="filtersArea">
-          <div id="rdcSelectorWrap" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
-            <label for="rdcSelector" style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;">RDC</label>
-            <select id="rdcSelector" style="border:none;background:transparent;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;outline:none;"></select>
+      <div id="dashboardStickyHeader">
+        <div class="topbar">
+          <div>
+            <h1 id="mainTitle">SLS Supply Chain Profitability Control Tower</h1>
+            <div class="period" id="periodLine">Memuat data...</div>
+          </div>
+          <div class="filters" id="filtersArea">
+            <div id="rdcSelectorWrap" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;">
+              <label for="rdcSelector" style="font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;">RDC</label>
+              <select id="rdcSelector" style="border:none;background:transparent;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;outline:none;"></select>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div id="viewTabsWrap" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);">
-        <div class="view-tab active" data-view="mgmt" id="viewTabMgmt">MANAGEMENT</div>
-        <div class="view-tab" data-view="ops" id="viewTabOps">OPERATIONAL</div>
+        <div id="viewTabsWrap" style="display:flex;gap:8px;border-bottom:1px solid var(--border);">
+          <div class="view-tab active" data-view="mgmt" id="viewTabMgmt">MANAGEMENT</div>
+          <div class="view-tab" data-view="ops" id="viewTabOps">OPERATIONAL</div>
+        </div>
       </div>
 
       <!-- ===================== MANAGEMENT VIEW ===================== -->
@@ -5526,6 +5571,23 @@ function syncManagementStoryline(){
 setInterval(syncManagementStoryline,2000);
 setTimeout(syncManagementStoryline,1200);
 
+
+// ===== FULL DASHBOARD FREEZE-PANE / COMPACT STICKY HEADER =====
+(function(){
+  const hdr=document.getElementById('dashboardStickyHeader');
+  if(!hdr) return;
+  let ticking=false;
+  const sync=()=>{
+    const compact=window.scrollY>54;
+    hdr.classList.toggle('compact',compact);
+    ticking=false;
+  };
+  window.addEventListener('scroll',()=>{
+    if(!ticking){ ticking=true; requestAnimationFrame(sync); }
+  },{passive:true});
+  window.addEventListener('resize',sync,{passive:true});
+  sync();
+})();
 
 // ===== MOBILE NAV DRAWER V3 =====
 (function(){
