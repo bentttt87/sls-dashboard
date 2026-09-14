@@ -1,41 +1,30 @@
-// SLS Control Tower v93 branding — exact user-approved QUADRA + ROMAN artwork.
+// SLS Control Tower v94 branding — larger stacked QUADRA above ROMAN.
 (function(){
   'use strict';
-  const SRC='https://raw.githubusercontent.com/bentttt87/sls-wms/main/quadra-roman-logo.svg?v=20260914-2045';
-  function makeImg(width){
-    const img=document.createElement('img');
-    img.src=SRC;img.alt='QUADRA + ROMAN';
-    img.style.cssText=`display:block;width:${width}px;max-width:100%;height:auto;object-fit:contain;object-position:center;background:#fff;border-radius:8px;padding:3px 6px;`;
-    return img;
+  const SRC='https://raw.githubusercontent.com/bentttt87/sls-wms/main/quadra-roman-logo.svg?v=20260914-2200';
+  function stack(width){
+    const topW=width, botW=Math.round(width*0.72);
+    const wrap=document.createElement('div');
+    wrap.className='brand-logo-v94';
+    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:10px;padding:7px 8px;gap:4px;overflow:hidden;';
+    wrap.style.width=(width+16)+'px';
+    wrap.innerHTML=`<svg viewBox="0 0 250 110" width="${topW}" height="${Math.round(topW*0.44)}" aria-label="QUADRA"><image href="${SRC}" width="420" height="110"/></svg><svg viewBox="280 0 140 110" width="${botW}" height="${Math.round(botW*0.78)}" aria-label="ROMAN"><image href="${SRC}" width="420" height="110"/></svg>`;
+    return wrap;
   }
   function apply(){
-    // Login: large centered logo pair.
     const loginBox=document.querySelector('.login-box');
     if(loginBox){
-      const old=loginBox.querySelector('.roman-logo,.brand-logo-v93');
-      if(old&&!old.classList.contains('brand-logo-v93')){
-        const img=makeImg(220);img.className='brand-logo-v93';img.style.margin='0 auto 10px';old.replaceWith(img);
-      }else if(!old){
-        const img=makeImg(220);img.className='brand-logo-v93';img.style.margin='0 auto 10px';loginBox.insertBefore(img,loginBox.firstChild);
-      }
+      loginBox.querySelectorAll('.brand-logo-v93,.brand-logo-v94').forEach(x=>x.remove());
+      const old=loginBox.querySelector('.roman-logo'); if(old) old.remove();
+      const logo=stack(210);logo.style.margin='0 auto 14px';loginBox.insertBefore(logo,loginBox.firstChild);
     }
-    // Sidebar: stack official pair above product name so nothing overlaps.
     const brand=document.querySelector('.sidebar .brand');
     if(brand){
-      brand.style.cssText+=';display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:6px;';
-      const old=brand.querySelector('.roman-logo,.brand-logo-v93');
-      if(old&&!old.classList.contains('brand-logo-v93')){
-        const img=makeImg(154);img.className='brand-logo-v93';old.replaceWith(img);
-      }else if(!old){
-        const img=makeImg(154);img.className='brand-logo-v93';brand.insertBefore(img,brand.firstChild);
-      }
+      brand.style.cssText+=';display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-bottom:10px;';
+      brand.querySelectorAll('.roman-logo,.brand-logo-v93,.brand-logo-v94').forEach(x=>x.remove());
+      const logo=stack(146);brand.insertBefore(logo,brand.firstChild);
       const txt=brand.querySelector('span');if(txt){txt.style.fontSize='13px';txt.style.letterSpacing='.2px';}
     }
-    // Any remaining old Roman-only marks are replaced.
-    document.querySelectorAll('svg.roman-logo,svg[aria-label="Roman"],img[src*="roman-logo"]').forEach(el=>{
-      if(el.classList.contains('brand-logo-v93'))return;
-      const img=makeImg(el.closest('.login-box')?220:140);img.className='brand-logo-v93';el.replaceWith(img);
-    });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
   [100,400,1000,2200].forEach(ms=>setTimeout(apply,ms));
