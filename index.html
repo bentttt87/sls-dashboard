@@ -2433,11 +2433,16 @@ async function doLogin(){
   try{
     AUTH_SESSION_OK = await establishAuthSession(username, pw);
     if(!AUTH_SESSION_OK){ errEl.textContent = AUTH_SESSION_ERROR || 'User ID / password salah.'; return; }
-    const access = await sbRpc('breakage_my_access_v44', {});
+    const access = await sbRpc('wms_my_access', {});
     if(!access || !access.role){ errEl.textContent='Role akun tidak ditemukan / tidak aktif.'; AUTH_SESSION=null; return; }
     CURRENT_PASSWORD = pw; // hanya di memory untuk kompatibilitas fungsi legacy; tidak disimpan di browser
     CURRENT_ROLE = access.role;
-    CURRENT_RDC_SCOPE = access.is_master ? null : access.rdc_name;
+    if(!['master','management','supervisor'].includes(CURRENT_ROLE)){
+      errEl.textContent='Akun ini tidak memiliki akses Dashboard SLS.';
+      AUTH_SESSION=null; AUTH_SESSION_OK=false; CURRENT_PASSWORD='';
+      return;
+    }
+    CURRENT_RDC_SCOPE = ['master','management'].includes(CURRENT_ROLE) ? null : access.rdc_name;
     sessionStorage.setItem('sls_dashboard_username', username);
     await bootDashboard();
   }catch(e){
@@ -5601,5 +5606,8 @@ setTimeout(syncManagementStoryline,1200);
 })();
 
 </script>
+
+<script src="ecosystem_v72.js?v=20260914a"></script>
+<script src="wms_integration_v94.js?v=20260914a"></script>
 </body>
 </html>
