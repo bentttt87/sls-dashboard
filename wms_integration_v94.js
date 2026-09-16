@@ -1,52 +1,80 @@
-// SLS Control Tower v99 — live WMS integration + PGI control.
-// Historical management baseline remains unchanged; this panel is live execution data.
+// SLS Control Tower v108 — WMS management recap only.
+// Operational WMS detail stays in WMS. Control Tower receives aggregate KPI / risk / management signal.
 (function(){
   'use strict';
   let WMS_BRIDGE=null;
-  function escW(v){if(typeof esc==='function')return esc(v);return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function fmtW(v){const n=Number(v||0);return Number.isFinite(n)?n.toLocaleString('id-ID'):'-';}
-  function dateW(v){if(!v)return '-';try{return new Date(v).toLocaleString('id-ID');}catch(_e){return String(v);}}
+  const WMS_URL='https://sls-wms.vercel.app/';
+  const escW=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtW=v=>Number(v||0).toLocaleString('id-ID');
+  const pctW=v=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
+  const dtW=v=>{if(!v)return '—';try{return new Date(v).toLocaleString('id-ID');}catch(_){return String(v)}};
+
   function ensureStyles(){
-    if(document.getElementById('wmsBridgeStyle'))return;
-    const s=document.createElement('style');s.id='wmsBridgeStyle';s.textContent=`
+    if(document.getElementById('wmsBridgeStyle'))document.getElementById('wmsBridgeStyle').remove();
+    if(document.getElementById('wmsMgmt108Style'))return;
+    const s=document.createElement('style');s.id='wmsMgmt108Style';s.textContent=`
       .wms-live-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 20px}
-      .wms-live-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-      .wms-live-title{font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.5px;text-transform:uppercase}.wms-live-meta{font-size:10.5px;color:var(--stone)}
-      .wms-live-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.wms-live-card{border:1px solid var(--border);border-radius:9px;padding:10px 11px;background:#FBFAF8;min-width:0}
-      .wms-live-card.live{border-left:4px solid #16A34A;background:#F5FBF7}.wms-live-card.setup{border-left:4px solid #F59E0B;background:#FFFBF3}.wms-live-card.pgi{border-left:4px solid #F59E0B;background:#FFFBF3}.wms-live-card.err{border-left:4px solid #DC2626;background:#FFF7F6}
-      .wms-live-rdc{font-size:12px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;gap:6px}.wms-live-status{font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:5px;background:#EEE9E0;color:#6B6459;white-space:nowrap}
-      .wms-live-kpis{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-top:8px;font-size:10.5px}.wms-live-kpis span{color:var(--stone)}.wms-live-kpis b{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-      .wms-live-kpis .pgi-lbl,.wms-live-kpis .pgi-val{color:#A15C00;font-weight:800}.wms-live-kpis .err-lbl,.wms-live-kpis .err-val{color:#B3261E;font-weight:800}
-      .wms-live-foot{font-size:9.5px;color:var(--stone);margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;line-height:1.4}
-      @media(max-width:1100px){.wms-live-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.wms-live-grid{grid-template-columns:1fr}}
+      .w108m-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.w108m-title{font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.55px;text-transform:uppercase}.w108m-meta{font-size:10.5px;color:var(--stone);margin-top:2px}
+      .w108m-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}.w108m-card{background:#FBFAF8;border:1px solid var(--border);border-radius:9px;padding:10px 11px;min-width:0}.w108m-card.good{border-top:3px solid var(--green)}.w108m-card.watch{border-top:3px solid var(--amber)}.w108m-card.risk{border-top:3px solid var(--red)}
+      .w108m-l{font-size:8.5px;font-weight:800;letter-spacing:.45px;color:var(--stone);text-transform:uppercase}.w108m-v{font-size:19px;font-weight:800;color:var(--navy);margin-top:3px}.w108m-s{font-size:9.5px;color:var(--stone);line-height:1.3;margin-top:2px}
+      .w108m-insight{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border-top:1px dashed var(--border);margin-top:10px;padding-top:9px}.w108m-insight p{margin:0;font-size:10.5px;color:var(--ink-soft);line-height:1.45}.w108m-btn{display:inline-flex;align-items:center;gap:5px;text-decoration:none;background:var(--navy);color:#fff;border-radius:7px;padding:7px 10px;font-size:10px;font-weight:800;white-space:nowrap}
+      @media(max-width:1000px){.w108m-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:700px){.w108m-grid{grid-template-columns:1fr 1fr}.w108m-insight{grid-template-columns:1fr}.w108m-btn{justify-self:start}}
     `;document.head.appendChild(s);
   }
-  function host(){let el=document.getElementById('wmsLiveBridge');if(el)return el;el=document.createElement('div');el.id='wmsLiveBridge';el.className='wms-live-wrap';const firstTop=document.querySelector('.main .topbar')||document.querySelector('.topbar');if(firstTop&&firstTop.parentNode)firstTop.insertAdjacentElement('afterend',el);else{const main=document.querySelector('.main');if(main)main.prepend(el);}return el;}
-  function render(){
-    const el=host();if(!el)return;if(!WMS_BRIDGE){el.innerHTML='<div class="wms-live-title">WMS LIVE</div><div class="wms-live-meta">Menghubungkan ke execution layer WMS…</div>';return;}
-    const rows=WMS_BRIDGE.rows||[];
-    el.innerHTML=`<div class="wms-live-head"><div><div class="wms-live-title">WMS LIVE · SAP PGI CONTROL</div><div class="wms-live-meta">Book SOH WMS · RK Reservation · Pending GI · Stock Out setelah PGI MATCH · Scope: ${escW(WMS_BRIDGE.scope||'-')}</div></div><div class="wms-live-meta">Refresh ${dateW(WMS_BRIDGE.generated_at)}</div></div><div class="wms-live-grid">${rows.map(r=>{
-      const live=!!r.has_wms_activity,pgi=Number(r.pending_gi_tasks||0)>0,err=Number(r.pgi_exception_tasks||0)>0;
-      const cls=err?'err':pgi?'pgi':live?'live':'setup';const occ=r.occupancy_pct==null?'-':Number(r.occupancy_pct).toLocaleString('id-ID')+'%';const capReady=Number(r.kavling_active||0)>0?`${fmtW(r.kavling_with_capacity)}/${fmtW(r.kavling_active)}`:'0/0';
-      return `<div class="wms-live-card ${cls}"><div class="wms-live-rdc"><span>${escW(r.rdc)}</span><span class="wms-live-status">${escW(r.wms_status)}</span></div><div class="wms-live-kpis">
-        <span>Book SOH WMS</span><b>${fmtW(r.stock_total_box)} box</b>
-        <span>Reserved RK</span><b>${fmtW(r.reserved_box)} box</b>
-        <span>Available</span><b>${fmtW(r.available_box)} box</b>
-        <span>Physical Located</span><b>${fmtW(r.located_box)} box</b>
-        <span class="pgi-lbl">Pending GI</span><b class="pgi-val">${fmtW(r.pending_gi_box)} box</b>
-        <span class="pgi-lbl">Task Pending PGI</span><b class="pgi-val">${fmtW(r.pending_gi_tasks)}</b>
-        <span class="err-lbl">PGI Exception</span><b class="err-val">${fmtW(r.pgi_exception_tasks)}</b>
-        <span>Unlocated</span><b>${fmtW(r.unlocated_box)} box</b>
-        <span>Occupancy</span><b>${occ}</b>
-        <span>Kapasitas lokasi</span><b>${fmtW(r.capacity_box)} box</b>
-        <span>Kavling berkapasitas</span><b>${capReady}</b>
-        <span>Picking open</span><b>${fmtW(r.open_picking_tasks)}</b>
-        <span>Staging</span><b>${fmtW(r.staging_qty_box)} box</b>
-      </div><div class="wms-live-foot">Last movement: ${dateW(r.last_movement_at)}<br>Last receiving: ${dateW(r.last_receiving_at)}</div></div>`;
-    }).join('')}</div><div class="wms-live-meta" style="margin-top:9px">Kontrol baru: RK tidak mengurangi Book SOH. Gate Out menjadi Pending GI. Stock Out WMS hanya terjadi setelah SAP PGI MATCH.</div>`;
+
+  function host(){
+    let el=document.getElementById('wmsLiveBridge');if(el)return el;
+    el=document.createElement('div');el.id='wmsLiveBridge';el.className='wms-live-wrap';
+    const firstTop=document.querySelector('.main .topbar')||document.querySelector('.topbar');
+    if(firstTop&&firstTop.parentNode)firstTop.insertAdjacentElement('afterend',el);else document.querySelector('.main')?.prepend(el);
+    return el;
   }
-  async function load(){try{if(typeof sbRpc!=='function'||!AUTH_SESSION_OK)return;WMS_BRIDGE=await sbRpc('wms_dashboard_bridge',{});window.WMS_LIVE_BRIDGE=WMS_BRIDGE;render();}catch(e){const el=host();if(el)el.innerHTML=`<div class="wms-live-title">WMS LIVE</div><div style="font-size:11px;color:#B3261E">Koneksi WMS gagal: ${escW(e.message)}</div>`;}}
-  function patchBoot(){if(typeof bootDashboard!=='function'||bootDashboard.__wmsBridgeV99)return;const base=bootDashboard;const fn=async function(){const v=await base.apply(this,arguments);await load();return v;};fn.__wmsBridgeV99=true;bootDashboard=fn;}
+
+  function aggregate(rows){
+    const active=rows.filter(r=>r.has_wms_activity).length,total=rows.length;
+    const ready=rows.filter(r=>Number(r.kavling_active||0)>0&&Number(r.capacity_box||0)>0).length;
+    const cap=rows.reduce((s,r)=>s+Number(r.capacity_box||0),0),loc=rows.reduce((s,r)=>s+Number(r.located_box||0),0),occ=cap>0?loc/cap*100:null;
+    const overload=rows.filter(r=>Number(r.occupancy_pct||0)>=100),high=rows.filter(r=>Number(r.occupancy_pct||0)>=90&&Number(r.occupancy_pct||0)<100);
+    const exception=rows.filter(r=>Number(r.pgi_exception_tasks||0)>0||Number(r.pending_gi_tasks||0)>0||Number(r.unlocated_box||0)>0);
+    const latest=rows.map(r=>r.last_movement_at||r.last_receiving_at).filter(Boolean).sort().pop()||null;
+    return {active,total,ready,occ,overload,high,exception,latest};
+  }
+
+  function insight(a){
+    if(a.overload.length){const n=a.overload.map(r=>r.rdc).join(', ');return `<b>Capacity risk:</b> ${escW(n)} berada pada/di atas design capacity. Detail lokasi, staging dan corrective action ditangani di WMS.`;}
+    if(a.exception.length){return `<b>Execution attention:</b> ${a.exception.length} RDC memiliki exception/pending operational control. Review detail di WMS; Control Tower hanya memonitor status dan business impact.`;}
+    if(a.active<a.total){return `<b>Rollout WMS:</b> ${a.active}/${a.total} RDC menunjukkan aktivitas WMS. Management perlu memonitor readiness rollout tanpa membawa transaksi detail ke Control Tower.`;}
+    return '<b>WMS execution:</b> tidak ada management-level exception yang terdeteksi dari recap saat ini. Detail operasional tetap berada di WMS.';
+  }
+
+  function render(){
+    const el=host();if(!el)return;
+    if(!WMS_BRIDGE){el.innerHTML='<div class="w108m-title">WMS Management Recap</div><div class="w108m-meta">Menghubungkan ke WMS execution layer…</div>';return;}
+    const rows=WMS_BRIDGE.rows||[],a=aggregate(rows),occCls=a.overload.length?'risk':a.high.length?'watch':'good',execCls=a.exception.length?'watch':'good';
+    el.innerHTML=`
+      <div class="w108m-head"><div><div class="w108m-title">WMS Management Recap</div><div class="w108m-meta">Aggregate KPI / exception signal dari WMS · tanpa detail transaksi · Scope ${escW(WMS_BRIDGE.scope||'-')}</div></div><div class="w108m-meta">Refresh ${dtW(WMS_BRIDGE.generated_at)}</div></div>
+      <div class="w108m-grid">
+        <div class="w108m-card ${a.active===a.total&&a.total?'good':'watch'}"><div class="w108m-l">WMS Coverage</div><div class="w108m-v">${a.active}/${a.total||5}</div><div class="w108m-s">RDC dengan aktivitas WMS</div></div>
+        <div class="w108m-card ${a.ready===a.total&&a.total?'good':'watch'}"><div class="w108m-l">Location Readiness</div><div class="w108m-v">${a.ready}/${a.total||5}</div><div class="w108m-s">RDC memiliki lokasi + kapasitas</div></div>
+        <div class="w108m-card ${occCls}"><div class="w108m-l">Network Occupancy</div><div class="w108m-v">${pctW(a.occ)}</div><div class="w108m-s">weighted dari lokasi berkapasitas</div></div>
+        <div class="w108m-card ${a.overload.length?'risk':a.high.length?'watch':'good'}"><div class="w108m-l">Capacity Risk</div><div class="w108m-v">${a.overload.length}</div><div class="w108m-s">RDC overload · ${a.high.length} watch ≥90%</div></div>
+        <div class="w108m-card ${execCls}"><div class="w108m-l">Execution Attention</div><div class="w108m-v">${a.exception.length}</div><div class="w108m-s">RDC dengan pending/exception</div></div>
+      </div>
+      <div class="w108m-insight"><p>${insight(a)}${a.latest?` <span style="color:var(--stone)">Last WMS activity ${dtW(a.latest)}.</span>`:''}</p><a class="w108m-btn" href="${WMS_URL}" target="_blank" rel="noopener">Open WMS ↗</a></div>`;
+  }
+
+  async function load(){
+    try{
+      if(typeof sbRpc!=='function'||!AUTH_SESSION_OK)return;
+      WMS_BRIDGE=await sbRpc('wms_dashboard_bridge',{});window.WMS_LIVE_BRIDGE=WMS_BRIDGE;render();
+    }catch(e){const el=host();if(el)el.innerHTML=`<div class="w108m-title">WMS Management Recap</div><div style="font-size:11px;color:#B3261E">Koneksi recap WMS gagal: ${escW(e.message||e)}</div>`;}
+  }
+
+  function patchBoot(){
+    if(typeof bootDashboard!=='function'||bootDashboard.__wmsMgmt108)return;
+    const base=bootDashboard;const fn=async function(){const v=await base.apply(this,arguments);await load();return v;};fn.__wmsMgmt108=true;bootDashboard=fn;
+  }
   function apply(){ensureStyles();patchBoot();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();setTimeout(apply,300);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
+  setTimeout(apply,300);
 })();
