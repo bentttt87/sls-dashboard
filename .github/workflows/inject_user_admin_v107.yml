@@ -1,0 +1,31 @@
+name: Inject User Admin v107
+on:
+  push:
+    paths:
+      - '.github/workflows/inject_user_admin_v107.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject user admin module
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="/user_admin_v107.js?v=20260916-1155"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>')
+          p.write_text(s)
+          PY
+      - name: Commit production index
+        run: |
+          git config user.name 'bentttt87'
+          git config user.email 'bentttt87@gmail.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'feat: expose master Kelola User v107'
+          git push
