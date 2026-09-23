@@ -2,7 +2,7 @@ name: Control Tower August 2026 v110
 on:
   push:
     paths:
-      - '.github/workflows/aug2026-dashboard-v110.yml'
+      - .github/workflows/aug2026-dashboard-v110.yml
   workflow_dispatch:
 permissions:
   contents: write
@@ -13,22 +13,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch August 2026 period and national breakage aggregation
+      - name: Patch August period
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          s,n=re.subn(r'wms_integration_v94\.js\?v=[^"\']+','wms_integration_v94.js?v=20260923a',s)
-          if n<1:
-              raise SystemExit('WMS integration loader not found')
-          s=s.replace('Snapshot: Juni 2026','Snapshot: Agustus 2026')
-          s=s.replace('snapshot Jun 2026','snapshot Aug 2026')
-          s=s.replace('Juli 2026','Agustus 2026')
-          s=s.replace('same period (Jul 2026)','same period (Aug 2026)')
-          pattern=r"  const pecahAggRaw = monthKeyedAgg\(names, 'pecah_trend', 'pecah_months', 'avg'\);\n  const pecahAgg = \{months: pecahAggRaw\.months, values: pecahAggRaw\.values\.map\(v=>Math\.round\(v\*1000\)/1000\)\};"
-          replacement="""  const pecahMonths = [...new Set(names.flatMap(n=>RDC[n].pecah_months||[]))].sort();
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s, n = re.subn(r'wms_integration_v94\.js\?v=[^"\x27]+', 'wms_integration_v94.js?v=20260923a', s)
+          assert n >= 1, 'loader not found'
+          s = s.replace('Snapshot: Juni 2026', 'Snapshot: Agustus 2026')
+          s = s.replace('snapshot Jun 2026', 'snapshot Aug 2026')
+          s = s.replace('Juli 2026', 'Agustus 2026')
+          s = s.replace('same period (Jul 2026)', 'same period (Aug 2026)')
+          old = """  const pecahAggRaw = monthKeyedAgg(names, 'pecah_trend', 'pecah_months', 'avg');
+  const pecahAgg = {months: pecahAggRaw.months, values: pecahAggRaw.values.map(v=>Math.round(v*1000)/1000)};"""
+          new = """  const pecahMonths = [...new Set(names.flatMap(n=>RDC[n].pecah_months||[]))].sort();
   const pecahAgg = {months:pecahMonths, values:pecahMonths.map(m=>{
     let num=0, den=0;
     names.forEach(n=>{
@@ -43,34 +43,32 @@ jobs:
     });
     return den ? Math.round((num/den*100)*1000)/1000 : 0;
   })};"""
-          s,n2=re.subn(pattern,replacement,s,count=1)
-          if n2!=1:
-              raise SystemExit(f'national breakage aggregation block not found/replaced: {n2}')
-          p.write_text(s,encoding='utf-8')
-          print('loader replacements',n,'breakage block',n2)
+          assert old in s, 'breakage aggregate block not found'
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
           PY
-      - name: Smoke test
+      - name: Validate
         run: |
           node --check wms_integration_v94.js
           grep -q 'wms_integration_v94.js?v=20260923a' index.html
           grep -q 'Agustus 2026' index.html
-          ! grep -q 'Snapshot: Juni 2026' index.html
-          ! grep -q 'Juli 2026' index.html
           grep -q 'const pecahMonths' index.html
           python - <<'PY'
           from pathlib import Path
           import re, subprocess
-          s=Path('index.html').read_text(encoding='utf-8')
-          for i,m in enumerate(re.finditer(r'<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>',s,re.I|re.S),1):
+          s = Path('index.html').read_text(encoding='utf-8')
+          assert 'Snapshot: Juni 2026' not in s
+          assert 'Juli 2026' not in s
+          for i,m in enumerate(re.finditer(r'<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>', s, re.I|re.S), 1):
               if 'src=' in (m.group('attrs') or '').lower():
                   continue
-              body=m.group('body') or ''
+              body = m.group('body') or ''
               if body.strip():
-                  q=Path('/tmp')/f'inline_aug_v110_{i}.js'
-                  q.write_text(body,encoding='utf-8')
-                  subprocess.run(['node','--check',str(q)],check=True)
+                  q = Path('/tmp') / ('inline_aug_%s.js' % i)
+                  q.write_text(body, encoding='utf-8')
+                  subprocess.run(['node','--check',str(q)], check=True)
           PY
-      - name: Commit production index
+      - name: Commit
         run: |
           if git diff --quiet -- index.html; then exit 0; fi
           git config user.name 'github-actions[bot]'
