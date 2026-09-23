@@ -1,0 +1,80 @@
+name: Control Tower August 2026 v110
+on:
+  push:
+    paths:
+      - '.github/workflows/aug2026-dashboard-v110.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch August 2026 period and national breakage aggregation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s,n=re.subn(r'wms_integration_v94\.js\?v=[^"\']+','wms_integration_v94.js?v=20260923a',s)
+          if n<1:
+              raise SystemExit('WMS integration loader not found')
+          s=s.replace('Snapshot: Juni 2026','Snapshot: Agustus 2026')
+          s=s.replace('snapshot Jun 2026','snapshot Aug 2026')
+          s=s.replace('Juli 2026','Agustus 2026')
+          s=s.replace('same period (Jul 2026)','same period (Aug 2026)')
+          pattern=r"  const pecahAggRaw = monthKeyedAgg\(names, 'pecah_trend', 'pecah_months', 'avg'\);\n  const pecahAgg = \{months: pecahAggRaw\.months, values: pecahAggRaw\.values\.map\(v=>Math\.round\(v\*1000\)/1000\)\};"
+          replacement="""  const pecahMonths = [...new Set(names.flatMap(n=>RDC[n].pecah_months||[]))].sort();
+  const pecahAgg = {months:pecahMonths, values:pecahMonths.map(m=>{
+    let num=0, den=0;
+    names.forEach(n=>{
+      const i=(RDC[n].pecah_months||[]).indexOf(m);
+      const j=(RDC[n].delivery_months||[]).indexOf(m);
+      if(i>=0 && j>=0){
+        const d=Number(RDC[n].delivery_trend[j]||0);
+        const rate=Number(RDC[n].pecah_trend[i]||0);
+        num += d*rate/100;
+        den += d;
+      }
+    });
+    return den ? Math.round((num/den*100)*1000)/1000 : 0;
+  })};"""
+          s,n2=re.subn(pattern,replacement,s,count=1)
+          if n2!=1:
+              raise SystemExit(f'national breakage aggregation block not found/replaced: {n2}')
+          p.write_text(s,encoding='utf-8')
+          print('loader replacements',n,'breakage block',n2)
+          PY
+      - name: Smoke test
+        run: |
+          node --check wms_integration_v94.js
+          grep -q 'wms_integration_v94.js?v=20260923a' index.html
+          grep -q 'Agustus 2026' index.html
+          ! grep -q 'Snapshot: Juni 2026' index.html
+          ! grep -q 'Juli 2026' index.html
+          grep -q 'const pecahMonths' index.html
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          s=Path('index.html').read_text(encoding='utf-8')
+          for i,m in enumerate(re.finditer(r'<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>',s,re.I|re.S),1):
+              if 'src=' in (m.group('attrs') or '').lower():
+                  continue
+              body=m.group('body') or ''
+              if body.strip():
+                  q=Path('/tmp')/f'inline_aug_v110_{i}.js'
+                  q.write_text(body,encoding='utf-8')
+                  subprocess.run(['node','--check',str(q)],check=True)
+          PY
+      - name: Commit production index
+        run: |
+          if git diff --quiet -- index.html; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Update Control Tower to validated August 2026 data'
+          git push
