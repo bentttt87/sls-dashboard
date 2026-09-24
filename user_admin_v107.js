@@ -124,3 +124,59 @@
   [100,400,900,1600].forEach(ms=>setTimeout(()=>{injectNav();injectPage();applyVisibility();},ms));
   document.addEventListener('click',()=>setTimeout(applyVisibility,0),true);
 })();
+
+// SLS Control Tower v114 — canonical Breakage display terminology.
+// Data keys and backend categories are intentionally unchanged.
+(function(){
+  'use strict';
+  const phraseMap=[
+    ['Pecah Breakage (Gudang)','Pecah Pallet — Lainnya'],
+    ['Pecah Pallet/Gudang','Pecah Pallet'],
+    ['Rasio Pecah Pengiriman','Rasio Pecah Kirim'],
+    ['Rasio Pecah Kiriman','Rasio Pecah Kirim'],
+    ['Rasio Pecah Gudang','Rasio Pecah Pallet'],
+    ['Delivery Breakage Rate','Pecah Kirim Rate'],
+    ['Warehouse Breakage Rate','Pecah Pallet Rate'],
+    ['Delivery Breakage','Pecah Kirim'],
+    ['Warehouse Breakage','Pecah Pallet'],
+    ['Pecah dalam Pallet','Pecah Pallet'],
+    ['Pecah Pengiriman','Pecah Kirim'],
+    ['Pecah Kiriman','Pecah Kirim'],
+    ['Pecah Gudang','Pecah Pallet'],
+    ['Breakage Rate gudang','Pecah Pallet Rate']
+  ];
+  const breakageRoots='#page-breakage,#breakageDetailSection,#kpiGridQuality,#extraKpiGrid,#uploadResult,#managerKpiScorecard,#priorityKpiStrip';
+
+  function inBreakageContext(node){
+    const el=node?.nodeType===Node.ELEMENT_NODE?node:node?.parentElement;
+    return !!el?.closest?.(breakageRoots);
+  }
+  function normalizeText(text,node){
+    const lead=(text.match(/^\s*/)||[''])[0],trail=(text.match(/\s*$/)||[''])[0];
+    let raw=text.trim();if(!raw)return text;
+    for(const [from,to] of phraseMap) raw=raw.split(from).join(to);
+    if(inBreakageContext(node)){
+      if(raw==='Delivery Rate')raw='Pecah Kirim Rate';
+      if(raw==='Warehouse Rate')raw='Pecah Pallet Rate';
+    }
+    return lead+raw+trail;
+  }
+  function apply(root=document.body){
+    if(!root)return;
+    if(root.nodeType===Node.TEXT_NODE){const v=normalizeText(root.nodeValue||'',root);if(v!==root.nodeValue)root.nodeValue=v;return;}
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
+      const p=node.parentElement;if(!p||['SCRIPT','STYLE','NOSCRIPT','TEXTAREA'].includes(p.tagName))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(n=>{const v=normalizeText(n.nodeValue||'',n);if(v!==n.nodeValue)n.nodeValue=v;});
+  }
+  apply();
+  const observer=new MutationObserver(muts=>muts.forEach(m=>{
+    if(m.type==='characterData')apply(m.target);
+    m.addedNodes.forEach(n=>apply(n));
+  }));
+  observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+  [100,400,1000,2500,5000].forEach(ms=>setTimeout(apply,ms));
+  window.slsNormalizeBreakageTerminology=apply;
+})();
