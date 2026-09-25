@@ -1,4 +1,4 @@
-// SLS Control Tower v94 — canonical shared login roles + QUADRA ROMAN branding.
+// SLS Control Tower v95 — canonical shared login roles + QUADRA ROMAN branding + breakage terminology.
 (function(){
   'use strict';
   const BRAND_SRC='https://raw.githubusercontent.com/bentttt87/sls-wms/main/quadra-roman-logo.svg?v=20260911';
@@ -65,8 +65,76 @@
     if(hint) hint.textContent='Dashboard: MASTER & MANAGEMENT melihat All RDC · SUPERVISOR melihat RDC sendiri.';
   }
 
+  function installBreakageTerminology(){
+    if(window.__slsBreakageTermsV95) return;
+    window.__slsBreakageTermsV95=true;
+
+    const exact=new Map([
+      ['Pecah Kiriman','Pecah Kirim'],
+      ['Pecah Pengiriman','Pecah Kirim'],
+      ['Rasio Pecah Kiriman','Rasio Pecah Kirim'],
+      ['Rasio Pecah Pengiriman','Rasio Pecah Kirim'],
+      ['Delivery Breakage Rate','Rasio Pecah Kirim'],
+      ['Pecah Gudang','Pecah Pallet'],
+      ['Pecah dalam Pallet','Pecah Pallet'],
+      ['Pecah Pallet/Gudang','Pecah Pallet'],
+      ['Rasio Pecah Gudang','Rasio Pecah Pallet'],
+      ['Warehouse Breakage Rate','Rasio Pecah Pallet'],
+      ['Pecah Kirim','Pecah Kirim'],
+      ['Pecah Pallet','Pecah Pallet']
+    ]);
+    const phrases=[
+      ['Pecah Kiriman','Pecah Kirim'],
+      ['Pecah Pengiriman','Pecah Kirim'],
+      ['Rasio Pecah Kiriman','Rasio Pecah Kirim'],
+      ['Rasio Pecah Pengiriman','Rasio Pecah Kirim'],
+      ['Delivery Breakage Rate','Rasio Pecah Kirim'],
+      ['Pecah Pallet/Gudang','Pecah Pallet'],
+      ['Pecah dalam Pallet','Pecah Pallet'],
+      ['Pecah Gudang','Pecah Pallet'],
+      ['Rasio Pecah Gudang','Rasio Pecah Pallet'],
+      ['Warehouse Breakage Rate','Rasio Pecah Pallet']
+    ];
+
+    function normalizeText(text){
+      const lead=(text.match(/^\s*/)||[''])[0];
+      const trail=(text.match(/\s*$/)||[''])[0];
+      const raw=text.trim();
+      if(!raw) return text;
+      if(exact.has(raw)) return lead+exact.get(raw)+trail;
+      let out=raw;
+      for(const [from,to] of phrases) out=out.split(from).join(to);
+      return lead+out+trail;
+    }
+    function apply(root=document.body){
+      if(!root) return;
+      if(root.nodeType===Node.TEXT_NODE){
+        const v=normalizeText(root.nodeValue||'');
+        if(v!==root.nodeValue) root.nodeValue=v;
+        return;
+      }
+      if(root.nodeType!==Node.ELEMENT_NODE && root.nodeType!==Node.DOCUMENT_NODE && root.nodeType!==Node.DOCUMENT_FRAGMENT_NODE) return;
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
+        const p=node.parentElement;
+        if(!p||['SCRIPT','STYLE','NOSCRIPT','TEXTAREA'].includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }});
+      const nodes=[];
+      while(walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(n=>{const v=normalizeText(n.nodeValue||'');if(v!==n.nodeValue)n.nodeValue=v;});
+    }
+
+    apply();
+    const observer=new MutationObserver(muts=>muts.forEach(m=>{
+      if(m.type==='characterData') apply(m.target);
+      m.addedNodes.forEach(n=>apply(n));
+    }));
+    observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+    [200,700,1600,3200].forEach(ms=>setTimeout(apply,ms));
+  }
+
   function apply(){
-    applyQuadraRomanBrand(); patchRoleUI(); applyLoginCopy();
+    applyQuadraRomanBrand(); patchRoleUI(); applyLoginCopy(); installBreakageTerminology();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true}); else apply();
   setTimeout(apply,500); setTimeout(apply,1400);
