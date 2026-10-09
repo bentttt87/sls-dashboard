@@ -467,7 +467,7 @@
     <div class="badge-role" id="roleBadge"></div>
     <div class="sidebar-foot">
       5 RDC · Jkt / Smg / Sby / Dps / Plm<br>
-      Snapshot: Juni 2026<br>
+      Snapshot: September 2026<br>
       Sumber: Supabase (live)<br>
       <span id="lastUpdated"></span>
       <div id="dataFreshnessBox" style="margin-top:8px;font-size:10px;line-height:1.6;"></div>
@@ -641,7 +641,7 @@
       </div>
 
       <div class="footer-note">
-        <b>Sumber data real:</b> DATA_GENERAL_PROFIL (snapshot Jun 2026), DATA_STOCK_HISTORY (2024-2026), DATA_STOCK_OUT_PECAH (2019-2026), DATA_DELIVERY_BREAKDOWN (2024-2026) — disimpan di Supabase, live untuk semua yang buka link ini.<br>
+        <b>Sumber data real:</b> DATA_GENERAL_PROFIL (latest manual baseline s.d. Aug 2026), DATA_STOCK_HISTORY (2024-2026), DATA_STOCK_OUT_PECAH (2019-2026), DATA_DELIVERY_BREAKDOWN (2024-2026) — disimpan di Supabase, live untuk semua yang buka link ini.<br>
         <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF. Inventory Accuracy aktif setelah hasil Stock Opname diupload melalui menu Upload Stock Opname. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
       </div>
     </div>
@@ -1734,7 +1734,7 @@ function renderBenchmark(rdcName){
   const rows = metrics.map(m=>{
     const avg = nationalAvgOf(m.key);
     const best = bestRDCFor(m.key, m.higherIsBetter);
-    const comparable = true; // same period (Jul 2026), same denominator across all 5 RDC — data availability equal
+    const comparable = true; // same period (Sep 2026), same denominator across all 5 RDC — data availability equal
     return `<tr>
       <td><b>${m.label}</b></td>
       <td>${fmtNum(d[m.key])}${m.unit}</td>
@@ -2139,7 +2139,7 @@ function render(rdcName){
   renderTrend(rdcName);
   renderBreakageDetail(rdcName);
   renderDataFreshness(rdcName);
-  document.getElementById('periodLine').textContent = `Ringkasan operasional ${displayName(rdcName)} — Juli 2026 (data real, live dari Supabase)`;
+  document.getElementById('periodLine').textContent = `Ringkasan operasional ${displayName(rdcName)} — September 2026 (latest monthly data; live dari Supabase)`;
 }
 
 let VIEW_MODE = 'mgmt';
