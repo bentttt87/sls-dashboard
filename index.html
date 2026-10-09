@@ -1006,7 +1006,7 @@ const KPI_DEFS_REAL = [
       const avg = nationalAvgProd(); const best = bestRDCProd();
       return `Dari Total SDM <span class="detail-link" onclick="openDetail(event,'sdm')">${d.total_sdm} orang →</span><br><span style="font-size:10px;">vs Rata-rata Nasional ${fmtNum(avg)} · vs Terbaik ${best}(${fmtNum(RDC[best].prod)})</span>`;
     } },
-  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'real', group:'quality', formula:'Source: DATA_STOCK_OUT_PECAH. Formula: Box Pecah ÷ Total Stock Out × 100%, periode Juli 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out, Juli 2026. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
+  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'real', group:'quality', formula:'Source interim September 2026: Monthly Report / DATA_STOCK_OUT_PECAH. Formula legacy: Box Pecah ÷ Total Stock Out × 100%. Breakage Monitoring Jakarta masih trial sehingga belum menjadi source resmi Control Tower untuk periode September 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out · September 2026 · INTERIM MANUAL. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
 ];
 const FINANCIAL_KPI_DEFS = [
   {label:'Working Capital Impact', need:'Nilai inventory harian dalam Rupiah (Finance)'},
@@ -4890,8 +4890,41 @@ async function renderPriorityKpiStrip(){
     const period = (NBC_PERIOD || new Date().toISOString().slice(0,7));
     const scopeRdc = CURRENT_RDC_SCOPE || (CURRENT_RDC && CURRENT_RDC!=='Semua' ? CURRENT_RDC : 'ALL');
     const d = await sbRpc('priority_kpi_summary', {p_period: period, p_rdc: scopeRdc});
+
+    // September 2026 interim governance:
+    // RDC Jakarta Breakage Monitoring is still trial, so Control Tower uses the
+    // validated manual Monthly Report / DATA_STOCK_OUT_PECAH for September only.
+    // Trial incident data is intentionally not mixed with this management KPI.
+    if(period==='2026-09'){
+      const names = scopeRdc==='ALL' ? Object.keys(RDC) : [scopeRdc];
+      let pecahBox=0, deliveredBox=0;
+      names.forEach(n=>{
+        const x=RDC[n]; if(!x) return;
+        const pi=(x.pecah_months||[]).indexOf('2026-09');
+        const di=(x.delivery_months||[]).indexOf('2026-09');
+        if(pi>=0 && di>=0){
+          const delivered=Number((x.delivery_trend||[])[di]||0);
+          const ratePct=Number((x.pecah_trend||[])[pi]||0);
+          deliveredBox += delivered;
+          pecahBox += delivered*ratePct/100;
+        }
+      });
+      const currentPct = deliveredBox ? Number((pecahBox/deliveredBox*100).toFixed(3)) : null;
+      d.breakage = {
+        current: currentPct,
+        target: 0.1,
+        gap: currentPct==null ? null : Number((currentPct-0.1).toFixed(3)),
+        trend: null,
+        status: currentPct==null ? 'DATA REQUIRED' : (currentPct>0.1 ? 'RED' : (currentPct>0.09 ? 'AMBER' : 'GREEN')),
+        data_status: 'INTERIM MANUAL',
+        basis: 'Total Pecah / Total Stock Out',
+        source: 'Monthly Report Sep 2026',
+        note: 'September 2026 memakai data manual tervalidasi. Breakage Monitoring Jakarta masih trial dan tidak dihitung ke Control Tower.'
+      };
+    }
+
     const cards = [
-      {key:'breakage', title:'BREAKAGE', unit:'/10k', data:d.breakage},
+      {key:'breakage', title:'BREAKAGE', unit:d.breakage?.data_status==='INTERIM MANUAL'?'%':'/10k', data:d.breakage},
       {key:'sla', title:'SLA', unit:'', data:d.sla},
       {key:'otif', title:'OTIF', unit:'', data:d.otif},
       {key:'logistic_cost', title:'LOGISTIC COST', unit:'', data:d.logistic_cost}
