@@ -4144,8 +4144,15 @@ function populateNbcPeriods(){
     opts.push(`<option value="${val}">${d.toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>`);
   }
   sel.innerHTML = opts.join('');
+
+  // Default to the latest monthly period that actually exists in Control Tower data,
+  // not blindly to the current calendar month. This prevents an empty October card
+  // while the latest closed/manual monthly dataset is still September.
+  const availableMonths = [...new Set(Object.values(RDC||{}).flatMap(x=>(x&&x.delivery_months)||[]))].sort();
+  const latestDataMonth = availableMonths.length ? availableMonths[availableMonths.length-1] : null;
+  if(latestDataMonth && [...sel.options].some(o=>o.value===latestDataMonth)) sel.value = latestDataMonth;
   NBC_PERIOD = sel.value;
-  sel.addEventListener('change', ()=>{ NBC_PERIOD = sel.value; renderNbcOverview(); });
+  sel.addEventListener('change', ()=>{ NBC_PERIOD = sel.value; renderNbcOverview(); renderPriorityKpiStrip(); });
 }
 
 document.querySelectorAll('.nbc-tab').forEach(t=>{
@@ -4924,7 +4931,7 @@ async function renderPriorityKpiStrip(){
     }
 
     const cards = [
-      {key:'breakage', title:'BREAKAGE', unit:d.breakage?.data_status==='INTERIM MANUAL'?'%':'/10k', data:d.breakage},
+      {key:'breakage', title:d.breakage?.data_status==='INTERIM MANUAL'?'BREAKAGE · MANUAL':'BREAKAGE', unit:d.breakage?.data_status==='INTERIM MANUAL'?'%':'/10k', data:d.breakage},
       {key:'sla', title:'SLA', unit:'', data:d.sla},
       {key:'otif', title:'OTIF', unit:'', data:d.otif},
       {key:'logistic_cost', title:'LOGISTIC COST', unit:'', data:d.logistic_cost}
