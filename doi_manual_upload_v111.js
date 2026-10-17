@@ -71,7 +71,7 @@
       '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">'+
           '<div><div style="font-size:14px;font-weight:800;color:var(--navy);">DOI &amp; Stock vs Average Sales</div>'+
-          '<div style="font-size:10.5px;color:var(--stone);margin-top:2px;">Official: Physical Inventory ÷ Rolling Avg Sales 3 bulan penuh × 30 hari · source manual sementara</div></div>'+
+          '<div style="font-size:10.5px;color:var(--stone);margin-top:2px;">DOI = Physical Stock ÷ Avg Sales 3M × 30 hari</div></div>'+
           '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+uploadBtn+'<button class="export-btn" id="doiRecoExcelBtnV111" style="padding:6px 10px;font-size:10.5px;background:#0F5A78;color:#fff;">📥 Export SKU Recommendation</button><button class="export-btn" id="doiExcelBtnV111" style="padding:6px 10px;font-size:10.5px;">📊 Export DOI Excel</button></div>'+
         '</div>'+
         '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px;">'+
@@ -325,17 +325,24 @@
   function ensureModal(){
     var m=document.getElementById('doiUploadModalV111'); if(m)return m;
     m=document.createElement('div');m.id='doiUploadModalV111';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,35,55,.55);z-index:9999;align-items:center;justify-content:center;padding:18px;';
+    m.className='sls-popout-overlay';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,35,55,.58);z-index:9999;align-items:center;justify-content:center;padding:16px;';
     m.innerHTML=
-      '<div style="background:#fff;width:min(1180px,96vw);max-height:92vh;overflow:auto;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.25);padding:18px;">'+
-        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><div><div style="font-size:17px;font-weight:800;color:var(--navy);">Upload DOI / Avg Sales Manual</div><div style="font-size:11px;color:var(--stone);margin-top:3px;">Temporary transition · format PR Reference RDC · multi-file</div></div><button id="doiUploadCloseV111" class="export-btn">✕ Tutup</button></div>'+
-        '<div style="margin-top:12px;padding:10px 12px;background:#F8F6F2;border-radius:8px;font-size:11px;line-height:1.5;">Sistem membaca sheet <b>Ref/REF</b>, Material, Physical Inventory dan 6 bulan sales terakhir. Avg Sales 3M dihitung ulang. File identik tidak double input; file koreksi pada RDC + tanggal snapshot yang sama mengganti snapshot lama.</div>'+
-        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;"><input id="doiUploadInputV111" type="file" accept=".xlsx,.xls" multiple style="font-size:11px;"><button class="btn-primary" id="doiParseBtnV111" style="padding:8px 14px;">Validasi & Preview</button></div>'+
-        '<div id="doiUploadMsgV111" style="font-size:11px;margin-top:8px;"></div><div id="doiUploadPreviewV111" style="margin-top:12px;"></div>'+
-        '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;"><button class="btn-primary" id="doiPublishBtnV111" style="display:none;padding:9px 16px;">Publish / Replace Snapshot</button></div>'+
+      '<div class="sls-popout-card" style="background:#fff;width:min(820px,96vw);max-height:88vh;overflow:auto;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.25);padding:0;">'+
+        '<div class="sls-popout-head" style="position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;">'+
+          '<div style="min-width:0;"><div style="font-size:16px;font-weight:800;color:var(--navy);line-height:1.2;">Upload DOI / Avg Sales Manual</div><div style="font-size:10.5px;color:var(--stone);margin-top:3px;">PR Reference RDC · bisa beberapa file</div></div>'+
+          '<button id="doiUploadCloseV111" class="sls-popout-close" type="button" aria-label="Tutup">✕</button>'+
+        '</div>'+
+        '<div style="padding:14px 16px 16px;">'+
+          '<div style="padding:9px 11px;background:#F8F6F2;border-radius:8px;font-size:10.8px;line-height:1.45;">Upload file PR Reference. Sistem hitung <b>Avg Sales 3M & DOI</b>; file revisi mengganti snapshot lama.</div>'+
+          '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:12px;"><input id="doiUploadInputV111" type="file" accept=".xlsx,.xls" multiple style="font-size:11px;min-width:0;width:100%;"><button class="btn-primary" id="doiParseBtnV111" style="padding:9px 14px;white-space:nowrap;">Validasi & Preview</button></div>'+
+          '<div id="doiUploadMsgV111" style="font-size:11px;margin-top:8px;"></div><div id="doiUploadPreviewV111" style="margin-top:12px;"></div>'+
+          '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;"><button class="btn-primary" id="doiPublishBtnV111" style="display:none;padding:9px 16px;">Publish / Replace Snapshot</button></div>'+
+        '</div>'+
       '</div>';
     document.body.appendChild(m);
     document.getElementById('doiUploadCloseV111').onclick=function(){m.style.display='none';};
+    m.addEventListener('click',function(e){if(e.target===m)m.style.display='none';});
     document.getElementById('doiParseBtnV111').onclick=parseSelection;
     document.getElementById('doiPublishBtnV111').onclick=publishSelection;
     return m;
