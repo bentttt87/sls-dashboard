@@ -610,6 +610,9 @@
         <div class="section-label">Capacity &amp; Inventory</div>
         <div class="kpi-grid" id="kpiGridCapacity"></div>
 
+        <div class="section-label">DOI &amp; Stock vs Average Sales <span class="tag">Rolling 3M Official</span></div>
+        <div id="doiReport"></div>
+
         <div class="section-label">Service &amp; Fulfillment</div>
         <div class="kpi-grid" id="kpiGridService"></div>
         <div class="kpi-grid" id="extraKpiGrid" style="margin-top:10px;"></div>
@@ -641,7 +644,7 @@
       </div>
 
       <div class="footer-note">
-        <b>Sumber data real:</b> DATA_GENERAL_PROFIL (latest manual baseline s.d. Aug 2026), DATA_STOCK_HISTORY (2024-2026), DATA_STOCK_OUT_PECAH (2019-2026), DATA_DELIVERY_BREAKDOWN (2024-2026) — disimpan di Supabase, live untuk semua yang buka link ini.<br>
+        <b>Sumber data real:</b> DATA_GENERAL_PROFIL (latest manual baseline s.d. Aug 2026), DATA_STOCK_HISTORY, monthly outbound/delivery trend, DATA_STOCK_OUT_PECAH — disimpan di Supabase. <b>DOI:</b> Current Stock ÷ Rolling Avg Sales 3M × 30; Avg 6M = stability check, Last Year = benchmark only.<br>
         <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF. Inventory Accuracy aktif setelah hasil Stock Opname diupload melalui menu Upload Stock Opname. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
       </div>
     </div>
@@ -996,12 +999,178 @@ let CURRENT_PASSWORD = '';
 let CURRENT_ROLE = '';
 let IS_OFFLINE_MODE = false;
 let CURRENT_RDC_SCOPE = null; // null = master (sees all); RDC name = locked to that RDC only
+
 let CURRENT_RDC = 'Jakarta';
+
+// ===== DOI / STOCK VS AVERAGE SALES — OFFICIAL CONTROL TOWER METHOD =====
+// Official denominator: rolling average of the latest 3 full monthly sales/outbound periods.
+// 6M is a stability benchmark; Last Year is benchmark only and never the main DOI denominator.
+// Current manual phase uses validated monthly outbound/delivery trend. Future source: SAP/TMS + WMS.
+function doiCalc(d){
+  if(!d) return {avg3:null,avg6:null,doiMonths:null,doiDays:null,trendPct:null,latestMonth:null,monthsUsed:0,status:'DATA REQUIRED'};
+  const months = Array.isArray(d.delivery_months) ? d.delivery_months : [];
+  const vals = Array.isArray(d.delivery_trend) ? d.delivery_trend : [];
+  const pairs = months.map((m,i)=>({m:String(m||''),v:Number(vals[i])}))
+    .filter(x=>x.m && Number.isFinite(x.v) && x.v>=0)
+    .sort((a,b)=>a.m.localeCompare(b.m));
+  const avg = arr => arr.length ? arr.reduce((s,x)=>s+x.v,0)/arr.length : null;
+  const last3 = pairs.slice(-3);
+  const last6 = pairs.slice(-6);
+  const avg3 = avg(last3);
+  const avg6 = avg(last6);
+  const stock = Number(d.stock_current||0);
+  const doiMonths = avg3>0 ? stock/avg3 : null;
+  const doiDays = doiMonths!=null ? doiMonths*30 : null;
+  const trendPct = avg6>0 && avg3!=null ? (avg3-avg6)/avg6*100 : null;
+  let status='DATA REQUIRED';
+  if(avg3===0 && stock>0) status='NO MOVEMENT';
+  else if(doiDays!=null){
+    if(doiDays > Number(CONFIG.invdays_critical||75)) status='CRITICAL';
+    else if(doiDays > Number(CONFIG.invdays_watch||60)) status='HIGH';
+    else if(doiDays > Number(CONFIG.invdays_target||45)) status='WATCH';
+    else status='HEALTHY';
+  }
+  return {
+    avg3, avg6, doiMonths, doiDays, trendPct,
+    latestMonth:pairs.length?pairs[pairs.length-1].m:null,
+    monthsUsed:last3.length, status,
+    sales3:last3
+  };
+}
+function applyOfficialDoiMetrics(){
+  Object.keys(RDC||{}).forEach(name=>{
+    if(name==='Semua') return;
+    const d=RDC[name]; if(!d) return;
+    const m=doiCalc(d);
+    d.avg_sales_3m=m.avg3;
+    d.avg_sales_6m=m.avg6;
+    d.doi_months=m.doiMonths;
+    d.doi_days=m.doiDays;
+    d.doi_status=m.status;
+    d.sales_trend_3m_vs_6m=m.trendPct;
+    d.doi_latest_month=m.latestMonth;
+    d.invdays=m.doiDays; // legacy consumers now use the official DOI definition.
+  });
+}
+function doiFmt(v,dec=0){
+  if(v==null || !Number.isFinite(Number(v))) return '—';
+  return Number(v).toLocaleString('id-ID',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function doiStatusStyle(status){
+  return {
+    HEALTHY:['#E7F6EC','#1E7B34'],
+    WATCH:['#FFF3D6','#946200'],
+    HIGH:['#FFF0E2','#B15A00'],
+    CRITICAL:['#FCEBE9','#B3261E'],
+    'NO MOVEMENT':['#FCEBE9','#B3261E'],
+    'DATA REQUIRED':['#EFEDE8','#6E6A63']
+  }[status] || ['#EFEDE8','#6E6A63'];
+}
+function doiStatusBadge(status){
+  const s=doiStatusStyle(status);
+  return \`<span style="display:inline-block;padding:3px 7px;border-radius:5px;background:\${s[0]};color:\${s[1]};font-size:9.5px;font-weight:800;">\${status}</span>\`;
+}
+function doiPeriodLabel(m){
+  if(!m) return '—';
+  const [y,mo]=String(m).split('-').map(Number);
+  if(!y||!mo) return m;
+  return new Date(y,mo-1,1).toLocaleDateString('id-ID',{month:'short',year:'numeric'});
+}
+function doiRowsForScope(rdcName){
+  const all=Object.keys(RDC||{}).filter(n=>n!=='Semua');
+  const names = rdcName && rdcName!=='Semua' ? [rdcName] : all;
+  return names.map(name=>({name,d:RDC[name],m:doiCalc(RDC[name])}));
+}
+function renderDoiReport(rdcName){
+  const el=document.getElementById('doiReport');
+  if(!el) return;
+  const rows=doiRowsForScope(rdcName);
+  if(!rows.length){el.innerHTML='<div class="nbc-placeholder">DATA REQUIRED</div>';return;}
+  const totalStock=rows.reduce((s,r)=>s+Number(r.d?.stock_current||0),0);
+  const totalAvg3=rows.reduce((s,r)=>s+Number(r.m.avg3||0),0);
+  const totalAvg6=rows.reduce((s,r)=>s+Number(r.m.avg6||0),0);
+  const natMonths=totalAvg3>0?totalStock/totalAvg3:null;
+  const natDays=natMonths!=null?natMonths*30:null;
+  const natTrend=totalAvg6>0?(totalAvg3-totalAvg6)/totalAvg6*100:null;
+  const latest=[...new Set(rows.map(r=>r.m.latestMonth).filter(Boolean))].sort().pop()||'—';
+
+  el.innerHTML = \`
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--navy);">DOI & Stock vs Average Sales</div>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:2px;">Official method: Current Stock ÷ Rolling Avg Sales 3 full months · DOI Days = DOI Months × 30</div>
+        </div>
+        <button class="export-btn" id="doiExcelBtn" style="padding:6px 10px;font-size:10.5px;">📊 Export DOI Excel</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;">
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Current Stock</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(totalStock)}</div><div class="kpi-sowhat">box · latest \${doiPeriodLabel(latest)}</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Avg Sales 3M</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(totalAvg3)}</div><div class="kpi-sowhat">box/bulan · denominator DOI</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">DOI</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(natDays,1)} <span class="unit">hari</span></div><div class="kpi-sowhat">\${doiFmt(natMonths,2)} bulan</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">3M vs 6M Sales</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${natTrend==null?'—':(natTrend>=0?'+':'')+doiFmt(natTrend,1)+'%'}</div><div class="kpi-sowhat">6M hanya stability check</div></div>
+      </div>
+
+      <div style="overflow-x:auto;margin-top:12px;">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:850px;">
+          <thead><tr style="background:var(--navy);color:#fff;text-align:right;">
+            <th style="padding:7px 8px;text-align:left;">RDC</th>
+            <th style="padding:7px 8px;">Current Stock</th>
+            <th style="padding:7px 8px;">Avg Sales 3M</th>
+            <th style="padding:7px 8px;">Avg Sales 6M</th>
+            <th style="padding:7px 8px;">DOI Hari</th>
+            <th style="padding:7px 8px;">DOI Bulan</th>
+            <th style="padding:7px 8px;">3M vs 6M</th>
+            <th style="padding:7px 8px;text-align:center;">Status</th>
+          </tr></thead>
+          <tbody>
+            \${rows.map(r=>\`<tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 8px;font-weight:700;text-align:left;">\${esc(displayName(r.name))}</td>
+              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.d.stock_current)}</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:700;">\${doiFmt(r.m.avg3)}</td>
+              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.m.avg6)}</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:800;color:var(--navy);">\${doiFmt(r.m.doiDays,1)}</td>
+              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.m.doiMonths,2)}</td>
+              <td style="padding:7px 8px;text-align:right;">\${r.m.trendPct==null?'—':(r.m.trendPct>=0?'+':'')+doiFmt(r.m.trendPct,1)+'%'}</td>
+              <td style="padding:7px 8px;text-align:center;">\${doiStatusBadge(r.m.status)}</td>
+            </tr>\`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:10px;padding:9px 10px;background:#F8F6F2;border-left:3px solid var(--navy);font-size:10.5px;color:var(--ink-soft);line-height:1.5;">
+        <b>Data governance:</b> Avg Sales 3M adalah denominator DOI resmi. Avg Sales 6M hanya stability check. Same-period Last Year akan ditampilkan sebagai benchmark setelah historical sales SAP tersedia dan <b>tidak</b> menggantikan denominator 3M.
+        <br><b>Interim source:</b> monthly outbound/delivery trend yang sudah tervalidasi. Target future source: SAP/TMS sales-delivery + WMS current stock.
+      </div>
+    </div>\`;
+
+  const btn=document.getElementById('doiExcelBtn');
+  if(btn) btn.onclick=()=>exportDoiExcel(rdcName);
+}
+function exportDoiExcel(rdcName){
+  const rows=doiRowsForScope(rdcName);
+  const aoa=[['RDC','Latest Period','Current Stock Box','Avg Sales 3M Box/Month','Avg Sales 6M Box/Month','DOI Days','DOI Months','3M vs 6M %','Status','Method']];
+  rows.forEach(r=>aoa.push([
+    displayName(r.name),r.m.latestMonth||'',Number(r.d.stock_current||0),
+    r.m.avg3==null?'':Math.round(r.m.avg3*100)/100,
+    r.m.avg6==null?'':Math.round(r.m.avg6*100)/100,
+    r.m.doiDays==null?'':Math.round(r.m.doiDays*10)/10,
+    r.m.doiMonths==null?'':Math.round(r.m.doiMonths*100)/100,
+    r.m.trendPct==null?'':Math.round(r.m.trendPct*10)/10,
+    r.m.status,'Current Stock / Rolling Avg Sales 3M'
+  ]));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:14},{wch:18},{wch:24},{wch:24},{wch:12},{wch:12},{wch:14},{wch:16},{wch:34}];
+  XLSX.utils.book_append_sheet(wb,ws,'DOI Report');
+  const suffix=(rdcName&&rdcName!=='Semua'?rdcName:'National').replace(/\s+/g,'_');
+  XLSX.writeFile(wb,\`SLS_DOI_Stock_vs_AvgSales_\${suffix}.xlsx\`);
+}
 
 const KPI_DEFS_REAL = [
   {key:'occ',   label:'Occupancy',  unit:'%', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Stock Saat Ini ÷ Kapasitas Gudang × 100%.', get:(d)=>d.occ_now, sowhat:(d)=> (d.occ_now>CONFIG.occ_overload_pct ? `<b>Overload</b> — kapasitas terlampaui ${Math.abs(d.caprem).toLocaleString('id-ID')} box.` : `Sisa kapasitas <b>${d.caprem.toLocaleString('id-ID')} box</b>.`) + ` <span class="detail-link" onclick="openDetail(event,'occ')">Ukuran gudang →</span>` },
   {key:'caprem',label:'Capacity Remaining', unit:' box', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Kapasitas Gudang − Stock Saat Ini.', get:(d)=>d.caprem, sowhat:(d)=> d.caprem<0 ? 'Kapasitas sudah minus — perlu solusi segera.' : `Dari total kapasitas <b>${d.kapasitas.toLocaleString('id-ID')} box</b>.` },
-  {key:'invdays',label:'Inventory Days', unit:' hari', dataStatus:'estimated', group:'capacity', formula:'Source: DATA_STOCK_HISTORY, DATA_GENERAL_PROFIL. Formula: Stock Rata-rata ÷ Pengeluaran Rata-rata Harian × 30. Asumsi: distribusi keluar-masuk stock merata sepanjang bulan (belum dari transaksi harian aktual).', get:(d)=>d.invdays, sowhat:()=>`Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical} · Minimum ${CONFIG.invdays_minimum}.` },
+  {key:'invdays',label:'DOI (Days Inventory)', unit:' hari', dataStatus:'calculated', group:'capacity', formula:'Official SLS DOI: Current Stock ÷ Rolling Average Sales 3 bulan penuh terakhir × 30 hari. Avg 6M hanya stability check; Last Year hanya benchmark.', get:(d)=>d.doi_days??d.invdays, sowhat:(d)=>`DOI <b>${doiFmt(d.doi_months,2)} bulan</b> · Avg Sales 3M <b>${doiFmt(d.avg_sales_3m)} box/bln</b> · Avg 6M ${doiFmt(d.avg_sales_6m)}. Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical}.` },
   {key:'prod',  label:'Productivity', unit:' box/SDM/bln', dataStatus:'estimated', group:'productivity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Pengeluaran Total Box ÷ Total SDM.', get:(d)=>d.prod, sowhat:(d)=>{
       const avg = nationalAvgProd(); const best = bestRDCProd();
       return `Dari Total SDM <span class="detail-link" onclick="openDetail(event,'sdm')">${d.total_sdm} orang →</span><br><span style="font-size:10px;">vs Rata-rata Nasional ${fmtNum(avg)} · vs Terbaik ${best}(${fmtNum(RDC[best].prod)})</span>`;
@@ -2132,6 +2301,7 @@ function render(rdcName){
   renderMgmtKpiStrip(rdcName);
   renderTodaysControl(rdcName);
   renderKPI(rdcName);
+  renderDoiReport(rdcName);
   renderBenchmark(rdcName);
   renderMgmtBenchmarkSummary(rdcName);
   renderExtraKpi(rdcName);
@@ -2187,6 +2357,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
 async function refreshLocalData(){
   const rows = await sbSelect('dashboard_data');
   RDC = rows[0].data;
+  applyOfficialDoiMetrics();
   const masterRows = await sbSelect('rdc_master');
   RDC_MASTER = {};
   masterRows.forEach(r=>{ RDC_MASTER[r.name] = r; });
@@ -2619,6 +2790,14 @@ function buildNationalAggregate(){
     delivery_trend: delivAgg.values, delivery_months: delivAgg.months,
     total_sdm: totSdm, kapasitas: totKap, stock_current: totStock,
   };
+  const doiNational = doiCalc(RDC['Semua']);
+  RDC['Semua'].avg_sales_3m = doiNational.avg3;
+  RDC['Semua'].avg_sales_6m = doiNational.avg6;
+  RDC['Semua'].doi_months = doiNational.doiMonths;
+  RDC['Semua'].doi_days = doiNational.doiDays;
+  RDC['Semua'].doi_status = doiNational.status;
+  RDC['Semua'].sales_trend_3m_vs_6m = doiNational.trendPct;
+  RDC['Semua'].invdays = doiNational.doiDays;
 
   const sumField = (f)=> names.reduce((s,n)=>s+(parseFloat(RDC_MASTER[n][f])||0),0);
   RDC_MASTER['Semua'] = {
@@ -3700,6 +3879,7 @@ async function bootDashboard(){
   RDC_MASTER = {};
   masterRows.forEach(r=>{ RDC_MASTER[r.name] = r; });
 
+  applyOfficialDoiMetrics();
   buildNationalAggregate();
   await loadActionTracker();
   try{
@@ -3716,6 +3896,7 @@ async function bootDashboard(){
 }
 
 function bootDashboardOffline(savedAt){
+  applyOfficialDoiMetrics();
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('appRoot').style.display='grid';
   applyRoleUI();
