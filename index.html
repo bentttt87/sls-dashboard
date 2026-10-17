@@ -494,6 +494,13 @@
   }
   #opsView [id^="opsAnchor"]{scroll-margin-top:150px;}
   @media(max-width:820px){.ops-subnav{top:58px;padding:7px 0}.ops-subnav button{font-size:10.5px;padding:7px 10px;}}
+
+  /* ===== UX SIMPLIFICATION PHASE 3 — SOURCE STATUS ===== */
+  .status-badge.live{color:#1E7B34;background:#E7F6EC;}
+  .status-badge.manual{color:#946200;background:#FFF3D6;}
+  .status-badge.trial{color:#1E4A7A;background:#E3F0FF;}
+  .data-status-legend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 12px;font-size:10.5px;color:var(--stone);}
+  .data-status-legend .legend-label{font-weight:800;color:var(--navy);margin-right:2px;}
 </style>
 </head>
 <body>
@@ -585,6 +592,13 @@
         <div id="viewTabsWrap" style="display:flex;gap:8px;border-bottom:1px solid var(--border);">
           <div class="view-tab active" data-view="mgmt" id="viewTabMgmt">MANAGEMENT</div>
           <div class="view-tab" data-view="ops" id="viewTabOps">OPERATIONAL</div>
+        </div>
+        <div class="data-status-legend" id="dataStatusLegend">
+          <span class="legend-label">Status data:</span>
+          <span class="status-badge live">LIVE</span>
+          <span class="status-badge manual">MANUAL</span>
+          <span class="status-badge trial">TRIAL</span>
+          <span class="status-badge required">DATA REQUIRED</span>
         </div>
       </div>
 
@@ -776,14 +790,14 @@
       <div class="about-box"><h3>Cara Pakai</h3>
         <table>
           <tr><td>1. Pilih RDC</td><td>Ganti dropdown di kanan atas, atau klik langsung kartu RDC di "Status Cepat per RDC".</td></tr>
-          <tr><td>2. Baca KPI</td><td>Kartu hijau "REAL" dihitung dari data asli. Kartu abu-abu "Data Belum Tersedia" menunggu sumber data tambahan.</td></tr>
+          <tr><td>2. Baca KPI</td><td>Chip status menunjukkan sumber data: LIVE = terhubung sistem, MANUAL = upload/input terkontrol, TRIAL = masih uji coba, DATA REQUIRED = sumber belum tersedia.</td></tr>
           <tr><td>3. Business Impact</td><td>Berubah otomatis sesuai RDC yang dipilih — memberi peringatan dan saran tindakan.</td></tr>
           <tr><td>4. Akses</td><td>User = lihat saja. Master = bisa tambah/ubah/hapus RDC lewat menu "Kelola RDC".</td></tr>
         </table>
       </div>
       <div class="about-box"><h3>Status KPI</h3>
         <table>
-          <tr><td>5 KPI Real</td><td>Occupancy, Capacity Remaining, Inventory Days (estimasi), Productivity (estimasi), Breakage Rate.</td></tr>
+          <tr><td>Status Sumber</td><td>LIVE / MANUAL / TRIAL / DATA REQUIRED ditampilkan konsisten pada KPI agar user langsung tahu kualitas sumber datanya.</td></tr>
           <tr><td>Inventory Accuracy</td><td>Aktif setelah hasil Stock Opname diupload; parser menerima format existing SLS (.xls/.xlsx/.ods) dan menghitung fisik vs stock buku/SAP.</td></tr>
           <tr><td>Belum Tersedia</td><td>OTIF, Dead Stock per SKU, Logistics Cost, Cost Saving.</td></tr>
           <tr><td>Direncanakan</td><td>Occupancy per m³ dan tren Rimpil (termasuk pemisahan dead stock vs masih bergerak) — menunggu data kapasitas volume gudang, data Rimpil bulanan, dan riwayat penjualan per SKU.</td></tr>
@@ -1246,14 +1260,14 @@ function exportDoiExcel(rdcName){
 }
 
 const KPI_DEFS_REAL = [
-  {key:'occ',   label:'Occupancy',  unit:'%', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Stock Saat Ini ÷ Kapasitas Gudang × 100%.', get:(d)=>d.occ_now, sowhat:(d)=> (d.occ_now>CONFIG.occ_overload_pct ? `<b>Overload</b> — kapasitas terlampaui ${Math.abs(d.caprem).toLocaleString('id-ID')} box.` : `Sisa kapasitas <b>${d.caprem.toLocaleString('id-ID')} box</b>.`) + ` <span class="detail-link" onclick="openDetail(event,'occ')">Ukuran gudang →</span>` },
-  {key:'caprem',label:'Capacity Remaining', unit:' box', dataStatus:'real', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Kapasitas Gudang − Stock Saat Ini.', get:(d)=>d.caprem, sowhat:(d)=> d.caprem<0 ? 'Kapasitas sudah minus — perlu solusi segera.' : `Dari total kapasitas <b>${d.kapasitas.toLocaleString('id-ID')} box</b>.` },
-  {key:'invdays',label:'DOI (Days Inventory)', unit:' hari', dataStatus:'calculated', group:'capacity', formula:'Official SLS DOI: Current Stock ÷ Rolling Average Sales 3 bulan penuh terakhir × 30 hari. Avg 6M hanya stability check; Last Year hanya benchmark.', get:(d)=>d.doi_days??d.invdays, sowhat:(d)=>`DOI <b>${doiFmt(d.doi_months,2)} bulan</b> · Avg Sales 3M <b>${doiFmt(d.avg_sales_3m)} box/bln</b> · Avg 6M ${doiFmt(d.avg_sales_6m)}. Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical}.` },
-  {key:'prod',  label:'Productivity', unit:' box/SDM/bln', dataStatus:'estimated', group:'productivity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Pengeluaran Total Box ÷ Total SDM.', get:(d)=>d.prod, sowhat:(d)=>{
+  {key:'occ',   label:'Occupancy',  unit:'%', dataStatus:'manual', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Stock Saat Ini ÷ Kapasitas Gudang × 100%.', get:(d)=>d.occ_now, sowhat:(d)=> (d.occ_now>CONFIG.occ_overload_pct ? `<b>Overload</b> — kapasitas terlampaui ${Math.abs(d.caprem).toLocaleString('id-ID')} box.` : `Sisa kapasitas <b>${d.caprem.toLocaleString('id-ID')} box</b>.`) + ` <span class="detail-link" onclick="openDetail(event,'occ')">Ukuran gudang →</span>` },
+  {key:'caprem',label:'Capacity Remaining', unit:' box', dataStatus:'manual', group:'capacity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Kapasitas Gudang − Stock Saat Ini.', get:(d)=>d.caprem, sowhat:(d)=> d.caprem<0 ? 'Kapasitas sudah minus — perlu solusi segera.' : `Dari total kapasitas <b>${d.kapasitas.toLocaleString('id-ID')} box</b>.` },
+  {key:'invdays',label:'DOI (Days Inventory)', unit:' hari', dataStatus:'manual', group:'capacity', formula:'Official SLS DOI: Current Stock ÷ Rolling Average Sales 3 bulan penuh terakhir × 30 hari. Avg 6M hanya stability check; Last Year hanya benchmark.', get:(d)=>d.doi_days??d.invdays, sowhat:(d)=>`DOI <b>${doiFmt(d.doi_months,2)} bulan</b> · Avg Sales 3M <b>${doiFmt(d.avg_sales_3m)} box/bln</b> · Avg 6M ${doiFmt(d.avg_sales_6m)}. Target ${CONFIG.invdays_target} hari · Watch ${CONFIG.invdays_watch} · Critical ${CONFIG.invdays_critical}.` },
+  {key:'prod',  label:'Productivity', unit:' box/SDM/bln', dataStatus:'manual', group:'productivity', formula:'Source: DATA_GENERAL_PROFIL. Formula: Pengeluaran Total Box ÷ Total SDM.', get:(d)=>d.prod, sowhat:(d)=>{
       const avg = nationalAvgProd(); const best = bestRDCProd();
       return `Dari Total SDM <span class="detail-link" onclick="openDetail(event,'sdm')">${d.total_sdm} orang →</span><br><span style="font-size:10px;">vs Rata-rata Nasional ${fmtNum(avg)} · vs Terbaik ${best}(${fmtNum(RDC[best].prod)})</span>`;
     } },
-  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'real', group:'quality', formula:'Source interim September 2026: Monthly Report / DATA_STOCK_OUT_PECAH. Formula legacy: Box Pecah ÷ Total Stock Out × 100%. Breakage Monitoring Jakarta masih trial sehingga belum menjadi source resmi Control Tower untuk periode September 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out · September 2026 · INTERIM MANUAL. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
+  {key:'pecah', label:'Breakage Rate (Pecah)', unit:'%', dataStatus:'manual', group:'quality', formula:'Source interim September 2026: Monthly Report / DATA_STOCK_OUT_PECAH. Formula legacy: Box Pecah ÷ Total Stock Out × 100%. Breakage Monitoring Jakarta masih trial sehingga belum menjadi source resmi Control Tower untuk periode September 2026.', get:(d)=>d.pecah_now, sowhat:()=>'% box pecah dari total stock out · September 2026 · INTERIM MANUAL. <span class="detail-link" onclick="openDetail(event,\'pecah\')">Per kategori →</span>' },
 ];
 const FINANCIAL_KPI_DEFS = [
   {label:'Working Capital Impact', need:'Nilai inventory harian dalam Rupiah (Finance)'},
@@ -1266,7 +1280,7 @@ const FINANCIAL_KPI_DEFS = [
 ];
 
 function statusBadgeHtml(dataStatus, formulaTooltip){
-  const map = {real:['REAL','real'], estimated:['ESTIMATED','estimated'], calculated:['CALCULATED','calculated'], forecast:['FORECAST','forecast'], required:['DATA REQUIRED','required']};
+  const map = {live:['LIVE','live'], real:['LIVE','live'], manual:['MANUAL','manual'], estimated:['MANUAL','manual'], calculated:['MANUAL','manual'], forecast:['MANUAL','manual'], trial:['TRIAL','trial'], required:['DATA REQUIRED','required']};
   const pair = map[dataStatus]||map.required;
   const title = formulaTooltip ? ` title="${formulaTooltip.replace(/"/g,'&quot;')}"` : '';
   return `<span class="status-badge ${pair[1]}"${title}>${pair[0]}${formulaTooltip?' ⓘ':''}</span>`;
