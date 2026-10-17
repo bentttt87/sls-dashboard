@@ -1068,7 +1068,7 @@ function doiStatusStyle(status){
 }
 function doiStatusBadge(status){
   const s=doiStatusStyle(status);
-  return \`<span style="display:inline-block;padding:3px 7px;border-radius:5px;background:\${s[0]};color:\${s[1]};font-size:9.5px;font-weight:800;">\${status}</span>\`;
+  return `<span style="display:inline-block;padding:3px 7px;border-radius:5px;background:${s[0]};color:${s[1]};font-size:9.5px;font-weight:800;">${status}</span>`;
 }
 function doiPeriodLabel(m){
   if(!m) return '—';
@@ -1094,7 +1094,7 @@ function renderDoiReport(rdcName){
   const natTrend=totalAvg6>0?(totalAvg3-totalAvg6)/totalAvg6*100:null;
   const latest=[...new Set(rows.map(r=>r.m.latestMonth).filter(Boolean))].sort().pop()||'—';
 
-  el.innerHTML = \`
+  el.innerHTML = `
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
@@ -1105,10 +1105,10 @@ function renderDoiReport(rdcName){
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;">
-        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Current Stock</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(totalStock)}</div><div class="kpi-sowhat">box · latest \${doiPeriodLabel(latest)}</div></div>
-        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Avg Sales 3M</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(totalAvg3)}</div><div class="kpi-sowhat">box/bulan · denominator DOI</div></div>
-        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">DOI</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${doiFmt(natDays,1)} <span class="unit">hari</span></div><div class="kpi-sowhat">\${doiFmt(natMonths,2)} bulan</div></div>
-        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">3M vs 6M Sales</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">\${natTrend==null?'—':(natTrend>=0?'+':'')+doiFmt(natTrend,1)+'%'}</div><div class="kpi-sowhat">6M hanya stability check</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Current Stock</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">${doiFmt(totalStock)}</div><div class="kpi-sowhat">box · latest ${doiPeriodLabel(latest)}</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Avg Sales 3M</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">${doiFmt(totalAvg3)}</div><div class="kpi-sowhat">box/bulan · denominator DOI</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">DOI</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">${doiFmt(natDays,1)} <span class="unit">hari</span></div><div class="kpi-sowhat">${doiFmt(natMonths,2)} bulan</div></div>
+        <div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">3M vs 6M Sales</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">${natTrend==null?'—':(natTrend>=0?'+':'')+doiFmt(natTrend,1)+'%'}</div><div class="kpi-sowhat">6M hanya stability check</div></div>
       </div>
 
       <div style="overflow-x:auto;margin-top:12px;">
@@ -1124,16 +1124,16 @@ function renderDoiReport(rdcName){
             <th style="padding:7px 8px;text-align:center;">Status</th>
           </tr></thead>
           <tbody>
-            \${rows.map(r=>\`<tr style="border-bottom:1px solid var(--border);">
-              <td style="padding:7px 8px;font-weight:700;text-align:left;">\${esc(displayName(r.name))}</td>
-              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.d.stock_current)}</td>
-              <td style="padding:7px 8px;text-align:right;font-weight:700;">\${doiFmt(r.m.avg3)}</td>
-              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.m.avg6)}</td>
-              <td style="padding:7px 8px;text-align:right;font-weight:800;color:var(--navy);">\${doiFmt(r.m.doiDays,1)}</td>
-              <td style="padding:7px 8px;text-align:right;">\${doiFmt(r.m.doiMonths,2)}</td>
-              <td style="padding:7px 8px;text-align:right;">\${r.m.trendPct==null?'—':(r.m.trendPct>=0?'+':'')+doiFmt(r.m.trendPct,1)+'%'}</td>
-              <td style="padding:7px 8px;text-align:center;">\${doiStatusBadge(r.m.status)}</td>
-            </tr>\`).join('')}
+            ${rows.map(r=>`<tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:7px 8px;font-weight:700;text-align:left;">${esc(displayName(r.name))}</td>
+              <td style="padding:7px 8px;text-align:right;">${doiFmt(r.d.stock_current)}</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:700;">${doiFmt(r.m.avg3)}</td>
+              <td style="padding:7px 8px;text-align:right;">${doiFmt(r.m.avg6)}</td>
+              <td style="padding:7px 8px;text-align:right;font-weight:800;color:var(--navy);">${doiFmt(r.m.doiDays,1)}</td>
+              <td style="padding:7px 8px;text-align:right;">${doiFmt(r.m.doiMonths,2)}</td>
+              <td style="padding:7px 8px;text-align:right;">${r.m.trendPct==null?'—':(r.m.trendPct>=0?'+':'')+doiFmt(r.m.trendPct,1)+'%'}</td>
+              <td style="padding:7px 8px;text-align:center;">${doiStatusBadge(r.m.status)}</td>
+            </tr>`).join('')}
           </tbody>
         </table>
       </div>
@@ -1142,7 +1142,7 @@ function renderDoiReport(rdcName){
         <b>Data governance:</b> Avg Sales 3M adalah denominator DOI resmi. Avg Sales 6M hanya stability check. Same-period Last Year akan ditampilkan sebagai benchmark setelah historical sales SAP tersedia dan <b>tidak</b> menggantikan denominator 3M.
         <br><b>Interim source:</b> monthly outbound/delivery trend yang sudah tervalidasi. Target future source: SAP/TMS sales-delivery + WMS current stock.
       </div>
-    </div>\`;
+    </div>`;
 
   const btn=document.getElementById('doiExcelBtn');
   if(btn) btn.onclick=()=>exportDoiExcel(rdcName);
@@ -1164,7 +1164,7 @@ function exportDoiExcel(rdcName){
   ws['!cols']=[{wch:16},{wch:14},{wch:18},{wch:24},{wch:24},{wch:12},{wch:12},{wch:14},{wch:16},{wch:34}];
   XLSX.utils.book_append_sheet(wb,ws,'DOI Report');
   const suffix=(rdcName&&rdcName!=='Semua'?rdcName:'National').replace(/\s+/g,'_');
-  XLSX.writeFile(wb,\`SLS_DOI_Stock_vs_AvgSales_\${suffix}.xlsx\`);
+  XLSX.writeFile(wb,`SLS_DOI_Stock_vs_AvgSales_${suffix}.xlsx`);
 }
 
 const KPI_DEFS_REAL = [
