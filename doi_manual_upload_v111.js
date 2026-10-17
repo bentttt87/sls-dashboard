@@ -72,7 +72,7 @@
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">'+
           '<div><div style="font-size:14px;font-weight:800;color:var(--navy);">DOI &amp; Stock vs Average Sales</div>'+
           '<div style="font-size:10.5px;color:var(--stone);margin-top:2px;">DOI = Physical Stock ÷ Avg Sales 3M × 30 hari</div></div>'+
-          '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+uploadBtn+'<button class="export-btn" id="doiRecoExcelBtnV111" style="padding:6px 10px;font-size:10.5px;background:#0F5A78;color:#fff;">📥 Export SKU Recommendation</button><button class="export-btn" id="doiExcelBtnV111" style="padding:6px 10px;font-size:10.5px;">📊 Export DOI Excel</button></div>'+
+          '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+uploadBtn+'<button class="export-btn" id="doiReportMenuBtnV111" style="padding:6px 10px;font-size:10.5px;background:#0F5A78;color:#fff;">⬇ Download Report</button><button id="doiRecoExcelBtnV111" style="display:none;"></button><button id="doiExcelBtnV111" style="display:none;"></button></div>'+
         '</div>'+
         '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px;">'+
           '<div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Current Stock</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">'+fmt(n.current_stock)+'</div><div class="kpi-sowhat">box · physical inventory</div></div>'+
@@ -94,6 +94,7 @@
 
     var reco=document.getElementById('doiRecoExcelBtnV111'); if(reco) reco.onclick=function(){exportSkuRecommendation(rdcName);};
     var ex=document.getElementById('doiExcelBtnV111'); if(ex) ex.onclick=function(){exportManualDoi(rdcName);};
+    var menu=document.getElementById('doiReportMenuBtnV111'); if(menu) menu.onclick=function(){ if(typeof openReportsExportModal==='function') openReportsExportModal(); else exportManualDoi(rdcName); };
     var up=document.getElementById('doiUploadBtnV111'); if(up) up.onclick=openUploadModal;
   }
 
