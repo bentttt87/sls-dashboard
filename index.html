@@ -512,6 +512,19 @@
   .report-action-card span{display:block;font-size:10.5px;font-weight:500;color:var(--stone);margin-top:4px;line-height:1.35;}
   .report-action-card:hover{background:#F5F7FA;border-color:#B8C3D3;}
   @media(max-width:620px){.report-action-grid{grid-template-columns:1fr;}}
+
+  /* ===== UX SIMPLIFICATION PHASE 5 — MANAGEMENT FOCUS ===== */
+  .mgmt-detail-collapsed #mgmtDetailLabelKpi,
+  .mgmt-detail-collapsed #managerKpiScorecard,
+  .mgmt-detail-collapsed #managerKpiRecap,
+  .mgmt-detail-collapsed #mgmtDetailTrendBench{display:none!important;}
+  .mgmt-detail-toggle-row{display:flex;justify-content:center;margin:14px 0 4px;}
+  .mgmt-detail-toggle-row .mgmt-flow-toggle{min-width:260px;}
+  #managementFinancialSection{margin-top:8px;}
+  #mgmtView .executive-statement-redesign{font-size:13px!important;line-height:1.55!important;}
+  #top5Grid .opp-card{margin-bottom:8px!important;}
+  #top5Grid .opp-body{font-size:12px!important;line-height:1.5!important;}
+  @media(max-width:720px){.mgmt-detail-toggle-row .mgmt-flow-toggle{width:100%;min-width:0;}}
 </style>
 </head>
 <body>
@@ -614,7 +627,7 @@
       </div>
 
       <!-- ===================== MANAGEMENT VIEW ===================== -->
-      <div id="mgmtView">
+      <div id="mgmtView" class="mgmt-detail-collapsed">
         <section class="hero-control-tower">
           <div class="hero-overlay">
             <div>
@@ -649,7 +662,7 @@
         <div id="priorityKpiStrip" class="priority-redesign"></div>
         <div id="kpiDetailWorkspace" style="display:none;margin-bottom:14px;"></div>
 
-        <div class="section-label redesign-label">Warehouse &amp; Logistics Manager KPI <span class="tag">Bobot 100%</span></div>
+        <div class="section-label redesign-label" id="mgmtDetailLabelKpi">Warehouse &amp; Logistics Manager KPI <span class="tag">Bobot 100%</span></div>
         <div id="managerKpiScorecard" class="manager-kpi-grid"></div>
         <div id="managerKpiRecap" class="impact-card blue" style="margin-top:10px;"></div>
 
@@ -671,12 +684,16 @@
             <div><div class="section-label redesign-label">Keputusan yang Dibutuhkan</div><div id="decisionGrid"></div></div>
           </div>
           <details class="v3-details">
-            <summary><span>Management Insight Engine — Analysis Detail</span><span class="tag">v3 · evidence based</span></summary>
+            <summary><span>Analisa Pendukung</span><span class="tag">detail</span></summary>
             <div class="v3-detail-body"><div id="impactGrid"></div></div>
           </details>
         </div>
 
-        <div class="management-two-col">
+        <div class="mgmt-detail-toggle-row">
+          <button type="button" id="mgmtDetailToggle" class="mgmt-flow-toggle">Lihat KPI Manager & Analisa Detail ▾</button>
+        </div>
+
+        <div class="management-two-col" id="mgmtDetailTrendBench">
           <div><div class="section-label redesign-label">Tren &amp; Peringatan</div><div id="forecastCard"></div></div>
           <div><div class="section-label redesign-label">Perbandingan RDC</div><div id="mgmtBenchmarkSummary"></div></div>
         </div>
@@ -1548,7 +1565,7 @@ function renderExecutiveStatement(rdcName){
   const el=document.getElementById('executiveStatement'); if(!el) return;
   const issues=calcAllIssues().sort((a,b)=>b.priorityScore-a.priorityScore); const top=issues[0]; const decisionIssue=issues.find(isManagementDecisionRequired);
   if(!top){ el.textContent='Kondisi seluruh RDC dalam rentang sehat pada periode ini — tidak ada isu signifikan yang terdeteksi.'; return; }
-  el.innerHTML=`<b>Management Insight:</b> ${top.insight} <b>Exposure:</b> ${top.exposureValue} <b>Decision:</b> ${top.managementDecision} <span class="confidence-chip ${top.confidenceCls}">Confidence ${top.confidence}%</span>`;
+  el.innerHTML=`<b>Inti:</b> ${top.insight} <b>Dampak:</b> ${top.exposureValue} <b>Keputusan:</b> ${top.managementDecision}`;
 }
 
 // Operational View: "Today's Control" — critical/watch/normal counts + actionable list, derived from the same issue engine
@@ -2444,6 +2461,15 @@ if(rangePickerToggle){
   });
 }
 
+const mgmtDetailToggle=document.getElementById('mgmtDetailToggle');
+if(mgmtDetailToggle){
+  mgmtDetailToggle.addEventListener('click',()=>{
+    const view=document.getElementById('mgmtView');
+    if(!view)return;
+    const collapsed=view.classList.toggle('mgmt-detail-collapsed');
+    mgmtDetailToggle.textContent=collapsed?'Lihat KPI Manager & Analisa Detail ▾':'Sembunyikan KPI Manager & Analisa Detail ▴';
+  });
+}
 const mgmtFlowToggle=document.getElementById('mgmtFlowToggle');
 if(mgmtFlowToggle){
   mgmtFlowToggle.addEventListener('click',()=>{
