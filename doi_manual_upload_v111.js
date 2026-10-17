@@ -72,7 +72,7 @@
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">'+
           '<div><div style="font-size:14px;font-weight:800;color:var(--navy);">DOI &amp; Stock vs Average Sales</div>'+
           '<div style="font-size:10.5px;color:var(--stone);margin-top:2px;">Official: Physical Inventory ÷ Rolling Avg Sales 3 bulan penuh × 30 hari · source manual sementara</div></div>'+
-          '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+uploadBtn+'<button class="export-btn" id="doiExcelBtnV111" style="padding:6px 10px;font-size:10.5px;">📊 Export DOI Excel</button></div>'+
+          '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+uploadBtn+'<button class="export-btn" id="doiRecoExcelBtnV111" style="padding:6px 10px;font-size:10.5px;background:#0F5A78;color:#fff;">📥 Export SKU Recommendation</button><button class="export-btn" id="doiExcelBtnV111" style="padding:6px 10px;font-size:10.5px;">📊 Export DOI Excel</button></div>'+
         '</div>'+
         '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px;">'+
           '<div class="kpi-card" style="min-height:auto;padding:11px;"><div class="kpi-label">Current Stock</div><div class="kpi-value" style="font-size:20px;margin:5px 0;">'+fmt(n.current_stock)+'</div><div class="kpi-sowhat">box · physical inventory</div></div>'+
@@ -92,8 +92,84 @@
         '</div>'+
       '</div>';
 
+    var reco=document.getElementById('doiRecoExcelBtnV111'); if(reco) reco.onclick=function(){exportSkuRecommendation(rdcName);};
     var ex=document.getElementById('doiExcelBtnV111'); if(ex) ex.onclick=function(){exportManualDoi(rdcName);};
     var up=document.getElementById('doiUploadBtnV111'); if(up) up.onclick=openUploadModal;
+  }
+
+  async function exportSkuRecommendation(rdcName){
+    var scopeRdc = (typeof CURRENT_RDC_SCOPE!=='undefined' && CURRENT_RDC_SCOPE) ? CURRENT_RDC_SCOPE : ((rdcName && rdcName!=='Semua') ? rdcName : 'ALL');
+    var btn=document.getElementById('doiRecoExcelBtnV111');
+    if(btn){btn.disabled=true;btn.textContent='⏳ Menyiapkan Excel…';}
+    try{
+      var d=await sbRpc('doi_manual_recommendation_v1',{p_rdc:scopeRdc});
+      var rows=(d&&Array.isArray(d.rows))?d.rows:[];
+      if(!rows.length){
+        alert('Belum ada detail SKU yang dipublish. Klik "Upload Data Manual", upload file PR Reference RDC, Validasi & Preview, lalu Publish. Setelah itu tombol ini akan menghasilkan rekomendasi SKU.');
+        return;
+      }
+
+      var headers=['RDC','Snapshot Date','Sales Through','Material','Description','Group','Size','Collection','Product Status',
+        'Physical Inventory','Reserved','Free Stock','OTS PO','Avg Sales 3M','Avg Sales 6M','DOI Days','DOI Months',
+        'Target Stock 2M / Min 20','Excess Qty','Transferable Qty','Shortage After OTS','Transfer Opportunity Qty',
+        'Target RDC','Residual Excess','National Avg Sales 3M','Recommended Action','Recommended Qty','Source File'];
+
+      function rowArray(r){
+        return [r.rdc,r.snapshot_date||'',r.sales_through_month||'',r.material_code||'',r.material_desc||'',r.product_group||'',
+          r.size||'',r.collection||'',r.product_status||'',Number(r.physical_inventory||0),Number(r.physical_reserved||0),
+          Number(r.free_stock||0),Number(r.ots_po||0),Number(r.avg_sales_3m||0),Number(r.avg_sales_6m||0),
+          r.doi_days==null?'':Number(r.doi_days),r.doi_months==null?'':Number(r.doi_months),Number(r.target_stock||0),
+          Number(r.excess_qty||0),Number(r.transferable_qty||0),Number(r.shortage_after_ots||0),Number(r.transfer_opportunity_qty||0),
+          r.target_rdc||'',Number(r.residual_excess_qty||0),Number(r.national_avg_sales_3m||0),r.recommended_action||'',
+          Number(r.recommended_qty||0),r.source_file||''];
+      }
+
+      var counts={};
+      var qtys={};
+      rows.forEach(function(r){
+        var a=r.recommended_action||'OTHER';
+        counts[a]=(counts[a]||0)+1;
+        qtys[a]=(qtys[a]||0)+Number(r.recommended_qty||0);
+      });
+
+      var summary=[
+        ['SLS INVENTORY RECOVERY RECOMMENDATION','',''],
+        ['Scope',scopeRdc==='ALL'?'National / All RDC':scopeRdc,''],
+        ['Method','Target Stock = MAX(Avg Sales 3M × 2 months, 20 box)','',''],
+        ['Priority','Transfer antar-RDC → Flush Out Candidate → Hold PR / Reduce → Replenish → Maintain',''],
+        ['','',''],
+        ['Recommended Action','SKU Count','Recommended Qty Box']
+      ];
+      Object.keys(counts).sort().forEach(function(a){summary.push([a,counts[a],Math.round(qtys[a]*100)/100]);});
+
+      function makeSheet(data,name){
+        var ws=XLSX.utils.aoa_to_sheet([headers].concat(data.map(rowArray)));
+        ws['!cols']=[
+          {wch:14},{wch:14},{wch:13},{wch:16},{wch:38},{wch:15},{wch:12},{wch:18},{wch:16},
+          {wch:16},{wch:12},{wch:14},{wch:12},{wch:16},{wch:16},{wch:11},{wch:11},{wch:20},
+          {wch:14},{wch:16},{wch:16},{wch:20},{wch:14},{wch:16},{wch:20},{wch:22},{wch:16},{wch:42}
+        ];
+        XLSX.utils.book_append_sheet(wb,ws,name);
+      }
+
+      var wb=XLSX.utils.book_new();
+      var wsSum=XLSX.utils.aoa_to_sheet(summary);
+      wsSum['!cols']=[{wch:28},{wch:65},{wch:20}];
+      XLSX.utils.book_append_sheet(wb,wsSum,'Management Summary');
+
+      makeSheet(rows,'SKU Recommendation');
+      makeSheet(rows.filter(function(r){return r.recommended_action==='TRANSFER';}),'Transfer Plan');
+      makeSheet(rows.filter(function(r){return r.recommended_action==='FLUSH OUT CANDIDATE';}),'Flushout Candidates');
+      makeSheet(rows.filter(function(r){return r.recommended_action==='HOLD PR / REDUCE'||r.recommended_action==='MONITOR OVERSTOCK';}),'Hold PR Reduce');
+      makeSheet(rows.filter(function(r){return r.recommended_action==='REPLENISH / PR';}),'Replenishment');
+
+      var suffix=(scopeRdc==='ALL'?'National':scopeRdc).replace(/\s+/g,'_');
+      XLSX.writeFile(wb,'SLS_SKU_Inventory_Recovery_Recommendation_'+suffix+'.xlsx');
+    }catch(e){
+      alert('Gagal membuat rekomendasi SKU: '+(e.message||e));
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='📥 Export SKU Recommendation';}
+    }
   }
 
   function exportManualDoi(rdcName){
