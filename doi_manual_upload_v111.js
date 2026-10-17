@@ -330,6 +330,56 @@
     finally{btn.disabled=false;}
   }
 
+  async function syncManualDoiToRdc(){
+    try{
+      var d=await sbRpc('doi_manual_summary_v1',{p_rdc:'ALL'});
+      if(!d||!Array.isArray(d.rows)||!d.rows.length)return;
+      d.rows.forEach(function(r){
+        var x=(typeof RDC!=='undefined')?RDC[r.rdc]:null;
+        if(!x)return;
+        x.avg_sales_3m=Number(r.avg_sales_3m||0);
+        x.avg_sales_6m=Number(r.avg_sales_6m||0);
+        x.doi_days=r.doi_days==null?null:Number(r.doi_days);
+        x.doi_months=r.doi_months==null?null:Number(r.doi_months);
+        x.doi_status=r.status||'DATA REQUIRED';
+        x.sales_trend_3m_vs_6m=r.trend_3m_vs_6m==null?null:Number(r.trend_3m_vs_6m);
+        x.doi_latest_month=r.sales_through_month||null;
+        x.invdays=x.doi_days;
+      });
+      if(typeof RDC!=='undefined' && RDC['Semua'] && d.national){
+        var n=d.national;
+        RDC['Semua'].avg_sales_3m=Number(n.avg_sales_3m||0);
+        RDC['Semua'].avg_sales_6m=Number(n.avg_sales_6m||0);
+        RDC['Semua'].doi_days=n.doi_days==null?null:Number(n.doi_days);
+        RDC['Semua'].doi_months=n.doi_months==null?null:Number(n.doi_months);
+        RDC['Semua'].sales_trend_3m_vs_6m=n.trend_3m_vs_6m==null?null:Number(n.trend_3m_vs_6m);
+        RDC['Semua'].invdays=RDC['Semua'].doi_days;
+      }
+      DOI_MANUAL_CACHE_V111=d;
+    }catch(e){console.warn('DOI manual sync skipped',e);}
+  }
+  window.applyDoiManualSummaryV111=syncManualDoiToRdc;
+
+  try{
+    if(typeof bootDashboard==='function'){
+      var _bootDoiV111=bootDashboard;
+      bootDashboard=async function(){
+        var v=await _bootDoiV111.apply(this,arguments);
+        await syncManualDoiToRdc();
+        if(typeof render==='function')render((typeof CURRENT_RDC_SCOPE!=='undefined'&&CURRENT_RDC_SCOPE)||(typeof CURRENT_RDC!=='undefined'?CURRENT_RDC:'Semua'));
+        return v;
+      };
+    }
+    if(typeof refreshLocalData==='function'){
+      var _refreshDoiV111=refreshLocalData;
+      refreshLocalData=async function(){
+        var v=await _refreshDoiV111.apply(this,arguments);
+        await syncManualDoiToRdc();
+        return v;
+      };
+    }
+  }catch(e){console.warn('DOI boot sync patch skipped',e);}
+
   try{
     renderDoiReport = renderManualDoi;
     exportDoiExcel = exportManualDoi;
