@@ -801,7 +801,7 @@
 
       <div class="footer-note">
         <b>Sumber data real:</b> DATA_GENERAL_PROFIL (latest manual baseline s.d. Aug 2026), DATA_STOCK_HISTORY, monthly outbound/delivery trend, DATA_STOCK_OUT_PECAH — disimpan di Supabase. <b>DOI:</b> Current Stock ÷ Rolling Avg Sales 3M × 30; Avg 6M = stability check, Last Year = benchmark only.<br>
-        <b>Belum bisa dihitung (DATA REQUIRED):</b> Working Capital, Dead Stock Value, Breakage Financial Loss, Logistics Cost, OTIF. Inventory Accuracy aktif setelah hasil Stock Opname diupload melalui menu Upload Stock Opname. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
+        <b>DATA REQUIRED:</b> Working Capital, Dead Stock Value (Rp), Breakage Financial Loss, Logistics Cost, OTIF. <b>Dead Stock Qty</b> sudah dihitung manual dari PR Reference per SKU. Inventory Accuracy aktif setelah hasil Stock Opname diupload melalui menu Upload Stock Opname. <span id="footerScopedNote" style="display:none;">(Management View hanya bisa dilihat oleh akses Master.)</span>
       </div>
     </div>
 
@@ -863,7 +863,7 @@
         <table>
           <tr><td>Status Sumber</td><td>LIVE / MANUAL / TRIAL / DATA REQUIRED ditampilkan konsisten pada KPI agar user langsung tahu kualitas sumber datanya.</td></tr>
           <tr><td>Inventory Accuracy</td><td>Aktif setelah hasil Stock Opname diupload; parser menerima format existing SLS (.xls/.xlsx/.ods) dan menghitung fisik vs stock buku/SAP.</td></tr>
-          <tr><td>Belum Tersedia</td><td>OTIF, Dead Stock per SKU, Logistics Cost, Cost Saving.</td></tr>
+          <tr><td>Dead Stock</td><td>Qty/SKU dihitung dari PR Reference: no movement 3M = candidate; 6M = strong candidate. Nilai Rupiah masih menunggu standard/unit cost per SKU.</td></tr><tr><td>Belum Tersedia</td><td>OTIF, Dead Stock Value (Rp), Logistics Cost, Cost Saving.</td></tr>
           <tr><td>Direncanakan</td><td>Occupancy per m³ dan tren Rimpil (termasuk pemisahan dead stock vs masih bergerak) — menunggu data kapasitas volume gudang, data Rimpil bulanan, dan riwayat penjualan per SKU.</td></tr>
         </table>
       </div>
@@ -1473,7 +1473,6 @@ function renderHighlightStrip(){
 const KPI_EMPTY_BASIC = [
   {label:'OTIF', group:'service', need:'data kelengkapan qty ("in full") — Delivery Speed di bawah ini BUKAN OTIF, baru komponen "on-time"-nya saja'},
   {key:'inventory_accuracy', label:'Inventory Accuracy', group:'capacity', need:'data stock opname vs sistem'},
-  {label:'Dead Stock', group:'capacity', need:'data stock per SKU + tanggal keluar terakhir'},
   {label:'Logistics Cost', group:'financial-only', need:'data biaya pengiriman (Rupiah)'},
   {label:'Cost Saving', group:'financial-only', need:'baseline Logistics Cost'},
 ];
@@ -1564,6 +1563,29 @@ function kpiEmptyCardHtml(k){
   </div>`;
 }
 
+function renderDeadStockCard(rdcName){
+  const d=RDC[rdcName]||{};
+  const box3=Number(d.deadstock_3m_box);
+  const box6=Number(d.deadstock_6m_box);
+  const sku3=Number(d.deadstock_3m_sku);
+  const sku6=Number(d.deadstock_6m_sku);
+  const hasData=Number.isFinite(box3) && box3>=0;
+  if(!hasData){
+    return '<div class="kpi-card empty"><div class="kpi-top"><div class="kpi-label">Dead Stock Qty</div>'+statusBadgeHtml('required')+'</div><div class="kpi-value">Data Belum Tersedia</div><div class="kpi-sowhat">Upload PR Reference per RDC untuk menghitung no-movement per SKU.</div></div>';
+  }
+  const stock=Number(d.stock_current||0);
+  const pct=stock>0?box3/stock*100:null;
+  const cls=pct!=null && pct>=20?'crit':(pct!=null && pct>=10?'warn':'');
+  const s3=sku3?' · '+fmtNum(sku3)+' SKU':'';
+  const s6=sku6?' · '+fmtNum(sku6)+' SKU':'';
+  const exposure=pct!=null?'<br><span style="font-size:10.5px;">Exposure '+pct.toFixed(1)+'% dari current stock.</span>':'';
+  return '<div class="kpi-card '+cls+'">'+
+    '<div class="kpi-top"><div class="kpi-label">Dead Stock Candidate</div>'+statusBadgeHtml('manual','Source: PR Reference per SKU. Candidate = Physical Inventory > 0 dan tidak ada sales/outbound positif selama rolling 3 bulan. Strong Candidate = tidak ada movement 6 bulan.')+'</div>'+
+    '<div class="kpi-value">'+fmtNum(box3)+'<span class="unit"> box</span></div>'+
+    '<div class="kpi-sowhat">No movement 3M: <b>'+fmtNum(box3)+' box</b>'+s3+'.<br>Strong candidate 6M: <b>'+fmtNum(box6)+' box</b>'+s6+'.'+exposure+' <span class="detail-link" onclick="if(typeof openReportsExportModal===\'function\')openReportsExportModal()">Download rekomendasi SKU →</span></div>'+
+  '</div>';
+}
+
 // Operational View: KPI split into 4 purpose-grouped grids (Capacity&Inventory / Service&Fulfillment / Productivity / Quality)
 function renderKPI(rdcName){
   const d = RDC[rdcName];
@@ -1572,6 +1594,7 @@ function renderKPI(rdcName){
   KPI_DEFS_REAL.forEach(k=>{ html[k.group] += kpiCardHtml(k, d); });
   html.service += renderDeliverySpeedCard(rdcName);
   KPI_EMPTY_BASIC.forEach(k=>{ if(k.group!=='financial-only') html[k.group] += kpiEmptyCardHtml(k); });
+  html.capacity += renderDeadStockCard(rdcName);
   Object.keys(targets).forEach(g=>{
     const el = document.getElementById(targets[g]);
     if(el) el.innerHTML = html[g];
@@ -6069,7 +6092,7 @@ setTimeout(syncManagementStoryline,1200);
 
 </script>
 
-<script src="doi_manual_upload_v111.js?v=20261017e"></script>
+<script src="doi_manual_upload_v111.js?v=20261018a"></script>
 <script src="inventory_action_v112.js?v=20261017a"></script>
 <script src="ecosystem_v72.js?v=20260914a"></script>
 <script src="wms_integration_v94.js?v=20260916c"></script>
