@@ -543,12 +543,15 @@
   @media(max-width:720px){.mgmt-detail-toggle-row .mgmt-flow-toggle{width:100%;min-width:0;}}
 
   /* KPI MINI VISUAL V113: all mini graphic areas have consistent height. */
+  /* Balanced 3x2 layout avoids leaving a single sixth card orphaned below five cards. */
+  #mgmtKpiStrip{grid-template-columns:repeat(3,minmax(0,1fr));}
   #mgmtKpiStrip .kpi-card{min-height:162px;}
   #mgmtKpiStrip .kpi-spark{min-height:28px;}
   .kpi-spark{min-height:28px;align-items:center;}
   .kpi-viz-note{font-size:10.5px;color:#7D8996;}
   #mgmtKpiStrip .kpi-label{font-size:11px!important;}
-  @media(max-width:820px){#mgmtKpiStrip .kpi-card{min-height:147px;}}
+  @media(max-width:820px){#mgmtKpiStrip{grid-template-columns:repeat(2,minmax(0,1fr));}#mgmtKpiStrip .kpi-card{min-height:147px;}}
+  @media(max-width:480px){#mgmtKpiStrip{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
