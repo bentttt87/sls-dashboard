@@ -552,6 +552,12 @@
   #mgmtKpiStrip .kpi-label{font-size:11px!important;}
   @media(max-width:820px){#mgmtKpiStrip{grid-template-columns:repeat(2,minmax(0,1fr));}#mgmtKpiStrip .kpi-card{min-height:147px;}}
   @media(max-width:480px){#mgmtKpiStrip{grid-template-columns:1fr;}}
+
+/* Operational KPI mini visual: a benchmark bar is never represented as a historical trend. */
+.kpi-mini-visual{margin:13px 0 10px;font-size:10.5px;color:var(--stone);line-height:1.4}
+.kpi-mini-track{position:relative;height:6px;background:#E9EDF2;border-radius:99px;margin-bottom:5px;overflow:hidden}
+.kpi-mini-track span{display:block;height:100%;border-radius:99px}
+.kpi-mini-note{min-height:27px;display:flex;align-items:center;font-size:10.5px;color:var(--stone);font-style:italic;margin:9px 0}
 </style>
 </head>
 <body>
@@ -1521,13 +1527,30 @@ function renderDeliverySpeedCard(rdcName){
 // No new data is invented; a KPI with no trend history simply shows nothing.
 const SPARK_SERIES = {
   occ:     d => ({vals: d.occ_trend,      months: d.occ_months,      better:'lower'}),
+  caprem:  d => ({vals: (d.occ_trend||[]).map(v=>Number.isFinite(Number(v)) && Number(d.kapasitas)>0 ? Math.round(Number(d.kapasitas)*(1-Number(v)/100)) : null), months:d.occ_months, better:'higher'}),
   pecah:   d => ({vals: d.pecah_trend,    months: d.pecah_months,    better:'lower'}),
 };
+function kpiMiniVisual(k,d,v){
+  if(k.key==='invdays'){
+    if(!Number.isFinite(Number(v))) return '<div class="kpi-mini-note">Tren DOI menunggu snapshot bulanan</div>';
+    const target=Number(CONFIG.invdays_target||45), critical=Number(CONFIG.invdays_critical||75);
+    const pct=Math.max(0,Math.min(100,Number(v)/Math.max(critical,1)*100));
+    const color=Number(v)>critical?'#BD3D32':Number(v)>target?'#CD8A1A':'#2D8153';
+    return '<div class="kpi-mini-visual" title="Posisi DOI terhadap batas critical '+critical+' hari"><div class="kpi-mini-track"><span style="width:'+pct+'%;background:'+color+'"></span></div><span>Target '+target+' hari · batas '+critical+'</span></div>';
+  }
+  if(k.key==='prod'){
+    const benchmark=typeof nationalAvgProd==='function'?Number(nationalAvgProd()):NaN;
+    if(!Number.isFinite(Number(v))||!Number.isFinite(benchmark)||benchmark<=0) return '<div class="kpi-mini-note">Tren produktivitas belum tersedia</div>';
+    const pct=Math.max(0,Math.min(100,Number(v)/benchmark*70));
+    return '<div class="kpi-mini-visual" title="Perbandingan terhadap rata-rata nasional, bukan tren waktu"><div class="kpi-mini-track"><span style="width:'+pct+'%;background:#35678B"></span></div><span>Benchmark: '+Math.round(benchmark).toLocaleString('id-ID')+' box/SDM/bln</span></div>';
+  }
+  return '<div class="kpi-mini-note">Tren bulanan belum tersedia</div>';
+}
 function sparkHtml(k, d){
   const s = SPARK_SERIES[k.key] ? SPARK_SERIES[k.key](d) : null;
-  if(!s || !Array.isArray(s.vals) || s.vals.length < 2) return '';
-  const vals = s.vals.filter(v=>typeof v === 'number' && isFinite(v));
-  if(vals.length < 2) return '';
+  if(!s || !Array.isArray(s.vals) || s.vals.length < 2) return kpiMiniVisual(k,d,k.get(d));
+  const vals = s.vals.filter(v=>typeof v === 'number' && Number.isFinite(v));
+  if(vals.length < 2) return kpiMiniVisual(k,d,k.get(d));
   const min = Math.min(...vals), max = Math.max(...vals), span = (max-min)||1;
   const W = 78, H = 22;
   const pts = vals.map((v,i)=>{
