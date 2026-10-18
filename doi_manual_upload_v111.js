@@ -428,6 +428,10 @@
         x.doi_status=r.status||'DATA REQUIRED';
         x.sales_trend_3m_vs_6m=r.trend_3m_vs_6m==null?null:Number(r.trend_3m_vs_6m);
         x.doi_latest_month=r.sales_through_month||null;
+        x.deadstock_3m_box=Number(r.no_movement_3m_stock||0);
+        x.deadstock_6m_box=Number(r.no_movement_6m_stock||0);
+        x.deadstock_3m_sku=Number(r.no_movement_3m_sku||0);
+        x.deadstock_6m_sku=Number(r.no_movement_6m_sku||0);
         x.invdays=x.doi_days;
       });
       if(typeof RDC!=='undefined' && RDC['Semua'] && d.national){
@@ -437,6 +441,10 @@
         RDC['Semua'].doi_days=n.doi_days==null?null:Number(n.doi_days);
         RDC['Semua'].doi_months=n.doi_months==null?null:Number(n.doi_months);
         RDC['Semua'].sales_trend_3m_vs_6m=n.trend_3m_vs_6m==null?null:Number(n.trend_3m_vs_6m);
+        RDC['Semua'].deadstock_3m_box=Number(n.no_movement_3m_stock||0);
+        RDC['Semua'].deadstock_6m_box=Number(n.no_movement_6m_stock||0);
+        RDC['Semua'].deadstock_3m_sku=(d.rows||[]).reduce(function(s,r){return s+Number(r.no_movement_3m_sku||0);},0);
+        RDC['Semua'].deadstock_6m_sku=(d.rows||[]).reduce(function(s,r){return s+Number(r.no_movement_6m_sku||0);},0);
         RDC['Semua'].invdays=RDC['Semua'].doi_days;
       }
       DOI_MANUAL_CACHE_V111=d;
