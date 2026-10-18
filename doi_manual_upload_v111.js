@@ -112,16 +112,18 @@
 
       var headers=['RDC','Snapshot Date','Sales Through','Material','Description','Group','Size','Collection','Product Status',
         'Physical Inventory','Reserved','Free Stock','OTS PO','Avg Sales 3M','Avg Sales 6M','DOI Days','DOI Months',
-        'Target Stock 2M / Min 20','Excess Qty','Transferable Qty','Shortage After OTS','Transfer Opportunity Qty',
-        'Target RDC','Residual Excess','National Avg Sales 3M','Recommended Action','Recommended Qty','Source File'];
+        'Target Stock 2M / Min 20','Excess Qty','Transferable Qty','Shortage After OTS','Preferred Corridor',
+        'Target RDC','Target Shortage','Transfer Opportunity Qty','Residual Actionable Excess','Residual Excess',
+        'National Avg Sales 3M','Recommended Action','Recommended Qty','Source File'];
 
       function rowArray(r){
         return [r.rdc,r.snapshot_date||'',r.sales_through_month||'',r.material_code||'',r.material_desc||'',r.product_group||'',
           r.size||'',r.collection||'',r.product_status||'',Number(r.physical_inventory||0),Number(r.physical_reserved||0),
           Number(r.free_stock||0),Number(r.ots_po||0),Number(r.avg_sales_3m||0),Number(r.avg_sales_6m||0),
           r.doi_days==null?'':Number(r.doi_days),r.doi_months==null?'':Number(r.doi_months),Number(r.target_stock||0),
-          Number(r.excess_qty||0),Number(r.transferable_qty||0),Number(r.shortage_after_ots||0),Number(r.transfer_opportunity_qty||0),
-          r.target_rdc||'',Number(r.residual_excess_qty||0),Number(r.national_avg_sales_3m||0),r.recommended_action||'',
+          Number(r.excess_qty||0),Number(r.transferable_qty||0),Number(r.shortage_after_ots||0),r.route_policy||'',
+          r.target_rdc||'',Number(r.partner_shortage||0),Number(r.transfer_opportunity_qty||0),Number(r.residual_actionable_excess||0),
+          Number(r.residual_excess_qty||0),Number(r.national_avg_sales_3m||0),r.recommended_action||'',
           Number(r.recommended_qty||0),r.source_file||''];
       }
 
@@ -137,7 +139,8 @@
         ['SLS INVENTORY RECOVERY RECOMMENDATION','',''],
         ['Scope',scopeRdc==='ALL'?'National / All RDC':scopeRdc,''],
         ['Method','Target Stock = MAX(Avg Sales 3M × 2 months, 20 box)','',''],
-        ['Priority','Transfer antar-RDC → Flush Out Candidate → Hold PR / Reduce → Replenish → Maintain',''],
+        ['Network Rule','DPS↔SBY (East Cluster) · PLG↔JKT (West Cluster) · Semarang cross-RDC requires TMS cost review',''],
+        ['Priority','Preferred corridor transfer → local sell/hold PR → flush out candidate → replenish/maintain',''],
         ['','',''],
         ['Recommended Action','SKU Count','Recommended Qty Box']
       ];
@@ -148,7 +151,8 @@
         ws['!cols']=[
           {wch:14},{wch:14},{wch:13},{wch:16},{wch:38},{wch:15},{wch:12},{wch:18},{wch:16},
           {wch:16},{wch:12},{wch:14},{wch:12},{wch:16},{wch:16},{wch:11},{wch:11},{wch:20},
-          {wch:14},{wch:16},{wch:16},{wch:20},{wch:14},{wch:16},{wch:20},{wch:22},{wch:16},{wch:42}
+          {wch:14},{wch:16},{wch:16},{wch:28},{wch:14},{wch:15},{wch:20},{wch:22},{wch:16},
+          {wch:20},{wch:24},{wch:16},{wch:42}
         ];
         XLSX.utils.book_append_sheet(wb,ws,name);
       }
@@ -160,6 +164,7 @@
 
       makeSheet(rows,'SKU Recommendation');
       makeSheet(rows.filter(function(r){return r.recommended_action==='TRANSFER';}),'Transfer Plan');
+      makeSheet(rows.filter(function(r){return r.recommended_action==='LOCAL SELL / HOLD PR'||r.recommended_action==='COMMERCIAL PUSH / HOLD PR';}),'Local Sell Commercial');
       makeSheet(rows.filter(function(r){return r.recommended_action==='FLUSH OUT CANDIDATE';}),'Flushout Candidates');
       makeSheet(rows.filter(function(r){return r.recommended_action==='HOLD PR / REDUCE'||r.recommended_action==='MONITOR OVERSTOCK';}),'Hold PR Reduce');
       makeSheet(rows.filter(function(r){return r.recommended_action==='REPLENISH / PR';}),'Replenishment');
