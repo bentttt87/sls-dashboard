@@ -150,6 +150,8 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 .ct4-table th{white-space:nowrap}
 .ct4-report{margin-top:13px}
 #opsView .v3-grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:540px){.ct4-panel-body>div[style*="grid-template-columns:96px"]{grid-template-columns:85px minmax(65px,1fr) 58px 60px!important;gap:6px!important;font-size:11px}}
+
 #opsView .v3-kpi-card,#page-v3-occupancy .v3-kpi-card,#page-v3-costratio .v3-kpi-card,#page-v3-occupancy .v3-block,#page-v3-costratio .v3-block{border-color:var(--ct4-line)!important;border-radius:12px!important;box-shadow:none!important}
 #opsView .v3-section-title,#page-v3-occupancy .v3-section-title,#page-v3-costratio .v3-section-title{font-size:20px!important}
 #opsView .v3-table,#page-v3-occupancy .v3-table,#page-v3-costratio .v3-table{font-size:14px!important}
@@ -204,7 +206,7 @@ function draw(){
   const rdcs=r.slice().sort((a,b)=>Number(b.doi_days)-Number(a.doi_days)).map(x=>`<tr class="${Number(x.doi_days)>75?'highlight':''}"><td><b>${safe(x.rdc_name)}</b></td><td class="r">${fmt(x.current_stock_box)}</td><td class="r"><b>${fmt(x.doi_days,1)}</b></td><td class="r">${fmt(x.no_movement_3m_stock)}</td><td>${label(risk(x),Number(x.doi_days)>75?'red':Number(x.doi_days)>45?'amber':'green')}</td></tr>`).join('');
   const occLines=occ.rows.slice().sort((a,b)=>Number(b.stock_current_box)/Number(b.kapasitas_box)-Number(a.stock_current_box)/Number(a.kapasitas_box)).map(x=>{
     const n=pct(Number(x.stock_current_box),Number(x.kapasitas_box)),level=n>=100?'danger':n>=85?'warn':'';
-    return `<div style="display:grid;grid-template-columns:96px minmax(75px,1fr) 63px;gap:10px;align-items:center;padding:8px 0"><b>${safe(x.rdc_name)}</b><div class="ct4-bar"><span class="${level}" style="width:${Math.min(100,n)}%"></span></div><b style="text-align:right">${fmt(n,1)}%</b></div>`
+    return `<div style="display:grid;grid-template-columns:96px minmax(75px,1fr) 70px 86px;gap:10px;align-items:center;padding:8px 0"><b>${safe(x.rdc_name)}</b><div class="ct4-bar"><span class="${level}" style="width:${Math.min(100,n)}%"></span></div><b style="text-align:right">${fmt(n,1)}%</b><span style="text-align:right;font-size:12px;color:${x.change_pp>0?'#9e681a':x.change_pp<0?'#267a51':'#6e7f91'}">${x.change_pp==null?'—':(x.change_pp>=0?'+':'')+fmt(x.change_pp,2)+' pp'}</span></div>`
   }).join('');
   shell.innerHTML=`
     <div class="ct4-eyebrow">NATIONAL SUPPLY CHAIN · MANAGEMENT REVIEW</div>
