@@ -74,9 +74,9 @@
   decisionsNav.className='nav-item';
   decisionsNav.innerHTML='<span class="nav-icon">✓</span><span>Management Decisions</span>';
   const reportsNav=$('navReports');
-  if(reportsNav)reportsNav.before(decisionsNav);
+  if(reportsNav && !$('v3NavDecisions'))reportsNav.before(decisionsNav);
     const inventoryNav=$('navInventory');
-  if(inventoryNav){
+  if(inventoryNav && !$('v3NavOccupancy') && !$('v3NavCostRatio')){
     inventoryNav.insertAdjacentHTML('afterend',`
       <div class="nav-item" id="v3NavOccupancy"><span class="nav-icon">▤</span><span>Occupancy Report</span></div>
       <div class="nav-item" id="v3NavCostRatio"><span class="nav-icon">％</span><span>Logistics Cost Ratio</span></div>`);
