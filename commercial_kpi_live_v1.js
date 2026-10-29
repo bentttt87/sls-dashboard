@@ -130,35 +130,37 @@
     target.innerHTML=`
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
        <div><div class="comkpi-muted">MANAGEMENT ANALYSIS · COMMERCIAL + PRICELIST + VENDOR</div><h2>Commercial KPI &amp; Freight</h2>
-       <div class="comkpi-muted">Physical Stock, DOI, No Movement, Excess, Inventory Valuation Proxy &amp; Freight Quotation</div></div>
+       <div class="comkpi-muted">Stok fisik, DOI, No Movement, Potensi Stok Berlebih, estimasi nilai berdasarkan pricelist, dan benchmark vendor</div></div>
        <button class="comkpi-button" id="comkpiExport">Export CSV</button>
       </div>
       <div class="comkpi-note">Snapshot: ${esc([...new Set(r.map(x=>x.snapshot_date))].join(' / '))} · Sales Juli–September 2026 · ${status?'Agregasi eligible':'CAKUPAN/PERIODE PERLU VALIDASI'} · Nilai barang berasal dari pricelist, bukan GL/Finance.</div>
+      ${legend()}
       <div class="comkpi-grid">
-       ${val('Physical Stock BOX',f(t.stock)+' box',r.length+' RDC · '+f(t.sku)+' SKU BOX')}
-       ${val('DOI National / Area',status?f(t.doi,2)+' hari':'DATA REQUIRED','Σ Stock / Σ Avg Sales 3M × 30')}
-       ${val('No Movement 3M',f(t.no3)+' box',pct(t.no3,t.stock)+' physical stock')}
-       ${val('No Movement 6M',f(t.no6)+' box','Kandidat review lebih kuat')}
-       ${val('Excess Stock Candidate',f(t.excess)+' box',pct(t.excess,t.stock)+' dari physical stock')}
-       ${val('Reserved / On Order',f(t.res)+' / '+f(t.po),'BOX · jangan auto-transfer reserved')}
-       ${val('Stok @ Pricelist Ex VAT',money(t.value),f(t.matched)+' / '+f(t.sku)+' SKU match')}
-       ${val('Excess @ Pricelist Ex VAT',money(t.excessValue),'Nilai harga jual referensi saja')}
+       ${val('Physical Stock BOX',f(t.stock)+' box',r.length+' RDC · '+f(t.sku)+' SKU BOX','blue')}
+       ${val('DOI Nasional / Area',status?f(t.doi,2)+' hari':'DATA REQUIRED','Σ Stok / Σ Avg Sales 3M × 30',status?doiTone(t.doi):'slate')}
+       ${val('No Movement 3 Bulan',f(t.no3)+' box',pct(t.no3,t.stock)+' dari stok fisik','amber')}
+       ${val('No Movement 6 Bulan',f(t.no6)+' box','Perlu pemeriksaan material dan kebutuhan Sales','amber')}
+       ${val('Potensi Stok Berlebih',f(t.excess)+' box',pct(t.excess,t.stock)+' dari stok fisik · PERLU REVIEW','purple')}
+       ${val('Reserved / On Order',f(t.res)+' / '+f(t.po),'BOX · bukan stok bebas otomatis','slate')}
+       ${val('Nilai Stok @ Pricelist',money(t.value),f(t.matched)+' / '+f(t.sku)+' SKU match · bukan HPP','teal')}
+       ${val('Nilai Kandidat @ Pricelist',money(t.excessValue),'Harga jual sebelum PPN, bukan kas yang pasti kembali','purple')}
       </div>
+      ${explanation()}
       <div class="comkpi-panel"><h3>Inventory Health &amp; DOI per RDC</h3><div class="comkpi-scroll">
-      <table><thead><tr><th>RDC</th><th>Snapshot</th><th>Stock BOX</th><th>Sales Avg 3M</th><th>DOI hari</th><th>No Move 3M</th><th>No Move 6M</th><th>Reserved</th><th>On Order</th><th>Excess</th><th>Status</th></tr></thead><tbody>
-      ${r.map(x=>`<tr><td><b>${esc(x.rdc_name)}</b></td><td>${esc(x.snapshot_date)}</td><td class="r">${f(x.stock_box)}</td><td class="r">${f(x.sales_3m_avg_box)}</td><td class="r">${f(x.doi_days,1)}</td><td class="r">${f(x.no_movement_3m_box)}</td><td class="r">${f(x.no_movement_6m_box)}</td><td class="r">${f(x.reserved_box)}</td><td class="r">${f(x.on_order_box)}</td><td class="r">${f(x.excess_candidate_box)}</td><td>${tag(x.doi_days)}</td></tr>`).join('')}
+      <table><thead><tr><th>RDC</th><th>Snapshot</th><th>Stock BOX</th><th>Sales Avg 3M</th><th>DOI hari</th><th>No Move 3M</th><th>No Move 6M</th><th>Reserved</th><th>On Order</th><th>Potensi Berlebih BOX</th><th>Status DOI</th></tr></thead><tbody>
+      ${r.map(x=>`<tr><td><b>${esc(x.rdc_name)}</b></td><td>${esc(x.snapshot_date)}</td><td class="r">${f(x.stock_box)}</td><td class="r">${f(x.sales_3m_avg_box)}</td><td class="r">${f(x.doi_days,1)}</td><td class="r"><span class="comkpi-amber-value">${f(x.no_movement_3m_box)}</span></td><td class="r">${f(x.no_movement_6m_box)}</td><td class="r">${f(x.reserved_box)}</td><td class="r">${f(x.on_order_box)}</td><td class="r"><span class="comkpi-purple-value">${f(x.excess_candidate_box)}</span></td><td>${tag(x.doi_days)}</td></tr>`).join('')}
       </tbody></table></div></div>
-      <div class="comkpi-panel"><h3>Inventory Value · Pricelist Proxy</h3><div class="comkpi-scroll"><table><thead><tr><th>RDC</th><th>SKU BOX</th><th>SKU Price Match</th><th>Stock @ Price List Ex VAT</th><th>Excess @ Pricelist</th><th>No Move 3M @ Pricelist</th><th>Sales Data Issues</th></tr></thead><tbody>
-      ${r.map(x=>`<tr><td><b>${esc(x.rdc_name)}</b></td><td class="r">${f(x.box_sku_count)}</td><td class="r">${f(x.priced_box_sku_count)}</td><td class="r">${money(x.list_price_value_ex_vat)}</td><td class="r">${money(x.excess_list_price_value_ex_vat)}</td><td class="r">${money(x.no_movement_list_price_value_ex_vat)}</td><td class="r">${f(x.data_issue_sku_count)}</td></tr>`).join('')}
+      <div class="comkpi-panel"><h3>Inventory Value · Pricelist Proxy</h3><div class="comkpi-scroll"><table><thead><tr><th>RDC</th><th>SKU BOX</th><th>SKU Price Match</th><th>Stock @ Price List Ex VAT</th><th>Nilai Kandidat @ Pricelist</th><th>No Move 3M @ Pricelist</th><th>Sales Data Issues</th></tr></thead><tbody>
+      ${r.map(x=>`<tr><td><b>${esc(x.rdc_name)}</b></td><td class="r">${f(x.box_sku_count)}</td><td class="r">${f(x.priced_box_sku_count)}</td><td class="r">${money(x.list_price_value_ex_vat)}</td><td class="r"><span class="comkpi-purple-value">${money(x.excess_list_price_value_ex_vat)}</span></td><td class="r">${money(x.no_movement_list_price_value_ex_vat)}</td><td class="r">${f(x.data_issue_sku_count)}</td></tr>`).join('')}
       </tbody></table></div><div class="comkpi-note warn">Harga adalah price list sebelum PPN, bukan HPP/nilai inventory Finance. Nilai excess bukan estimasi dana tunai yang pasti dapat direalisasi.</div></div>
       <div class="comkpi-panel"><h3>Vendor Freight Rate Benchmark</h3><div class="comkpi-muted">${f(laneCount)} lane memiliki quotation benchmark. Tidak sama dengan actual logistic cost.</div><div class="comkpi-scroll"><table><thead><tr><th>Origin</th><th>RDC</th><th>Lane coverage</th><th>Avg Best Rp/kg</th><th>Min Rp/kg</th><th>Max Rp/kg</th><th>Rate Validity</th></tr></thead><tbody>
       ${freight.map(x=>`<tr><td><b>${esc(x.origin_label)}</b></td><td>${esc(x.area_code)}</td><td class="r">${f(x.route_count)}</td><td class="r">${x.best_quote_rpkg_average!=null?f(x.best_quote_rpkg_average,1):'DATA REQUIRED'}</td><td class="r">${f(x.best_quote_rpkg_min,1)}</td><td class="r">${f(x.best_quote_rpkg_max,1)}</td><td>${esc(x.source_date_note)}</td></tr>`).join('')}
       </tbody></table></div><div class="comkpi-note warn">Tarif Rp/kg adalah quotation pada kapasitas kendaraan. Untuk estimasi biaya perlu berat KG/box SAP, rute aktual, vendor terpilih, rit, jumlah drop, dan biaya tambahan. Palembang belum ada rate benchmark pada sumber.</div></div>
       <div class="comkpi-panel"><h3>Automated Insight → Action</h3>
-      ${r.slice().sort((a,b)=>n(b.excess_candidate_box)-n(a.excess_candidate_box)).slice(0,3).map(x=>`<div class="comkpi-action"><b>${esc(x.rdc_name)}</b> · Excess kandidat ${f(x.excess_candidate_box)} box; no movement 3M ${f(x.no_movement_3m_box)} box. <span class="comkpi-muted">Review SKU/series, demand tujuan, status reserved, cost dan persetujuan sebelum transfer atau flush out.</span></div>`).join('')}
+      ${r.slice().sort((a,b)=>n(b.excess_candidate_box)-n(a.excess_candidate_box)).slice(0,3).map(x=>`<div class="comkpi-action"><b>${esc(x.rdc_name)}</b> · Potensi stok berlebih <span class="comkpi-purple-value">${f(x.excess_candidate_box)} box</span>; no movement 3M ${f(x.no_movement_3m_box)} box. <span class="comkpi-muted">Review SKU/series, demand tujuan, status reserved, cost dan persetujuan sebelum transfer atau flush out.</span></div>`).join('')}
       <div class="comkpi-note"><b>Data Quality:</b> ${f(t.issues)} SKU memiliki isu sales 3M; price list coverage ${f(t.matched)}/${f(t.sku)} SKU. <b>Logistics Cost Ratio resmi: DATA REQUIRED</b> tanpa actual WH/transport cost dan Finance net sales.</div></div>`;
     $('comkpiExport')?.addEventListener('click',()=>{
-      const data=[['RDC','Snapshot','Stock Box','Sales Avg 3M','DOI Days','No Move 3M','No Move 6M','Reserved','On Order','Excess','Stock @ Pricelist Ex VAT','Excess @ Pricelist Ex VAT'],...r.map(x=>[x.rdc_name,x.snapshot_date,x.stock_box,x.sales_3m_avg_box,x.doi_days,x.no_movement_3m_box,x.no_movement_6m_box,x.reserved_box,x.on_order_box,x.excess_candidate_box,x.list_price_value_ex_vat,x.excess_list_price_value_ex_vat])];
+      const data=[['RDC','Snapshot','Stock Box','Sales Avg 3M','DOI Days','No Move 3M','No Move 6M','Reserved','On Order','Potensi Stok Berlebih (Kandidat)','Stock @ Pricelist Ex VAT','Nilai Kandidat @ Pricelist Ex VAT'],...r.map(x=>[x.rdc_name,x.snapshot_date,x.stock_box,x.sales_3m_avg_box,x.doi_days,x.no_movement_3m_box,x.no_movement_6m_box,x.reserved_box,x.on_order_box,x.excess_candidate_box,x.list_price_value_ex_vat,x.excess_list_price_value_ex_vat])];
       const csv='\ufeff'+data.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
       const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='SLS_Commercial_KPI_'+scope()+'_Oct2026.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),500);
     });
