@@ -140,7 +140,7 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 #page-v3-occupancy .topbar h1,#page-v3-costratio .topbar h1{font-size:25px!important;color:var(--ct4-navy)!important}
 @media(max-width:1200px){.ct4-focus,.ct4-two{grid-template-columns:1fr}.ct4-metrics.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:960px){.ct4-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.main{padding:22px 20px!important}}
-@media(max-width:820px){#appRoot.app{display:block!important}.sidebar{padding:13px 16px!important;border-bottom:1px solid var(--ct4-line)!important}.main{padding:14px!important}.ct4-focus{grid-template-columns:1fr}.ct4-metrics.four{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar.mobile-open{z-index:501!important}}
+@media(max-width:820px){#appRoot.app{display:block!important}.sidebar{padding:13px 16px!important;border-bottom:1px solid var(--ct4-line)!important}.main{padding:14px!important}.ct4-focus{grid-template-columns:1fr}.ct4-metrics.four{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar.mobile-open{z-index:1300!important}}
 @media(max-width:570px){.ct4-metrics,.ct4-metrics.four,#opsView .v3-grid3{grid-template-columns:1fr}.ct4-ui h2{font-size:19px!important}.ct4-section-head h3{font-size:18px!important}}
 @media print{.sidebar,#v3NavCostRatio,#rdcSelectorWrap{display:none!important}.ct4-card,.ct4-panel,.ct4-focus-left,.ct4-focus-right{break-inside:avoid}#mgmtView > :not(#ct4-executive){display:none!important}}
 `;
