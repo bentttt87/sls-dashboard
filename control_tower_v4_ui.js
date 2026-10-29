@@ -97,7 +97,21 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 .ct4-fresh-row b{font-weight:800;color:var(--ct4-navy)}
 .ct4-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
 .ct4-metrics.four{grid-template-columns:repeat(4,minmax(0,1fr))}
-.ct4-card{padding:17px 18px;min-height:122px}
+.ct4-card{padding:17px 18px;min-height:122px;border-left:5px solid #377bb4;background:#f8fbff}
+.ct4-card.tone-blue{border-left-color:#3879b4;background:#f6faff}.ct4-card.tone-blue .ct4-v{color:#205c8c}
+.ct4-card.tone-green{border-left-color:#328562;background:#f5fbf7}.ct4-card.tone-green .ct4-v{color:#266949}
+.ct4-card.tone-amber{border-left-color:#c49435;background:#fffaf2}.ct4-card.tone-amber .ct4-v{color:#91600d}
+.ct4-card.tone-red{border-left-color:#c14d44;background:#fff7f5}.ct4-card.tone-red .ct4-v{color:#a43633}
+.ct4-card.tone-purple{border-left-color:#8661ac;background:#faf7ff}.ct4-card.tone-purple .ct4-v{color:#67438a}
+.ct4-card.tone-slate{border-left-color:#95a4b7;background:#f8fafc}.ct4-card.tone-slate .ct4-v{color:#53677c}
+.ct4-card.tone-teal{border-left-color:#2d8b8c;background:#f3fbfa}.ct4-card.tone-teal .ct4-v{color:#237174}
+.ct4-meaning{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:9px 0}
+.ct4-meaning span{border-radius:7px;padding:5px 9px;font-size:11px;font-weight:750}
+.ct4-meaning .green{color:#24764d;background:#e5f4eb}
+.ct4-meaning .amber{color:#975e11;background:#fff1d8}
+.ct4-meaning .red{color:#a84139;background:#fce9e7}
+.ct4-meaning .purple{color:#704696;background:#f1eafa}
+.ct4-meaning .slate{color:#5f7083;background:#edf1f5}
 .ct4-k{color:#60758d;font-size:13px;font-weight:700}
 .ct4-v{font-size:28px;font-weight:850;color:var(--ct4-navy);letter-spacing:-.4px;line-height:1.15;margin:9px 0 6px}
 .ct4-v.small{font-size:19px;margin-top:12px}
@@ -173,12 +187,12 @@ function draw(){
   let title=worst?`${worst.rdc_name}: perputaran stok ${current>75?'sangat lambat':current>45?'perlu diperhatikan':'perlu dijaga'}`:'Menyiapkan ringkasan inventory';
   let action=worst?'Review SKU bersama Commercial. Evaluasi hold PR dan program sell-out. Transfer hanya setelah kecocokan SKU/series, demand tujuan, kapasitas, dan ongkos TMS tervalidasi.':'Lengkapi snapshot inventory sebelum mengusulkan transfer.';
   const kd=[
-    ['Physical Stock · RDC',ready?fmt(stock)+' <small>box</small>':'DATA REQUIRED','Agregasi snapshot manual DOI'],
-    ['Days of Inventory',ready&&doi!=null?fmt(doi,1)+' <small>hari</small>':'DATA REQUIRED','Σ stock ÷ Σ Avg Sales 3M × 30'],
-    ['No Movement · 3 Bulan',ready?fmt(nm)+' <small>box</small>':'DATA REQUIRED','Candidate; perlu review SKU'],
-    ['Inventory Accuracy','PARTIAL','Stock opname 4/5 RDC · periode tidak sama',true],
-    ['Warehouse Occupancy',occPct!=null&&(!full||occ.complete)?fmt(occPct,1)+'%':'DATA REQUIRED',`Snapshot ${dateLabel(occ.date)} · historical`],
-    ['Logistics Cost Ratio','DATA REQUIRED','Finance & Net Sales belum terintegrasi',true]
+    ['Physical Stock · RDC',ready?fmt(stock)+' <small>box</small>':'DATA REQUIRED','Agregasi snapshot manual DOI',false,ready?'blue':'slate'],
+    ['Days of Inventory',ready&&doi!=null?fmt(doi,1)+' <small>hari</small>':'DATA REQUIRED','Σ stock ÷ Σ Avg Sales 3M × 30',false,!ready||doi==null?'slate':doi>75?'red':doi>45?'amber':'green'],
+    ['No Movement · 3 Bulan',ready?fmt(nm)+' <small>box</small>':'DATA REQUIRED','Stok perlu review SKU; tidak selalu deadstock',false,!ready?'slate':nm>0?'amber':'green'],
+    ['Inventory Accuracy','PARTIAL','Stock opname 4/5 RDC · periode tidak sama',true,'amber'],
+    ['Warehouse Occupancy',occPct!=null&&(!full||occ.complete)?fmt(occPct,1)+'%':'DATA REQUIRED',`Snapshot ${dateLabel(occ.date)} · historical`,false,occPct==null?'slate':occPct>=100?'red':occPct>=85?'amber':'green'],
+    ['Logistics Cost Ratio','DATA REQUIRED','Finance & Net Sales belum terintegrasi',true,'slate']
   ];
   const risk=x=>Number(x.doi_days)>75?'CRITICAL':Number(x.doi_days)>60?'HIGH':Number(x.doi_days)>45?'WATCH':'NORMAL';
   const rdcs=r.slice().sort((a,b)=>Number(b.doi_days)-Number(a.doi_days)).map(x=>`<tr class="${Number(x.doi_days)>75?'highlight':''}"><td><b>${safe(x.rdc_name)}</b></td><td class="r">${fmt(x.current_stock_box)}</td><td class="r"><b>${fmt(x.doi_days,1)}</b></td><td class="r">${fmt(x.no_movement_3m_stock)}</td><td>${label(risk(x),Number(x.doi_days)>75?'red':Number(x.doi_days)>45?'amber':'green')}</td></tr>`).join('');
@@ -212,7 +226,8 @@ function draw(){
     </div>
 
     <div class="ct4-section-head"><h3>02 · Snapshot Kinerja Inventory ${full?'Nasional':safe(group())}</h3><span>Periode tiap sumber dicantumkan, bukan real-time</span></div>
-    <div class="ct4-metrics">${kd.map(([t,v,m,small])=>`<div class="ct4-card"><div class="ct4-k">${t}</div><div class="ct4-v${small?' small':''}">${v}</div><div class="ct4-m">${m}</div></div>`).join('')}</div>
+    <div class="ct4-meaning"><span class="green">Normal</span><span class="amber">Perlu perhatian / data parsial</span><span class="red">Kritis</span><span class="purple">Kandidat perlu review</span><span class="slate">Data belum tersedia</span></div>
+    <div class="ct4-metrics">${kd.map(([t,v,m,small,tone])=>`<div class="ct4-card tone-${tone||'blue'}"><div class="ct4-k">${t}</div><div class="ct4-v${small?' small':''}">${v}</div><div class="ct4-m">${m}</div></div>`).join('')}</div>
 
     <div class="ct4-section-head" id="ct4InventoryAnchor"><h3>03 · Kondisi RDC & Insight Otomatis</h3><span>Risiko prioritas dengan batasan data yang jelas</span></div>
     <div class="ct4-two">
