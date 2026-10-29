@@ -133,7 +133,7 @@
   // Legacy tabs stay in DOM for compatibility with current code, but are never shown.
   const tabs=$('viewTabsWrap');if(tabs)tabs.style.display='none';
   const baseRole=applyRoleUI;
-  applyRoleUI=function(){const result=baseRole.apply(this,arguments);if(executiveNav)executiveNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';if($('v3NavDecisions'))$('v3NavDecisions').style.display=CURRENT_RDC_SCOPE?'none':'flex';if(navOps&&CURRENT_RDC_SCOPE)setActive($('navSupplyChain'));return result;};
+  applyRoleUI=function(){const result=baseRole.apply(this,arguments);if(executiveNav)executiveNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';if($('v3NavDecisions'))$('v3NavDecisions').style.display=CURRENT_RDC_SCOPE?'none':'flex';setOptions('v3OccScope');setOptions('v3OpsScope');if(!CURRENT_RDC_SCOPE&&CURRENT_ROLE==='management')switchView('mgmt');if(navOps&&CURRENT_RDC_SCOPE)setActive($('navSupplyChain'));return result;};
   const baseSwitch=switchView;
   switchView=function(mode){
     baseSwitch(mode);
