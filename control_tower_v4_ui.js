@@ -272,6 +272,7 @@ function draw(){
     <div class="ct4-footnote">SLS Supply Chain Control Tower · Management Review Layer · Tampilan V4 mengikuti mockup referensi; data mengikuti sumber aktual yang tersedia.</div>
   `;
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
+  if(typeof window.renderCommercialKpiTeaser==='function')window.renderCommercialKpiTeaser();
   if($('mainTitle'))$('mainTitle').textContent='Supply Chain Control Tower';
   if($('periodLine'))$('periodLine').textContent='Dari kinerja operasional → risiko bisnis → tindakan → keputusan manajemen';
 }
