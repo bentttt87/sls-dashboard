@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id);
 const fmt=(n,d=0)=>Number.isFinite(Number(n))?Number(n).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const names=['Jakarta','Semarang','Surabaya','Denpasar','Palembang'];
-const st={doi:[],commercial:[],occ:[],monthStocks:[],capacity:[],opname:[],breakage:[],freight:[],checks:[],loaded:false,busy:null,asof:null};
+const st={doi:[],commercial:[],occ:[],monthStocks:[],capacity:[],opname:[],breakage:[],freight:[],slaQuality:[],checks:[],loaded:false,busy:null,asof:null};
 const dc={0:'DATA REQUIRED'};
 const pct=(a,b)=>b>0?a/b*100:null;
 const dateLabel=s=>s?new Date(String(s).slice(0,10)+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -325,7 +325,7 @@ function draw(){
     <div class="ct4-panel"><div class="ct4-table-wrap"><table class="ct4-table">
       <thead><tr><th>KPI</th><th class="r">Bobot</th><th>Current</th><th>Sumber / Issue</th><th>Status Data</th></tr></thead><tbody>
       ${[
-        ['Service Level','20%','OTIF: DATA REQUIRED','112 catatan SLA lama, belum memiliki promised date/eligibility memadai untuk skor OTIF','DATA REQUIRED','red'],
+        ['Service Level','20%',st.slaQuality[0]?.eligible_otif_records>0?'OTIF: REVIEW REQUIRED':'OTIF: DATA REQUIRED',st.slaQuality[0]?fmt(st.slaQuality[0].source_records)+' catatan SLA s.d. '+(st.slaQuality[0].last_so_date||'—')+'; '+fmt(st.slaQuality[0].eligible_otif_records)+' record memenuhi syarat OTIF. Skor resmi perlu validasi eligibility, promised date, qty.':'Sumber SLA tidak tersedia untuk akun ini; promised date dan qty perlu divalidasi','DATA REQUIRED','red'],
         ['Inventory Accuracy','20%',ev.op.length?ev.op.length+'/'+(selected()==='Semua'?5:1)+' RDC (opname)':'DATA REQUIRED',ev.opPct.length?'Sample BOX: '+fmt(Math.min(...ev.opPct),2)+'–'+fmt(Math.max(...ev.opPct),2)+'%; tanggal '+(ev.opDate[0]||'—')+' s.d. '+(ev.opDate[ev.opDate.length-1]||'—')+'. BUKAN akurasi nasional terkini.':'Stock opname belum tersedia/terakses','PARTIAL','amber'],
         ['Warehouse Operational Performance','20%',ev.monthly.length?'WH Breakage: '+fmt(ev.exposure>0?10000*ev.broken/ev.exposure:null,2)+' / 10rb box':'DATA REQUIRED',ev.monthly.length?'Warehouse '+fmt(ev.broken)+' box rusak; Delivery '+fmt(ev.delivery)+' box; periode '+ev.latest+'. Produktivitas belum cukup untuk skor komposit.':'Data breakage tidak tersedia/terakses; perlu integrasi produktivitas','PARTIAL','amber'],
         ['Cost Efficiency','15%',ev.routes?fmt(ev.routes)+' rute benchmark':'DATA REQUIRED','Tarif vendor adalah quotation, bukan actual WH+delivery cost / net sales. Rasio resmi belum bisa dihitung.','DATA REQUIRED','red'],
@@ -374,6 +374,7 @@ async function load(){
  ['doiLegacy','doi_manual_rdc_snapshot','&order=snapshot_date.desc&limit=50'],
  ['commercial','commercial_kpi_rdc_snapshot_v1','&order=snapshot_date.desc&limit=50'],
  ['opname','management_inventory_opname_latest_v1','&limit=15'],
+ ['slaQuality','management_sla_quality_v1','&limit=1'],
  ['breakage','breakage_monthly','&order=period.desc&limit=100'],
  ['freight','freight_benchmark_summary_v1','&limit=25'],
  ['occ','rdc_snapshot_log','&order=snapshot_date.desc,snapshot_at.desc&limit=150'],
@@ -395,7 +396,7 @@ async function load(){
     current_stock_box:Number(r.stock_box),avg_sales_3m_box:Number(r.sales_3m_avg_box),doi_days:Number(r.doi_days),
     no_movement_3m_stock:Number(r.no_movement_3m_box),no_movement_6m_stock:Number(r.no_movement_6m_box)}));
   }
-  else if(['occ','monthStocks','capacity','opname','breakage','freight'].includes(k))st[k]=arr;
+  else if(['occ','monthStocks','capacity','opname','breakage','freight','slaQuality'].includes(k))st[k]=arr;
   else st.checks[k]=arr.length>0;
  });
  st.loaded=true;draw();buildQuality();
