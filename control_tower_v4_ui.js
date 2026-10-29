@@ -62,6 +62,8 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 #dashboardStickyHeader{background:var(--ct4-bg)!important;padding:0!important;box-shadow:none!important;position:relative!important;border:none!important;margin:0 0 11px!important}
 #dashboardStickyHeader .topbar{align-items:center!important;padding:0 0 12px!important;min-height:auto!important;border:none!important}
 #mainTitle{font-size:25px!important;line-height:1.2!important;color:var(--ct4-navy)!important;letter-spacing:-.3px!important;font-weight:800!important}
+#mainTitle::before{content:"NATIONAL SUPPLY CHAIN · MANAGEMENT REVIEW";display:block;font-size:10px;letter-spacing:1.3px;line-height:1.7;font-weight:850;color:#74859b;margin-bottom:2px}
+#ct4-executive>.ct4-eyebrow,#ct4-executive>.ct4-note:first-of-type{display:none!important}
 #periodLine{font-size:12px!important;color:var(--ct4-muted)!important}
 #rdcSelectorWrap{background:#fff!important;border:1px solid var(--ct4-line)!important;border-radius:9px!important;padding:10px 12px!important}
 #rdcSelector{font-size:14px!important}
@@ -270,7 +272,8 @@ function draw(){
     <div class="ct4-footnote">SLS Supply Chain Control Tower · Management Review Layer · Tampilan V4 mengikuti mockup referensi; data mengikuti sumber aktual yang tersedia.</div>
   `;
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
-  if($('periodLine'))$('periodLine').textContent=`Management Review ${safe(group())} · DOI ${latestDates.length?latestDates.map(dateLabel).join(' / '):'Data Required'} · Occupancy ${dateLabel(occ.date)}`;
+  if($('mainTitle'))$('mainTitle').textContent='Supply Chain Control Tower';
+  if($('periodLine'))$('periodLine').textContent='Dari kinerja operasional → risiko bisnis → tindakan → keputusan manajemen';
 }
 function buildQuality(){
 const quality=`
