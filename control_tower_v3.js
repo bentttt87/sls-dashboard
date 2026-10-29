@@ -187,7 +187,11 @@
   $('v3OpsSearch')?.addEventListener('input',renderOps);
   $('v3OccExport')?.addEventListener('click',downloadOccupancyCSV);
   ['v3SimWh','v3SimTransport','v3SimSales'].forEach(id=>$(id)?.addEventListener('input',renderScenario));
-  const baseRender=render;
+  // Keep sidebar active state singular when switching back to legacy pages.
+  document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.addEventListener('click',()=>{
+    ['v3NavOccupancy','v3NavCostRatio','v3NavDecisions'].forEach(id=>$(id)?.classList.remove('active'));
+  }));
+    const baseRender=render;
   render=function(rdc){const result=baseRender(rdc);renderExecutive();renderOps();if(!state.loadPromise&&!IS_OFFLINE_MODE)loadSources();return result;};
   function setOptions(id,includeAll=true){
     const e=$(id);if(!e)return;
