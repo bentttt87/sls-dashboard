@@ -1,6 +1,6 @@
 (function controlTowerV3() {
   'use strict';
-  const state={snap:[],doi:[],cost:[],loadPromise:null,loaded:false,errors:[],issues:[],selected:null};
+  const state={snap:[],doi:[],cost:[],monthStocks:[],capacity:[],loadPromise:null,loaded:false,errors:[],issues:[],selected:null};
   const $=id=>document.getElementById(id);
   const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=v=>Number.isFinite(Number(v))?Number(v):null;
@@ -87,7 +87,7 @@
   dashboardPage.insertAdjacentHTML('afterend',`
     <div id="page-v3-occupancy" class="page">
       <div class="topbar"><div><h1>Warehouse Occupancy Report</h1><div class="period">National & RDC · kapasitas, penggunaan dan risiko overload</div></div></div>
-      <div class="v3-warning">Laporan ini menggunakan <b>stock box ÷ design capacity box</b> dari snapshot terverifikasi, bukan pemakaian posisi pallet/barcode. Untuk occupancy fisik harus diintegrasikan dengan WMS.</div>
+      <div class="v3-warning">Laporan dihitung dari <b>stok bulanan terbaru yang lengkap (stock_history) ÷ kapasitas master RDC (rdc_master)</b>. Periode stok dan kapasitas ditampilkan terpisah; kapasitas bulan berjalan belum disahkan ulang. Ini <b>proksi berbasis box</b>, bukan occupancy posisi pallet/barcode WMS.</div>
       <div class="v3-controls"><label>RDC<select id="v3OccScope"></select></label><button id="v3OccExport">Export Occupancy CSV</button></div>
       <div id="v3OccContent">Memuat data...</div>
     </div>
@@ -208,9 +208,11 @@
       const data=await Promise.allSettled([
         sbSelect('rdc_snapshot_log','&order=snapshot_date.desc,snapshot_at.desc&limit=120'),
         sbSelect('doi_manual_rdc_snapshot','&order=snapshot_date.desc&limit=50'),
-        sbSelect('logistics_cost','&order=cost_date.desc&limit=1000')
+        sbSelect('logistics_cost','&order=cost_date.desc&limit=1000'),
+        sbSelect('stock_history','&order=month.desc&limit=200'),
+        sbSelect('rdc_master','&limit=50')
       ]);
-      ['snap','doi','cost'].forEach((k,i)=>{
+      ['snap','doi','cost','monthStocks','capacity'].forEach((k,i)=>{
         if(data[i].status==='fulfilled')state[k]=Array.isArray(data[i].value)?data[i].value:[];
         else state.errors.push(k+': '+String(data[i].reason));
       });
@@ -222,6 +224,8 @@
     return state.loadPromise;
   }
   function snapshot(){
+    const monthly=window.SLSMonthlyOccupancy?.compute(state.monthStocks,state.capacity,CURRENT_RDC_SCOPE);
+    if(monthly)return monthly;
     const grouped={};const unique=new Map();
     for(const r of state.snap){
       if(!names.includes(r.rdc_name)||!(num(r.kapasitas_box)>0)||num(r.stock_current_box)==null)continue;
@@ -252,7 +256,7 @@
     const o=occupation(rows);
     const isValid=rows.length>0&&(name!=='Semua'||s.complete);
     put('v3ExecutiveOccupancy',isValid?fmt(o.pct,1)+'%':'DATA REQUIRED');
-    put('v3ExecutiveOccupancyMeta',isValid?`Stock ${fmt(o.stock)} / capacity ${fmt(o.cap)} box · ${month(s.date)} · ${s.complete?'same-date national':'snapshot RDC'} · historical manual baseline`:'Belum ada snapshot berperiode sama dan lengkap.');
+    put('v3ExecutiveOccupancyMeta',isValid?`Stock ${fmt(o.stock)} / capacity ${fmt(o.cap)} box · ${s.month?`stok ${s.month}`:month(s.date)} · kapasitas ${s.capacitySource==='rdc_master'?'referensi master (belum divalidasi ulang)':month(s.date)}`:'Belum ada data stok dan kapasitas yang lengkap.');
     put('v3ExecutiveCost','DATA REQUIRED');
   }
   function renderOccupancy(){
@@ -260,6 +264,8 @@
     const s=snapshot(),scope=scopeName($('v3OccScope')?.value),rows=s.rows.filter(r=>inScope(r.rdc_name)&&(scope==='Semua'||scope===r.rdc_name));
     if(!rows.length){put('v3OccContent','<div class="v3-block">DATA REQUIRED — tidak ada snapshot occupancy valid untuk pilihan ini.</div>');return;}
     const o=occupation(rows),national=scope==='Semua',valid=!national||s.complete;
+    const compare=(s.deltaPercentagePoints!=null&&s.priorMonth)?` · perubahan dari ${s.priorMonth}: ${s.deltaPercentagePoints>=0?'+':''}${fmt(s.deltaPercentagePoints,2)} poin persentase (kapasitas referensi sama)`:'';
+    const provenance=s.month?`Stock <b>${safe(s.month)}</b> (stock_history), kapasitas <b>rdc_master</b> (pembaruan terakhir ${safe(s.capacityDate||'tidak tersedia')}; belum dikonfirmasi untuk akhir bulan)`: `Snapshot gabungan ${month(s.date)} (historis)`;
     const cards=`<div class="v3-grid3">
       <div class="v3-kpi-card"><div class="v3-eyebrow">Occupancy ${national?'Nasional':safe(scope)}</div><div class="v3-big">${valid?fmt(o.pct,1)+'%':'DATA REQUIRED'}</div><div class="v3-muted">Stock / design capacity</div></div>
       <div class="v3-kpi-card"><div class="v3-eyebrow">Stok Terpakai</div><div class="v3-big">${fmt(o.stock)} <span style="font-size:13px">box</span></div><div class="v3-muted">Kapasitas ${fmt(o.cap)} box</div></div>
@@ -267,14 +273,14 @@
     const rowsHtml=rows.sort((a,b)=>Number(b.stock_current_box)/Number(b.kapasitas_box)-Number(a.stock_current_box)/Number(a.kapasitas_box)).map(r=>{
       const pct=percent(Number(r.stock_current_box),Number(r.kapasitas_box)),st=risk(pct);
       return `<tr><td><b>${safe(r.rdc_name)}</b></td><td class="num">${fmt(r.stock_current_box)}</td><td class="num">${fmt(r.kapasitas_box)}</td><td class="num">${fmt(Number(r.kapasitas_box)-Number(r.stock_current_box))}</td>
-      <td style="min-width:130px"><b>${fmt(pct,1)}%</b><div class="v3-bar"><span class="${st.cls}" style="width:${Math.min(100,Math.max(0,pct))}%"></span></div></td><td><span class="v3-pill ${st.cls}">${st.label}</span></td></tr>`;
+      <td style="min-width:130px"><b>${fmt(pct,1)}%</b><div class="v3-bar"><span class="${st.cls}" style="width:${Math.min(100,Math.max(0,pct))}%"></span></div></td><td class="num">${r.prior_occupancy_pct==null?"—":fmt(r.prior_occupancy_pct,1)+"%"}</td><td class="num" style="font-weight:750;color:${r.change_pp>0?"#a86d14":r.change_pp<0?"#287456":"#637589"}">${r.change_pp==null?"—":(r.change_pp>=0?"+":"")+fmt(r.change_pp,2)+" pp"}</td><td><span class="v3-pill ${st.cls}">${st.label}</span></td></tr>`;
     }).join('');
     let issues=rows.filter(r=>percent(Number(r.stock_current_box),Number(r.kapasitas_box))>=Number(CONFIG?.occ_watch_pct||85))
       .map(r=>`${safe(r.rdc_name)} ${fmt(percent(Number(r.stock_current_box),Number(r.kapasitas_box)),1)}%`).join('; ');
     put('v3OccContent',`
-      <div class="v3-muted" style="margin:14px 0">Snapshot: <b>${month(s.date)}</b> · ${s.complete?'5 RDC konsisten di tanggal yang sama':'Snapshot nasional belum lengkap'} · Status: HISTORICAL / MANUAL VALIDATED · Target peringatan: ${fmt(CONFIG?.occ_watch_pct||85)}%</div>
+      <div class="v3-muted" style="margin:14px 0">Periode: ${provenance} · ${s.complete?'cakupan RDC lengkap':'cakupan RDC belum lengkap'}${compare} · status: ${s.month?'PROVISIONAL CAPACITY':'HISTORICAL'} · ambang pantau: ${fmt(CONFIG?.occ_watch_pct||85)}%</div>
       ${cards}<div class="v3-block"><div class="v3-section-title">Occupancy per RDC</div>
-      <div class="v3-table-wrap"><table class="v3-table"><thead><tr><th>RDC</th><th>Stock (box)</th><th>Capacity (box)</th><th>Sisa (box)</th><th>Occupancy</th><th>Status</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>
+      <div class="v3-table-wrap"><table class="v3-table"><thead><tr><th>RDC</th><th>Stock (box)</th><th>Capacity (box)</th><th>Sisa (box)</th><th>Occupancy</th><th>Bulan Sebelumnya</th><th>Perubahan</th><th>Status</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>
       <div class="v3-block"><div class="v3-section-title">Automated Insight & Next Action</div><div class="v3-issue-details">
       ${issues?`<b>Capacity Watch:</b> ${issues}. Validasi slotting, pallet position, dan rencana inbound sebelum memutuskan perpindahan.`:'Tidak ada RDC di pilihan ini yang melampaui batas watch berdasarkan snapshot tersebut.'}
       <div style="margin-top:8px">Transfer antar-RDC <b>belum boleh otomatis dieksekusi</b> tanpa kecocokan SKU/series, free stock, kebutuhan tujuan dan pembandingan biaya TMS.</div></div></div>`);
@@ -307,7 +313,7 @@
       const pct=percent(Number(r.stock_current_box),Number(r.kapasitas_box));
       if(pct>=Number(CONFIG?.occ_watch_pct||85)){
         issues.push({type:'capacity',severity:pct>100?'critical':'warn',rdc:r.rdc_name,title:'Occupancy '+(pct>100?'Overload':'Capacity Watch'),
-          value:fmt(pct,1)+'% occupancy',source:month(s.date)+' · historical',fact:`${fmt(r.stock_current_box)} box / ${fmt(r.kapasitas_box)} capacity`,reason:'Kapasitas fisik berdasarkan barcode/pallet belum direkonsiliasi. Demand, slotting dan penerimaan inbound perlu dicek.',
+          value:fmt(pct,1)+'% occupancy',source:(s.month?`Stok ${s.month} / kapasitas master belum verifikasi`:month(s.date)+' historis'),fact:`${fmt(r.stock_current_box)} box / ${fmt(r.kapasitas_box)} capacity`,reason:'Kapasitas fisik berdasarkan barcode/pallet belum direkonsiliasi. Demand, slotting dan penerimaan inbound perlu dicek.',
           action:'Cek posisi pallet & inbound, evaluasi penataan ruang; siapkan simulasi transfer jika feasible.'});
       }
     });
@@ -359,11 +365,11 @@
     const s=snapshot();if(!s.rows.length)return;
     const scope=scopeName($('v3OccScope')?.value);
     const filtered=s.rows.filter(r=>inScope(r.rdc_name)&&(scope==='Semua'||scope===r.rdc_name));
-    let csv='\ufeff'+'RDC;Tanggal Snapshot;Stock Box;Capacity Box;Remaining Box;Occupancy %;Source\n'+filtered.map(r=>{
+    let csv='\ufeff'+'RDC;Periode Stock;Kapasitas Update;Stock Box;Capacity Box;Remaining Box;Occupancy %;Previous Occupancy %;Change pp;Stock Source;Capacity Source;Capacity Validation\n'+filtered.map(r=>{
       const pct=percent(Number(r.stock_current_box),Number(r.kapasitas_box));
-      return [r.rdc_name,s.date,r.stock_current_box,r.kapasitas_box,Number(r.kapasitas_box)-Number(r.stock_current_box),pct?.toFixed(2),'rdc_snapshot_log'].join(';');
+      return [r.rdc_name,s.month||s.date,s.capacityDate||s.date,r.stock_current_box,r.kapasitas_box,Number(r.kapasitas_box)-Number(r.stock_current_box),pct?.toFixed(2),r.prior_occupancy_pct?.toFixed(2)||'',r.change_pp?.toFixed(2)||'',s.stockSource||'rdc_snapshot_log',s.capacitySource||'rdc_snapshot_log',s.month?'REFERENCE - RECONFIRM':'HISTORICAL'].join(';');
     }).join('\n');
     const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a');a.href=u;a.download=`SLS_Occupancy_${scope}_${s.date||'no-date'}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+    const a=document.createElement('a');a.href=u;a.download=`SLS_Occupancy_${scope}_${s.month||s.date||'no-date'}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
   }
 })();
