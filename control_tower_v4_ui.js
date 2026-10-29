@@ -39,6 +39,7 @@ css.textContent=`
 :root{--ct4-navy:#18355B;--ct4-ink:#243149;--ct4-muted:#66788E;--ct4-line:#DFE6EF;--ct4-bg:#F5F7FA;--ct4-amber:#BC7A17;--ct4-red:#BB493C}
 body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-family:'Inter','Segoe UI',Arial,sans-serif!important}
 #appRoot.app{grid-template-columns:236px minmax(0,1fr)!important}
+#appRoot.app[style*="display: none"]{display:none!important}
 .sidebar{background:#fff!important;border-right:1px solid var(--ct4-line)!important;box-shadow:none!important;padding:23px 14px!important;color:var(--ct4-ink)!important}
 .sidebar .brand{gap:10px!important;align-items:center!important;padding:0 9px 12px!important;margin-bottom:8px!important;border-bottom:1px solid var(--ct4-line);flex-direction:row!important}
 .sidebar .brand>span{color:var(--ct4-navy)!important;font-weight:800!important;font-size:12px!important;line-height:1.25!important;align-self:center!important}
@@ -50,7 +51,7 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 .sidebar .nav-item:hover{background:#f1f5fa!important;color:var(--ct4-navy)!important}
 .sidebar .nav-item.active{background:#eaf0f8!important;color:var(--ct4-navy)!important;border-left:3px solid var(--ct4-navy)!important;padding-left:9px!important}
 .sidebar .nav-icon{color:inherit!important}
-.sidebar .sidebar-foot{color:#64758b!important;border-top:1px solid var(--ct4-line)!important;font-size:11px!important;line-height:1.5!important}
+.sidebar .sidebar-foot{display:none!important}
 .sidebar .logout-btn{color:#536782!important;background:#f2f5f9!important;border:1px solid var(--ct4-line)!important;border-radius:8px!important}
 .sidebar .export-btn{font-size:12px!important;border-color:#d8e2ed!important;color:#325276!important}
 #roleBadge.master,#roleBadge.user{background:#e9eef6!important;color:var(--ct4-navy)!important;border:1px solid #d8e2ed!important}
@@ -143,6 +144,10 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 document.head.appendChild(css);
 const mg=$('mgmtView');if(!mg)return;
 const shell=document.createElement('div');shell.id='ct4-executive';shell.className='ct4-ui';mg.prepend(shell);
+const printTools=document.createElement('div');printTools.id='ct4PrintTools';
+printTools.innerHTML='<button type="button" class="ct4-link" id="ct4PrintBtn" style="margin:0">Cetak Review</button>';
+$('dashboardStickyHeader')?.querySelector('.filters')?.append(printTools);
+$('ct4PrintBtn')?.addEventListener('click',()=>{if(typeof exportPDF==='function')exportPDF();});
 
 function draw(){
   if(!$('ct4-executive'))return;
@@ -242,7 +247,7 @@ function draw(){
     ].map(([t,m])=>`<div class="ct4-card"><div class="ct4-k">${t}</div><div class="ct4-v small">DATA REQUIRED</div><div class="ct4-m">${m}</div></div>`).join('')}</div>
     <div class="ct4-panel ct4-report"><div class="ct4-panel-body"><div class="ct4-note"><b>Analisis yang disiapkan:</b> Actual vs Target/Budget, trend MoM dan YoY, warehouse vs transport cost, biaya per rit/kg, load factor dan pemicu kenaikan biaya. Tidak ada klaim penghematan tanpa rekonsiliasi Finance.</div><button class="ct4-link" data-ct4-nav="cost">Buka laporan Logistics Cost Ratio →</button></div></div>
 
-    <div class="ct4-section-head" id="ct4ActionSection"><h3>06 · Enam KPI Resmi Manager</h3><span>Bobot 100% · Achievement ≠ Data Coverage</span></div>
+    <div class="ct4-section-head"><h3>06 · Enam KPI Resmi Manager</h3><span>Bobot 100% · Achievement ≠ Data Coverage</span></div>
     <div class="ct4-panel"><div class="ct4-table-wrap"><table class="ct4-table">
       <thead><tr><th>KPI</th><th class="r">Bobot</th><th>Current</th><th>Sumber / Issue</th><th>Status Data</th></tr></thead><tbody>
       ${[
@@ -251,9 +256,16 @@ function draw(){
         ['Warehouse Operational Performance','20%','—','Productivity & breakage memerlukan definisi komposit','PARTIAL','amber'],
         ['Cost Efficiency','15%','—','Net sales + WH/Distribution cost Finance','DATA REQUIRED','red'],
         ['SOP & K3 Compliance','15%','—','Audit, corrective action & target','DATA REQUIRED','red'],
-        ['People Development','10%','—','Training, competency, productivity','DATA REQUIRED','red'],
+        ['People Development & Team Performance','10%','—','Training, competency, productivity','DATA REQUIRED','red'],
       ].map(x=>`<tr><td><b>${x[0]}</b></td><td class="r">${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td><td>${label(x[4],x[5])}</td></tr>`).join('')}
       </tbody></table></div></div>
+    <div class="ct4-section-head" id="ct4ActionSection"><h3>07 · Management Decision &amp; Action Center</h3><span>Proposal tindakan · bukan approval otomatis</span></div>
+    <div class="ct4-panel"><div class="ct4-table-wrap"><table class="ct4-table"><thead><tr><th>Isu &amp; Evidence</th><th>Rekomendasi</th><th>Dampak Rp</th><th>Owner</th><th>Status</th></tr></thead><tbody>
+    <tr><td><b>${safe(worst?.rdc_name||"Inventory")}</b><div class="ct4-note">DOI ${fmt(worst?.doi_days,1)} hari · ${fmt(worst?.no_movement_3m_stock)} box no movement</div></td><td>Review SKU bersama Commercial dan hold PR untuk excess tervalidasi</td><td>DATA REQUIRED</td><td>Belum ditetapkan</td><td>${label("REVIEW","amber")}</td></tr>
+    <tr><td><b>${safe(mostNonMove&&mostNonMove!==worst?mostNonMove.rdc_name:"Network")}</b><div class="ct4-note">Stock tanpa movement memerlukan analisis item</div></td><td>Pareto motif, series dan size; cocokkan dengan kebutuhan RDC tujuan</td><td>DATA REQUIRED</td><td>Belum ditetapkan</td><td>${label("REVIEW","amber")}</td></tr>
+    <tr><td><b>Network Transfer</b><div class="ct4-note">Detail SKU belum lengkap</div></td><td>Tahan auto-transfer sampai SKU, demand, kapasitas dan cost TMS tervalidasi</td><td>DATA REQUIRED</td><td>Logistic + Commercial</td><td>${label("BLOCKED","red")}</td></tr>
+    </tbody></table></div></div>
+    <div class="ct4-note" style="margin-top:10px">Action Tracker dengan PIC, due date, evidence dan status lanjut melalui Operational Control.</div>
     <div class="ct4-footnote">SLS Supply Chain Control Tower · Management Review Layer · Tampilan V4 mengikuti mockup referensi; data mengikuti sumber aktual yang tersedia.</div>
   `;
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
@@ -323,6 +335,8 @@ function moveToExecutive(id){
 $('v3NavDecisions')?.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();moveToExecutive('ct4ActionSection');$('v3NavDecisions')?.classList.add('active')},true);
 $('navInventory')?.addEventListener('click',e=>{if(CURRENT_RDC_SCOPE)return;e.preventDefault();e.stopImmediatePropagation();moveToExecutive('ct4InventoryAnchor');$('navInventory')?.classList.add('active')},true);
 document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.addEventListener('click',()=>qualityNav.classList.remove('active')));
+const oldApplyRole=applyRoleUI;
+applyRoleUI=function(){const v=oldApplyRole.apply(this,arguments);qualityNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';return v;};
 const oldRender=render;
 render=function(rdc){const result=oldRender(rdc);draw();if(!st.busy&&!IS_OFFLINE_MODE)load();return result};
 if(!CURRENT_RDC_SCOPE)draw();
