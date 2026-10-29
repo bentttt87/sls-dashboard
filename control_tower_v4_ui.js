@@ -231,9 +231,9 @@ function draw(){
     ['Physical Stock · RDC',ready?fmt(stock)+' <small>box</small>':'DATA REQUIRED','Agregasi snapshot manual DOI',false,ready?'blue':'slate'],
     ['Days of Inventory',ready&&doi!=null?fmt(doi,1)+' <small>hari</small>':'DATA REQUIRED','Σ stock ÷ Σ Avg Sales 3M × 30',false,!ready||doi==null?'slate':doi>75?'red':doi>45?'amber':'green'],
     ['No Movement · 3 Bulan',ready?fmt(nm)+' <small>box</small>':'DATA REQUIRED','Stok perlu review SKU; tidak selalu deadstock',false,!ready?'slate':nm>0?'amber':'green'],
-    ['Inventory Accuracy','PARTIAL','Stock opname 4/5 RDC · periode tidak sama',true,'amber'],
+    ['Inventory Accuracy',ev.op.length?fmt(ev.op.length)+' / '+(selected()==='Semua'?5:1)+' RDC':'DATA REQUIRED',ev.op.length?`Opname BOX terakhir: ${ev.opDate[0]} – ${ev.opDate[ev.opDate.length-1]}; skor sample bukan KPI nasional`:'Butuh stock opname Finance yang dapat diakses',true,'amber'],
     ['Warehouse Occupancy',occPct!=null&&(!full||occ.complete)?fmt(occPct,1)+'%':'DATA REQUIRED',`Stok ${occ.month||dateLabel(occ.date)} · kapasitas ${occ.month?'master belum diverifikasi ulang':'historis'}`,false,occPct==null?'slate':occPct>=100?'red':occPct>=85?'amber':'green'],
-    ['Logistics Cost Ratio','DATA REQUIRED','Finance & Net Sales belum terintegrasi',true,'slate']
+    ['Logistics Cost Ratio','DATA REQUIRED',`Finance Actual + Net Sales belum ada · ${fmt(ev.routes)} rute benchmark bukan biaya aktual`,true,'slate']
   ];
   const risk=x=>Number(x.doi_days)>75?'CRITICAL':Number(x.doi_days)>60?'HIGH':Number(x.doi_days)>45?'WATCH':'NORMAL';
   const rdcs=r.slice().sort((a,b)=>Number(b.doi_days)-Number(a.doi_days)).map(x=>`<tr class="${Number(x.doi_days)>75?'highlight':''}"><td><b>${safe(x.rdc_name)}</b></td><td class="r">${fmt(x.current_stock_box)}</td><td class="r"><b>${fmt(x.doi_days,1)}</b></td><td class="r">${fmt(x.no_movement_3m_stock)}</td><td>${label(risk(x),Number(x.doi_days)>75?'red':Number(x.doi_days)>45?'amber':'green')}</td></tr>`).join('');
@@ -326,7 +326,7 @@ function draw(){
       <thead><tr><th>KPI</th><th class="r">Bobot</th><th>Current</th><th>Sumber / Issue</th><th>Status Data</th></tr></thead><tbody>
       ${[
         ['Service Level','20%','OTIF: DATA REQUIRED','112 catatan SLA lama, belum memiliki promised date/eligibility memadai untuk skor OTIF','DATA REQUIRED','red'],
-        ['Inventory Accuracy','20%',ev.op.length?ev.op.length+'/'+(selected()==='Semua'?5:1)+' RDC (opname)':'DATA REQUIRED',ev.op.length?'Sample BOX: '+fmt(Math.min(...ev.opPct),2)+'–'+fmt(Math.max(...ev.opPct),2)+'%; tanggal '+(ev.opDate[0]||'—')+' s.d. '+(ev.opDate[ev.opDate.length-1]||'—')+'. BUKAN akurasi nasional terkini.':'Stock opname belum tersedia/terakses','PARTIAL','amber'],
+        ['Inventory Accuracy','20%',ev.op.length?ev.op.length+'/'+(selected()==='Semua'?5:1)+' RDC (opname)':'DATA REQUIRED',ev.opPct.length?'Sample BOX: '+fmt(Math.min(...ev.opPct),2)+'–'+fmt(Math.max(...ev.opPct),2)+'%; tanggal '+(ev.opDate[0]||'—')+' s.d. '+(ev.opDate[ev.opDate.length-1]||'—')+'. BUKAN akurasi nasional terkini.':'Stock opname belum tersedia/terakses','PARTIAL','amber'],
         ['Warehouse Operational Performance','20%',ev.monthly.length?'WH Breakage: '+fmt(ev.exposure>0?10000*ev.broken/ev.exposure:null,2)+' / 10rb box':'DATA REQUIRED',ev.monthly.length?'Warehouse '+fmt(ev.broken)+' box rusak; Delivery '+fmt(ev.delivery)+' box; periode '+ev.latest+'. Produktivitas belum cukup untuk skor komposit.':'Data breakage tidak tersedia/terakses; perlu integrasi produktivitas','PARTIAL','amber'],
         ['Cost Efficiency','15%',ev.routes?fmt(ev.routes)+' rute benchmark':'DATA REQUIRED','Tarif vendor adalah quotation, bukan actual WH+delivery cost / net sales. Rasio resmi belum bisa dihitung.','DATA REQUIRED','red'],
         ['SOP & K3 Compliance','15%','DATA REQUIRED','Perlu audit SOP/K3 dan corrective actions, bukan jumlah stock opname','DATA REQUIRED','red'],
