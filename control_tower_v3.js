@@ -69,7 +69,13 @@
   if(navTransport)navTransport.innerHTML='<span class="nav-icon">▰</span><span>Delivery &amp; Transport</span>';
   if(navWms)navWms.innerHTML='<span class="nav-icon">↗</span><span>WMS — Warehouse Execution</span>';
 
-  const inventoryNav=$('navInventory');
+  const decisionsNav=document.createElement('div');
+  decisionsNav.id='v3NavDecisions';
+  decisionsNav.className='nav-item';
+  decisionsNav.innerHTML='<span class="nav-icon">✓</span><span>Management Decisions</span>';
+  const reportsNav=$('navReports');
+  if(reportsNav)reportsNav.before(decisionsNav);
+    const inventoryNav=$('navInventory');
   if(inventoryNav){
     inventoryNav.insertAdjacentHTML('afterend',`
       <div class="nav-item" id="v3NavOccupancy"><span class="nav-icon">▤</span><span>Occupancy Report</span></div>
@@ -127,13 +133,13 @@
   // Legacy tabs stay in DOM for compatibility with current code, but are never shown.
   const tabs=$('viewTabsWrap');if(tabs)tabs.style.display='none';
   const baseRole=applyRoleUI;
-  applyRoleUI=function(){const result=baseRole.apply(this,arguments);if(executiveNav)executiveNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';if(navOps&&CURRENT_RDC_SCOPE)setActive(navOps);return result;};
+  applyRoleUI=function(){const result=baseRole.apply(this,arguments);if(executiveNav)executiveNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';if($('v3NavDecisions'))$('v3NavDecisions').style.display=CURRENT_RDC_SCOPE?'none':'flex';if(navOps&&CURRENT_RDC_SCOPE)setActive($('navSupplyChain'));return result;};
   const baseSwitch=switchView;
   switchView=function(mode){
     baseSwitch(mode);
     if($('viewTabsWrap'))$('viewTabsWrap').style.display='none';
     if($('page-dashboard')?.classList.contains('active')){
-      if(mode==='ops')setActive(navOps);
+      if(mode==='ops')setActive($('navSupplyChain'));
       else if(!CURRENT_RDC_SCOPE)setActive(executiveNav);
     }
     if($('mainTitle'))$('mainTitle').textContent=mode==='ops'?'SLS Operational Control':'SLS Supply Chain Control Tower';
@@ -145,7 +151,16 @@
     const replacement=navOps.cloneNode(true);navOps.replaceWith(replacement);
     replacement.addEventListener('click',()=>{const dashboard=$('page-dashboard');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));dashboard.classList.add('active');switchView('ops');setActive(replacement);$('v3OpsWorkbench')?.scrollIntoView({block:'start',behavior:'smooth'});});
   }
-  const v3OpsNav=$('navSupplyChain');
+  [ $('navSupplyChain'),$('v3NavOccupancy'),$('v3NavCostRatio'),$('v3NavDecisions') ].filter(Boolean).forEach(n=>{
+    n.addEventListener('click',()=>{
+      if(window.innerWidth<=820){
+        document.querySelector('.sidebar')?.classList.remove('mobile-open');
+        $('mobileBackdrop')?.classList.remove('show');
+        document.body.classList.remove('mobile-nav-open');
+      }
+    });
+  });
+    const v3OpsNav=$('navSupplyChain');
   [inventoryNav,navTransport].forEach(nav=>{if(nav)nav.addEventListener('click',()=>{deep.open=true;setActive(nav);});});
 
   function navigate(page,nav){
@@ -156,7 +171,13 @@
     window.scrollTo({top:0,behavior:'auto'});
     if(page==='occupancy')renderOccupancy();else renderCostRatio();
   }
-  $('v3NavOccupancy')?.addEventListener('click',()=>navigate('occupancy',$('v3NavOccupancy')));
+  $('v3NavDecisions')?.addEventListener('click',()=>{
+    if(CURRENT_RDC_SCOPE)return;
+    executiveNav?.click();
+    $('decisionGrid')?.scrollIntoView({behavior:'smooth',block:'start'});
+    setActive($('v3NavDecisions'));
+  });
+    $('v3NavOccupancy')?.addEventListener('click',()=>navigate('occupancy',$('v3NavOccupancy')));
   $('v3NavCostRatio')?.addEventListener('click',()=>navigate('costratio',$('v3NavCostRatio')));
   $('v3OpenOccupancy')?.addEventListener('click',()=>navigate('occupancy',$('v3NavOccupancy')));
   $('v3OpenCostRatio')?.addEventListener('click',()=>navigate('costratio',$('v3NavCostRatio')));
