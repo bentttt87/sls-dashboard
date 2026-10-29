@@ -42,7 +42,7 @@
       sourceLabel:'STOCK_HISTORY + RDC_MASTER',status:'CAPACITY_REFERENCE_CHECK_REQUIRED',
       stockSource:'stock_history',capacitySource:'rdc_master',capacityDate,
       capacityVerifiedForMonth:false, // update timestamp is not a certificate of capacity for the report month
-      priorMonth:prev,priorRatio,ratio,
+      priorMonth:prev,priorRatio:prevRatio,ratio,
       deltaPercentagePoints:prevRatio==null?null:ratio-prevRatio
     };
   }
