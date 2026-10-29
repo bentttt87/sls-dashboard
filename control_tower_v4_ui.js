@@ -40,6 +40,7 @@ css.textContent=`
 body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-family:'Inter','Segoe UI',Arial,sans-serif!important}
 #appRoot.app{grid-template-columns:236px minmax(0,1fr)!important}
 #appRoot.app[style*="display: none"]{display:none!important}
+#appRoot.app[style*="display:none"]{display:none!important}
 .sidebar{background:#fff!important;border-right:1px solid var(--ct4-line)!important;box-shadow:none!important;padding:23px 14px!important;color:var(--ct4-ink)!important}
 .sidebar .brand{gap:10px!important;align-items:center!important;padding:0 9px 12px!important;margin-bottom:8px!important;border-bottom:1px solid var(--ct4-line);flex-direction:row!important}
 .sidebar .brand>span{color:var(--ct4-navy)!important;font-weight:800!important;font-size:12px!important;line-height:1.25!important;align-self:center!important}
