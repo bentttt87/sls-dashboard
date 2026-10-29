@@ -33,6 +33,14 @@
     const prev=previousCandidates[0]||null;
     const stock=rows.reduce((n,x)=>n+x.stock_current_box,0),capacity=rows.reduce((n,x)=>n+x.kapasitas_box,0);
     const prevStock=prev?expected.reduce((n,name)=>n+Number(periods.get(prev).get(name).stock_box),0):null;
+    if(prev){
+      for(const row of rows){
+        const prior=Number(periods.get(prev).get(row.rdc_name).stock_box);
+        row.prior_stock_box=prior;
+        row.prior_occupancy_pct=100*prior/row.kapasitas_box;
+        row.change_pp=100*(row.stock_current_box-prior)/row.kapasitas_box;
+      }
+    }
     const ratio=capacity?100*stock/capacity:null;
     const prevRatio=prev!=null&&capacity>0?100*prevStock/capacity:null;
     const masterDates=rows.map(r=>r.capacity_updated_at).filter(Boolean).sort();
