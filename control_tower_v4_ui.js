@@ -40,10 +40,17 @@ return {date:day,rows:[...unique.values()].filter(r=>!CURRENT_RDC_SCOPE||r.rdc_n
 
 function evidence(area){
  const inArea=x=>area==='Semua'||x.rdc_name===area;
- const op=st.opname.filter(inArea);
+ const selectedRdc=area==='Semua'?names:[area];
+ const op=st.opname.filter(inArea).filter(x=>Number.isFinite(Number(x.system_qty_box))&&Number(x.system_qty_box)>0
+  &&x.abs_variance_box!=null&&Number.isFinite(Number(x.abs_variance_box))&&Number(x.abs_variance_box)>=0);
  const opPct=op.map(x=>Number(x.sample_accuracy_pct)).filter(Number.isFinite);
  const opDate=op.map(x=>x.check_date).filter(Boolean).sort();
- const selectedRdc=area==='Semua'?names:[area];
+ const opSystem=op.reduce((s,x)=>s+Number(x.system_qty_box),0);
+ const opVariance=op.reduce((s,x)=>s+Number(x.abs_variance_box),0);
+ const opWeighted=opSystem>0?100*(1-opVariance/opSystem):null;
+ const opCoverage=op.length+'/'+selectedRdc.length;
+ const opMissing=selectedRdc.filter(name=>!op.some(x=>x.rdc_name===name));
+ const opSameDate=new Set(opDate).size===1;
  const wh=st.breakage.filter(inArea);
  const months=[...new Set(wh.map(x=>String(x.period||'').slice(0,7)))].sort().reverse();
  const latest=months.find(m=>wh.filter(x=>String(x.period).startsWith(m)).length===selectedRdc.length);
@@ -55,7 +62,7 @@ function evidence(area){
  const people=st.capacity.filter(x=>area==='Semua'||x.name===area);
  const peopleCount=people.reduce((z,x)=>z+Number(x.total_sdm||0),0);
  const routes=st.freight.filter(x=>area==='Semua'||x.area_code===area).reduce((z,x)=>z+Number(x.route_count||0),0);
- return {op,opPct,opDate,monthly,latest,broken,delivery,delivered,exposure,peopleCount,peopleCountValid:people.length===selectedRdc.length,routes};
+ return {op,opPct,opDate,opSystem,opVariance,opWeighted,opCoverage,opMissing,opSameDate,monthly,latest,broken,delivery,delivered,exposure,peopleCount,peopleCountValid:people.length===selectedRdc.length,routes};
 }
 function monthlyDoi(rows){
  const matched=[];
@@ -216,6 +223,15 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 .ct4-table th{background:#f5f8fc;color:#60758c;text-align:left;font-size:12px;letter-spacing:0;font-weight:750}
 .ct4-table th,.ct4-table td{padding:12px 12px;border-bottom:1px solid #e9eef4}
 .ct4-table tr:last-child td{border-bottom:0}
+.ct4-accuracy-details{margin-top:13px!important;border-left:4px solid #d09a36!important}
+.ct4-accuracy-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;font-weight:800;color:#18355b;font-size:16px}
+.ct4-accuracy-details>summary::-webkit-details-marker{display:none}
+.ct4-accuracy-details>summary::after{content:"⌄";color:#657b95;font-size:19px}
+.ct4-accuracy-details[open]>summary::after{content:"⌃"}
+.ct4-accuracy-details .ct4-accuracy-value{color:#975e11;font-size:15px;font-weight:850}
+.ct4-accuracy-details .ct4-accuracy-missing{color:#af473a;font-weight:750}
+.ct4-accuracy-details .ct4-accuracy-note{padding:11px 18px 15px;color:#62768d;font-size:12px;line-height:1.65;background:#fffbf5;border-top:1px solid #f1e4d0}
+.ct4-accuracy-details th,.ct4-accuracy-details td{padding:10px 12px!important}
 .ct4-table th.r,.ct4-table td.r{text-align:right;font-variant-numeric:tabular-nums}
 .ct4-table .highlight{background:#fff8ec}
 .ct4-bar{height:10px;background:#e6edf5;border-radius:10px;overflow:hidden;min-width:90px}
@@ -292,7 +308,7 @@ function draw(){
     ['Physical Stock · RDC',ready?fmt(stock)+' <small>box</small>':'DATA REQUIRED','Agregasi snapshot manual DOI',false,ready?'blue':'slate'],
     ['Days of Inventory',ready&&doi!=null?fmt(doi,1)+' <small>hari</small>':'DATA REQUIRED','Σ stock ÷ Σ Avg Sales 3M × 30',false,!ready||doi==null?'slate':doi>75?'red':doi>45?'amber':'green'],
     ['No Movement · 3 Bulan',ready?fmt(nm)+' <small>box</small>':'DATA REQUIRED','Stok perlu review SKU; tidak selalu deadstock',false,!ready?'slate':nm>0?'amber':'green'],
-    ['Inventory Accuracy',ev.op.length?fmt(ev.op.length)+' / '+(selected()==='Semua'?5:1)+' RDC':'DATA REQUIRED',ev.op.length?`Opname BOX terakhir: ${ev.opDate[0]} – ${ev.opDate[ev.opDate.length-1]}; skor sample bukan KPI nasional`:'Butuh stock opname Finance yang dapat diakses',true,'amber'],
+    ['Inventory Accuracy (Opname)',ev.opWeighted!=null?fmt(ev.opWeighted,2)+'%':'DATA REQUIRED',ev.opWeighted!=null?`INDIKATIF · ${ev.opCoverage} RDC · ${dateLabel(ev.opDate[0])} – ${dateLabel(ev.opDate[ev.opDate.length-1])}; bukan skor nasional bulanan`:'Data stock opname BOX belum tersedia untuk area ini',false,ev.opWeighted!=null?'amber':'slate'],
     ['Warehouse Occupancy',occPct!=null&&(!full||occ.complete)?fmt(occPct,1)+'%':'DATA REQUIRED',`Stok ${occ.month||dateLabel(occ.date)} · kapasitas ${occ.month?'master belum diverifikasi ulang':'historis'}`,false,occPct==null?'slate':occPct>=100?'red':occPct>=85?'amber':'green'],
     ['Logistics Cost Ratio','DATA REQUIRED',`Finance Actual + Net Sales belum ada · ${fmt(ev.routes)} rute benchmark bukan biaya aktual`,true,'slate']
   ];
@@ -321,7 +337,7 @@ function draw(){
         <b style="color:var(--ct4-navy);font-size:16px">Kesiapan Data Pengambilan Keputusan</b><div class="ct4-note">Ketersediaan data ≠ pencapaian KPI.</div>
         <div class="ct4-fresh-row">DOI Summary RDC ${label(ready?`${r.length}/${full?5:1} RDC`:'DATA REQUIRED',ready?'green':'red')}</div>
         <div class="ct4-fresh-row">Detail SKU untuk aksi ${label(st.checks.sku?'Tersedia':'0 baris',st.checks.sku?'green':'red')}</div>
-        <div class="ct4-fresh-row">Opname Akunting ${label('4/5 RDC (audit terakhir)','amber')}</div>
+        <div class="ct4-fresh-row">Opname Akunting ${label(ev.opWeighted!=null?fmt(ev.opWeighted,2)+'% · '+ev.opCoverage+' RDC':'DATA REQUIRED',ev.opWeighted!=null?'amber':'red')}</div>
         <div class="ct4-fresh-row">OTIF & Logistics Cost ${label(st.checks.otif&&st.checks.cost?'Cek konsistensi data':'DATA REQUIRED',st.checks.otif&&st.checks.cost?'amber':'red')}</div>
         <div class="ct4-fresh-row">Action Tracker ${label(st.checks.action?'>0 record':'DATA REQUIRED','amber')}</div>
       </div>
@@ -330,6 +346,20 @@ function draw(){
     <div class="ct4-section-head"><h3>02 · Snapshot Kinerja Inventory ${full?'Nasional':safe(group())}</h3><span>Periode tiap sumber dicantumkan, bukan real-time</span></div>
     <div class="ct4-meaning"><span class="green">Normal</span><span class="amber">Perlu perhatian / data parsial</span><span class="red">Kritis</span><span class="purple">Kandidat perlu review</span><span class="slate">Data belum tersedia</span></div>
     <div class="ct4-metrics">${kd.map(([t,v,m,small,tone])=>`<div class="ct4-card tone-${tone||'blue'}"><div class="ct4-k">${t}</div><div class="ct4-v${small?' small':''}">${v}</div><div class="ct4-m">${m}</div></div>`).join('')}</div>
+    <details class="ct4-panel ct4-accuracy-details" id="ct4InventoryAccuracyDetails" open>
+      <summary><span>Inventory Accuracy · Detail Hasil Opname per RDC</span><span class="ct4-accuracy-value">${ev.opWeighted!=null?fmt(ev.opWeighted,2)+'% · '+ev.opCoverage+' RDC':'DATA REQUIRED'}</span></summary>
+      <div class="ct4-table-wrap"><table class="ct4-table"><thead><tr><th>RDC</th><th>Tanggal stock opname</th><th class="r">Stok sistem (BOX)</th><th class="r">Selisih absolut (BOX)</th><th class="r">Inventory Accuracy</th><th>Status</th></tr></thead><tbody>
+      ${(selected()==='Semua'?names:[selected()]).map(name=>{
+        const x=ev.op.find(row=>row.rdc_name===name);
+        return x?`<tr><td><b>${safe(name)}</b></td><td>${dateLabel(x.check_date)}</td><td class="r">${fmt(x.system_qty_box,2)}</td><td class="r">${fmt(x.abs_variance_box,2)}</td><td class="r"><b>${fmt(x.sample_accuracy_pct,2)}%</b></td><td>${label('OPNAME HISTORIS','amber')}</td></tr>`
+         :`<tr><td><b>${safe(name)}</b></td><td colspan="4" class="ct4-accuracy-missing">Belum ada hasil stock opname BOX yang valid untuk area ini</td><td>${label('DATA REQUIRED','red')}</td></tr>`;
+      }).join('')}
+      ${ev.opWeighted!=null?`<tr style="background:#fff9ed"><td colspan="2"><b>GABUNGAN SAMPEL ${ev.opCoverage} RDC</b></td><td class="r"><b>${fmt(ev.opSystem,2)}</b></td><td class="r"><b>${fmt(ev.opVariance,2)}</b></td><td class="r"><b>${fmt(ev.opWeighted,2)}%</b></td><td>${label('INDIKATIF','amber')}</td></tr>`:''}
+      </tbody></table></div>
+      <div class="ct4-accuracy-note"><b>Metode:</b> (1 − Σ |selisih BOX| ÷ Σ |stok sistem BOX|) × 100%. Dibobot berdasarkan kuantitas sistem, <b>bukan rata-rata persentase RDC</b>.
+      ${ev.opMissing.length?` Data ${safe(ev.opMissing.join(', '))} belum tercakup.`:''}
+      Hasil masing-masing RDC berasal dari tanggal opname berbeda; <b>bukan Inventory Accuracy nasional pada satu periode</b> dan belum dapat dianggap pencapaian KPI bulanan resmi.</div>
+    </details>
 
     <div class="ct4-panel ct4-report" style="margin-top:13px">
       <div class="ct4-panel-head"><b>DOI Stok Akhir Bulan · Juli–September 2026</b>${label(historical.coverage===r.length&&historical.period.length===1?'MONTHLY CALCULATED':'PARTIAL','blue')}</div>
@@ -387,7 +417,9 @@ function draw(){
       <thead><tr><th>KPI</th><th class="r">Bobot</th><th>Current</th><th>Sumber / Issue</th><th>Status Data</th></tr></thead><tbody>
       ${[
         ['Service Level','20%',st.slaQuality[0]?.eligible_otif_records>0?'OTIF: REVIEW REQUIRED':'OTIF: DATA REQUIRED',st.slaQuality[0]?fmt(st.slaQuality[0].source_records)+' catatan SLA s.d. '+(st.slaQuality[0].last_so_date||'—')+'; '+fmt(st.slaQuality[0].eligible_otif_records)+' record memenuhi syarat OTIF. Skor resmi perlu validasi eligibility, promised date, qty.':'Sumber SLA tidak tersedia untuk akun ini; promised date dan qty perlu divalidasi','DATA REQUIRED','red'],
-        ['Inventory Accuracy','20%',ev.op.length?ev.op.length+'/'+(selected()==='Semua'?5:1)+' RDC (opname)':'DATA REQUIRED',ev.opPct.length?'Sample BOX: '+fmt(Math.min(...ev.opPct),2)+'–'+fmt(Math.max(...ev.opPct),2)+'%; tanggal '+(ev.opDate[0]||'—')+' s.d. '+(ev.opDate[ev.opDate.length-1]||'—')+'. BUKAN akurasi nasional terkini.':'Stock opname belum tersedia/terakses','PARTIAL','amber'],
+        ['Inventory Accuracy','20%',ev.opWeighted!=null?fmt(ev.opWeighted,2)+'% ('+ev.opCoverage+' RDC)':'DATA REQUIRED',
+ev.opWeighted!=null?'Σ |selisih| '+fmt(ev.opVariance,2)+' / Σ |stok sistem| '+fmt(ev.opSystem,2)+' BOX; tanggal '+dateLabel(ev.opDate[0])+' s.d. '+dateLabel(ev.opDate[ev.opDate.length-1])+'. INDIKATIF; bukan KPI nasional pada satu periode.':'Belum ada hasil opname BOX yang dapat dibaca untuk area ini',
+ev.opWeighted!=null?'PARTIAL':'DATA REQUIRED',ev.opWeighted!=null?'amber':'red'],
         ['Warehouse Operational Performance','20%',ev.monthly.length?'WH Breakage: '+fmt(ev.exposure>0?10000*ev.broken/ev.exposure:null,2)+' / 10rb box':'DATA REQUIRED',ev.monthly.length?'Warehouse '+fmt(ev.broken)+' box rusak; Delivery '+fmt(ev.delivery)+' box; periode '+ev.latest+'. Produktivitas belum cukup untuk skor komposit.':'Data breakage tidak tersedia/terakses; perlu integrasi produktivitas','PARTIAL','amber'],
         ['Cost Efficiency','15%',ev.routes?fmt(ev.routes)+' rute benchmark':'DATA REQUIRED','Tarif vendor adalah quotation, bukan actual WH+delivery cost / net sales. Rasio resmi belum bisa dihitung.','DATA REQUIRED','red'],
         ['SOP & K3 Compliance','15%','DATA REQUIRED','Perlu audit SOP/K3 dan corrective actions, bukan jumlah stock opname','DATA REQUIRED','red'],
@@ -428,7 +460,7 @@ const quality=`
  <tr><td>OTIF</td><td>${st.checks.otif?'Ada baris sumber':'0 baris'}</td><td>—</td><td>${label(st.checks.otif?'VALIDATION REQUIRED':'DATA REQUIRED',st.checks.otif?'amber':'red')}</td></tr>
  <tr><td>Logistics Cost</td><td>${st.checks.cost?'Ada baris sumber':'0 baris'}</td><td>—</td><td>${label(st.checks.cost?'RECONCILE FINANCE':'DATA REQUIRED',st.checks.cost?'amber':'red')}</td></tr>
  <tr><td>Net Sales Finance</td><td>${st.checks.financial?'Ada baris sumber':'Belum terintegrasi'}</td><td>—</td><td>${label('DATA REQUIRED','red')}</td></tr>
- <tr><td>Inventory Accuracy</td><td>4/5 RDC audit sebelumnya</td><td>Beragam</td><td>${label('PARTIAL / STALE','amber')}</td></tr>
+ <tr><td>Inventory Accuracy</td><td>${evidence('Semua').opWeighted!=null?fmt(evidence('Semua').opWeighted,2)+'% (sampel '+evidence('Semua').opCoverage+' RDC)':'DATA REQUIRED'}</td><td>${evidence('Semua').opDate.length?dateLabel(evidence('Semua').opDate[0])+' – '+dateLabel(evidence('Semua').opDate[evidence('Semua').opDate.length-1]):'—'}</td><td>${label('INDIKATIF · PERIODE BEDA','amber')}</td></tr>
  <tr><td>Action Tracker</td><td>${st.checks.action?'Ada record':'Belum lengkap'}</td><td>—</td><td>${label('REVIEW','amber')}</td></tr>
  </tbody></table></div></div>
  <div class="ct4-banner"><b>Aturan:</b> skor/rasio tidak boleh dianggap aktual bila numerator, denominator, periode, cakupan RDC atau validasi sumber belum memadai.</div>
