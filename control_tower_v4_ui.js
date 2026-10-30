@@ -351,14 +351,14 @@ function draw(){
       <div class="ct4-table-wrap"><table class="ct4-table"><thead><tr><th>RDC</th><th>Tanggal stock opname</th><th class="r">Stok sistem (BOX)</th><th class="r">Selisih absolut (BOX)</th><th class="r">Inventory Accuracy</th><th>Status</th></tr></thead><tbody>
       ${(selected()==='Semua'?names:[selected()]).map(name=>{
         const x=ev.op.find(row=>row.rdc_name===name);
-        return x?`<tr><td><b>${safe(name)}</b></td><td>${dateLabel(x.check_date)}</td><td class="r">${fmt(x.system_qty_box,2)}</td><td class="r">${fmt(x.abs_variance_box,2)}</td><td class="r"><b>${fmt(x.sample_accuracy_pct,2)}%</b></td><td>${label('OPNAME HISTORIS','amber')}</td></tr>`
+        return x?`<tr><td><b>${safe(name)}</b></td><td>${dateLabel(x.check_date)}<div class="ct4-note" title="${safe(x.source_file||'')}">Sumber: ${x.record_status==='UPLOADED_VALIDATED'?'File opname tervalidasi':'Data histori'}</div></td><td class="r">${fmt(x.system_qty_box,2)}</td><td class="r">${fmt(x.abs_variance_box,2)}</td><td class="r"><b>${fmt(x.sample_accuracy_pct,2)}%</b></td><td>${label('OPNAME HISTORIS','amber')}</td></tr>`
          :`<tr><td><b>${safe(name)}</b></td><td colspan="4" class="ct4-accuracy-missing">Belum ada hasil stock opname BOX yang valid untuk area ini</td><td>${label('DATA REQUIRED','red')}</td></tr>`;
       }).join('')}
       ${ev.opWeighted!=null?`<tr style="background:#fff9ed"><td colspan="2"><b>GABUNGAN SAMPEL ${ev.opCoverage} RDC</b></td><td class="r"><b>${fmt(ev.opSystem,2)}</b></td><td class="r"><b>${fmt(ev.opVariance,2)}</b></td><td class="r"><b>${fmt(ev.opWeighted,2)}%</b></td><td>${label('INDIKATIF','amber')}</td></tr>`:''}
       </tbody></table></div>
       <div class="ct4-accuracy-note"><b>Metode:</b> (1 − Σ |selisih BOX| ÷ Σ |stok sistem BOX|) × 100%. Dibobot berdasarkan kuantitas sistem, <b>bukan rata-rata persentase RDC</b>.
       ${ev.opMissing.length?` Data ${safe(ev.opMissing.join(', '))} belum tercakup.`:''}
-      Hasil masing-masing RDC berasal dari tanggal opname berbeda; <b>bukan Inventory Accuracy nasional pada satu periode</b> dan belum dapat dianggap pencapaian KPI bulanan resmi.</div>
+      Hasil berasal dari <b>6 file stock opname yang diunggah</b>, sheet Report per Material, khusus UOM BOX. Jakarta menggunakan hasil Juli 2026; Februari tetap histori. Baris subtotal, total, serta PC/M2 tidak dicampur. Tanggal opname tiap RDC berbeda; <b>bukan Inventory Accuracy nasional pada satu periode</b> dan belum dapat dianggap pencapaian KPI bulanan resmi.</div>
     </details>
 
     <div class="ct4-panel ct4-report" style="margin-top:13px">
@@ -473,7 +473,7 @@ async function load(){
  const targets=[
  ['doiLegacy','doi_manual_rdc_snapshot','&order=snapshot_date.desc&limit=50'],
  ['commercial','commercial_kpi_rdc_snapshot_v1','&order=snapshot_date.desc&limit=50'],
- ['opname','management_inventory_opname_latest_v1','&limit=15'],
+ ['opname','management_inventory_opname_latest_v2','&limit=15'],
  ['slaQuality','management_sla_quality_v1','&limit=1'],
  ['breakage','breakage_monthly','&order=period.desc&limit=100'],
  ['freight','freight_benchmark_summary_v1','&limit=25'],
