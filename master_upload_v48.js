@@ -116,10 +116,32 @@ async function submitOpnameNow(){
  opa.busy=false;
  report(`Stock Opname: ${inserted} baru, ${duplicated} duplikat dilewati, ${blocked} revisi ditahan, ${failed} gagal. Tidak ada file yang ditumpuk.`,failed?'error':'success');
  opa.parsed=[];sendBtn.disabled=true;
- if(inserted){try{await renderStockOpnameCurrentSummary()}catch(e){};if(window.commercialKpiLive?.reload)window.commercialKpiLive.reload();alert('Opname tersimpan. Refresh dashboard untuk membaca Inventory Accuracy terbaru.')}
+ if(inserted){await refreshOpnameHistory();if(window.commercialKpiLive?.reload)window.commercialKpiLive.reload();alert('Opname tersimpan. Refresh dashboard untuk membaca Inventory Accuracy terbaru.')}
 }
 if(previewBtn)previewBtn.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();parseOpnameNow().catch(err=>report(err.message,'error'));},true);
 if(sendBtn)sendBtn.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();submitOpnameNow().catch(err=>report(err.message,'error'));},true);
+const legacySummary=$('stockOpnameCurrentSummary');
+if(legacySummary){legacySummary.style.display='none';}
+const newSummary=document.createElement('div');newSummary.id='soAuthoritativeHistoryV48';
+newSummary.className='retailup-card';
+newSummary.style.cssText='background:#fff;border:1px solid #dce5ef;border-radius:12px;padding:16px;margin-top:12px';
+legacySummary?.after(newSummary);
+async function refreshOpnameHistory(){
+ if(!newSummary||!signed()){newSummary.textContent='Login untuk melihat hasil stock opname yang tersimpan.';return}
+ try{
+  const data=await sbSelect('inventory_opname_uploaded_summary_v2','&order=check_date.desc&limit=100');
+  const chosen=[...data].sort((a,b)=>String(b.check_date).localeCompare(String(a.check_date)));
+  const last=new Map();for(const x of chosen)if(!last.has(x.rdc_name))last.set(x.rdc_name,x);
+  const arr=[...last.values()];
+  const tot=arr.reduce((a,x)=>a+Number(x.system_qty_box||0),0),dif=arr.reduce((a,x)=>a+Number(x.abs_variance_box||0),0);
+  newSummary.innerHTML='<h3 style="margin:0 0 10px;color:#18355b;font-size:17px">Inventory Accuracy · Sumber Terbaru (Upload Terkendali)</h3>'+
+  (arr.length?'<p style="font-size:13px;margin-bottom:12px;color:#385b7d"><b>'+fmt(100*(1-dif/tot),2)+'%</b> indikatif · '+arr.length+'/5 RDC · '+fmt(tot,2)+' box sistem</p>'+
+  '<div style="overflow:auto"><table class="retailup-table"><thead><tr><th>RDC</th><th>Semester</th><th>Tanggal</th><th>Akurasi</th><th>Nama file</th></tr></thead><tbody>'+
+  arr.map(x=>'<tr><td><b>'+safe(x.rdc_name)+'</b></td><td>'+safe(sem(x.check_date))+'</td><td>'+safe(x.check_date)+'</td><td><b>'+fmt(100*(1-Number(x.abs_variance_box)/Number(x.system_qty_box)),2)+'%</b></td><td>'+safe(x.source_file)+'</td></tr>').join('')+
+  '</tbody></table></div>':'Belum ada hasil opname tersimpan untuk area ini.');
+ }catch(e){newSummary.textContent='Tidak bisa membaca histori opname: '+(e.message||e)}
+}
+$('navStockOpname')?.addEventListener('click',()=>{refreshOpnameHistory()},false);
 const soIntro=$('page-stockopname')?.querySelector('.so-help');
 if(soIntro)soIntro.insertAdjacentHTML('beforeend','<p style="margin:10px 0;color:#254a74;font-weight:700">Anti-duplikasi: 1 laporan / RDC / semester. File identik dilewati; revisi berbeda untuk semester sama harus direview Master. Hasil harus memiliki material BOX serta varians konsisten.</p>');
 
