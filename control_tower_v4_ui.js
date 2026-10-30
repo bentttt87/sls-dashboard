@@ -96,7 +96,54 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 #dataGovBadge{background:#e9f0f8!important;color:#315879!important}
 #authSessionBadge{border:1px solid #d1e2d5!important}
 .main{background:var(--ct4-bg)!important;min-width:0!important;padding:25px 32px 45px!important}
-#dashboardStickyHeader{background:var(--ct4-bg)!important;padding:0!important;box-shadow:none!important;position:relative!important;border:none!important;margin:0 0 11px!important}
+#dashboardStickyHeader{
+  position:sticky!important;top:0!important;z-index:110!important;
+  background:#f5f7fa!important;
+  margin:-25px -32px 14px!important;padding:24px 32px 9px!important;
+  border:0!important;border-bottom:1px solid #dce5ef!important;
+  box-shadow:0 5px 16px rgba(24,53,91,.06)!important;
+  transition:padding .18s ease,box-shadow .18s ease!important;
+}
+#dashboardStickyHeader.compact{padding:8px 32px 7px!important;box-shadow:0 7px 18px rgba(24,53,91,.12)!important}
+#dashboardStickyHeader .topbar{margin-bottom:0!important}
+#ct4PinnedStatusWrap{margin:0;min-height:0}
+#ct4PinnedStatusWrap:empty{display:none}
+#dashboardStickyHeader #ct4PinnedStatusWrap .ct4-banner{
+  display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap;
+  margin:9px 0 2px!important;padding:10px 13px!important;
+  border:1px solid #d9e4ef;border-radius:9px;
+  background:#eaf1f9!important;color:#385778!important;
+  font-size:12px!important;line-height:1.45!important;
+}
+#ct4PinnedStatusWrap .ct4-banner>b{white-space:nowrap}
+#ct4PinnedStatusWrap .ct4-banner>span:not(.ct4-tag){min-width:0;overflow-wrap:anywhere;flex:1 1 350px}
+#ct4-executive>.ct4-eyebrow,#ct4-executive>.ct4-note{display:none!important}
+#ct4-executive [id],#opsView [id]{scroll-margin-top:calc(var(--ct4-sticky-height,160px) + 14px)!important}
+@media(max-width:960px){
+  #dashboardStickyHeader{margin:-22px -20px 13px!important;padding:22px 20px 9px!important}
+  #dashboardStickyHeader.compact{padding:8px 20px 7px!important}
+}
+@media(max-width:820px){
+  #dashboardStickyHeader{margin:-14px -14px 13px!important;padding:14px 14px 8px!important}
+  #dashboardStickyHeader.compact{padding:10px 14px 7px!important}
+  #dashboardStickyHeader .topbar,#dashboardStickyHeader.compact .topbar{padding-left:46px!important;gap:8px!important}
+  #dashboardStickyHeader .topbar>div:first-child{min-width:0!important;flex:1!important}
+  #dashboardStickyHeader .filters{max-width:48%;min-width:0}
+  #dashboardStickyHeader #rdcSelectorWrap{max-width:100%;min-width:0}
+  #dashboardStickyHeader #rdcSelector{max-width:100px!important}
+  #dashboardStickyHeader #ct4PinnedStatusWrap .ct4-banner{font-size:11px!important;padding:8px 10px!important;max-height:72px;overflow-y:auto}
+  #ct4PrintTools{display:none!important}
+}
+@media(max-width:520px){
+  #dashboardStickyHeader #periodLine{display:none!important}
+  #dashboardStickyHeader #mainTitle{font-size:16px!important}
+  #dashboardStickyHeader #mainTitle::before{font-size:8px!important;letter-spacing:.5px}
+}
+@media print{
+  #dashboardStickyHeader,#dashboardStickyHeader.compact{position:static!important;top:auto!important;
+    padding:0!important;margin:0 0 12px!important;box-shadow:none!important}
+  #ct4PinnedStatusWrap .ct4-banner{max-height:none!important}
+}
 #dashboardStickyHeader .topbar{align-items:center!important;padding:0 0 12px!important;min-height:auto!important;border:none!important}
 #mainTitle{font-size:25px!important;line-height:1.2!important;color:var(--ct4-navy)!important;letter-spacing:-.3px!important;font-weight:800!important}
 #mainTitle::before{content:"NATIONAL SUPPLY CHAIN · MANAGEMENT REVIEW";display:block;font-size:10px;letter-spacing:1.3px;line-height:1.7;font-weight:850;color:#74859b;margin-bottom:2px}
@@ -200,6 +247,15 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 document.head.appendChild(css);
 const mg=$('mgmtView');if(!mg)return;
 const shell=document.createElement('div');shell.id='ct4-executive';shell.className='ct4-ui';mg.prepend(shell);
+// STATUS SUMBER belongs to the same sticky region as title, RDC filter and Print Review.
+const stickyHeader=$('dashboardStickyHeader');
+const statusSlot=document.createElement('div');statusSlot.id='ct4PinnedStatusWrap';
+stickyHeader?.append(statusSlot);
+function syncStickyOffset(){
+ if(stickyHeader)document.documentElement.style.setProperty('--ct4-sticky-height',Math.ceil(stickyHeader.getBoundingClientRect().height)+'px');
+}
+if(stickyHeader&&typeof ResizeObserver==='function')new ResizeObserver(syncStickyOffset).observe(stickyHeader);
+else window.addEventListener('resize',syncStickyOffset);
 const printTools=document.createElement('div');printTools.id='ct4PrintTools';
 printTools.innerHTML='<button type="button" class="ct4-link" id="ct4PrintBtn" style="margin:0">Cetak Review</button>';
 $('dashboardStickyHeader')?.querySelector('.filters')?.append(printTools);
@@ -244,7 +300,7 @@ function draw(){
   shell.innerHTML=`
     <div class="ct4-eyebrow">NATIONAL SUPPLY CHAIN · MANAGEMENT REVIEW</div>
     <div class="ct4-note">Dari kinerja operasional → risiko bisnis → tindakan → keputusan manajemen</div>
-    <div class="ct4-banner"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!ready?label('DATA REQUIRED','red'):label('DOI 5 RDC tersedia','green')}</div>
+    <div class="ct4-banner" id="ct4SourceBanner" role="status" aria-live="polite"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!ready?label('DATA REQUIRED','red'):label('DOI 5 RDC tersedia','green')}</div>
 
     <div class="ct4-section-head"><h3>01 · Fokus Manajemen</h3><span>Apa masalah utama? Apa yang harus diputuskan?</span></div>
     <div class="ct4-focus">
@@ -342,6 +398,9 @@ function draw(){
     <div class="ct4-note" style="margin-top:10px">Action Tracker dengan PIC, due date, evidence dan status lanjut melalui Operational Control.</div>
     <div class="ct4-footnote">SLS Supply Chain Control Tower · Management Review Layer · Tampilan V4 mengikuti mockup referensi; data mengikuti sumber aktual yang tersedia.</div>
   `;
+  const sourceBanner=$('ct4SourceBanner');
+  if(sourceBanner&&statusSlot)statusSlot.replaceChildren(sourceBanner);
+  syncStickyOffset();
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
   if(typeof window.renderCommercialKpiTeaser==='function')window.renderCommercialKpiTeaser();
   if($('mainTitle'))$('mainTitle').textContent='Supply Chain Control Tower';
