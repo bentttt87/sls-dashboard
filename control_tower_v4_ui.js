@@ -282,8 +282,8 @@ function draw(){
         ready=st.loaded&&r.length>0,
         latestDates=[...new Set(r.map(x=>x.snapshot_date))].sort(),
         issueCount=r.filter(x=>Number(x.doi_days)>75||Number(x.no_movement_3m_stock)>0).length;
-  const occPeriod=occ.month?`Stok bulanan ${occ.month} / kapasitas master referensi (${dateLabel(occ.capacityDate)})`:`Occupancy historis ${dateLabel(occ.date)}`;
-  const freshness=`DOI ${latestDates.length?latestDates.map(dateLabel).join(', '):'belum tersedia'} · Occupancy ${occPeriod} · Logistics Cost: DATA REQUIRED`;
+  const occPeriod=occ.month?`Stok bulanan ${occ.month} / kapasitas master referensi (${dateLabel(occ.capacityDate)})`:`historis ${dateLabel(occ.date)}`;
+  const freshness=st.loaded?`DOI ${latestDates.length?latestDates.map(dateLabel).join(', '):'belum tersedia'} · Occupancy ${occPeriod} · Logistics Cost: DATA REQUIRED`:'Memuat DOI dan occupancy terbaru…';
   let current=worst?Number(worst.doi_days):null;
   let title=worst?`${worst.rdc_name}: perputaran stok ${current>75?'sangat lambat':current>45?'perlu diperhatikan':'perlu dijaga'}`:'Menyiapkan ringkasan inventory';
   let action=worst?'Review SKU bersama Commercial. Evaluasi hold PR dan program sell-out. Transfer hanya setelah kecocokan SKU/series, demand tujuan, kapasitas, dan ongkos TMS tervalidasi.':'Lengkapi snapshot inventory sebelum mengusulkan transfer.';
@@ -407,7 +407,7 @@ function draw(){
   // Do not create another #ct4SourceBanner inside shell: getElementById would
   // otherwise select the stale pinned one and leave the new one in scroll content.
   if(statusSlot){
-    statusSlot.innerHTML=`<div class="ct4-banner" id="ct4SourceBanner" role="status" aria-live="polite"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!ready?label('DATA REQUIRED','red'):label('DOI '+r.length+' RDC tersedia','green')}</div>`;
+    statusSlot.innerHTML=`<div class="ct4-banner" id="ct4SourceBanner" role="status" aria-live="polite"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!st.loaded?label('MEMUAT','blue'):!ready?label('DATA REQUIRED','red'):label('DOI '+r.length+' RDC tersedia','green')}</div>`;
   }
   syncStickyOffset();
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
