@@ -111,6 +111,7 @@ body{background:var(--ct4-bg)!important;color:var(--ct4-ink)!important;font-fami
 #dashboardStickyHeader .topbar{margin-bottom:0!important}
 #ct4PinnedStatusWrap{margin:0;min-height:0}
 #ct4PinnedStatusWrap:empty{display:none}
+#ct4-executive>#ct4SourceBanner{display:none!important} /* defensive: never duplicate an old scrolling banner */
 #dashboardStickyHeader #ct4PinnedStatusWrap .ct4-banner{
   display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap;
   margin:9px 0 2px!important;padding:10px 13px!important;
@@ -304,7 +305,7 @@ function draw(){
   shell.innerHTML=`
     <div class="ct4-eyebrow">NATIONAL SUPPLY CHAIN · MANAGEMENT REVIEW</div>
     <div class="ct4-note">Dari kinerja operasional → risiko bisnis → tindakan → keputusan manajemen</div>
-    <div class="ct4-banner" id="ct4SourceBanner" role="status" aria-live="polite"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!ready?label('DATA REQUIRED','red'):label('DOI 5 RDC tersedia','green')}</div>
+    <!-- STATUS SUMBER is rendered only inside the pinned header, never in the scrolling report. -->
 
     <div class="ct4-section-head"><h3>01 · Fokus Manajemen</h3><span>Apa masalah utama? Apa yang harus diputuskan?</span></div>
     <div class="ct4-focus">
@@ -402,8 +403,12 @@ function draw(){
     <div class="ct4-note" style="margin-top:10px">Action Tracker dengan PIC, due date, evidence dan status lanjut melalui Operational Control.</div>
     <div class="ct4-footnote">SLS Supply Chain Control Tower · Management Review Layer · Tampilan V4 mengikuti mockup referensi; data mengikuti sumber aktual yang tersedia.</div>
   `;
-  const sourceBanner=$('ct4SourceBanner');
-  if(sourceBanner&&statusSlot)statusSlot.replaceChildren(sourceBanner);
+  // Single-owner status: update the same pinned element directly on EVERY draw.
+  // Do not create another #ct4SourceBanner inside shell: getElementById would
+  // otherwise select the stale pinned one and leave the new one in scroll content.
+  if(statusSlot){
+    statusSlot.innerHTML=`<div class="ct4-banner" id="ct4SourceBanner" role="status" aria-live="polite"><b>STATUS SUMBER</b><span>${safe(freshness)}</span>${!ready?label('DATA REQUIRED','red'):label('DOI '+r.length+' RDC tersedia','green')}</div>`;
+  }
   syncStickyOffset();
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
   if(typeof window.renderCommercialKpiTeaser==='function')window.renderCommercialKpiTeaser();
