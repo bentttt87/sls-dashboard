@@ -114,7 +114,8 @@
         password
       });
       if(!response?.ok||response.login_id!==loginId)throw new Error('Pembuatan akun belum dapat diverifikasi.');
-      area.replaceChildren();
+      const entry=document.createElement('div');
+      entry.style.cssText='border-bottom:1px solid #cde1d4;padding:6px 0 14px;margin-bottom:9px';
       const heading=document.createElement('strong');heading.textContent='Akun '+description+' berhasil dibuat';
       const uid=document.createElement('div');uid.className='ua-credential-line';
       const ulabel=document.createElement('span');ulabel.textContent='Login ID';const uvalue=document.createElement('code');uvalue.textContent=loginId;
@@ -130,8 +131,9 @@
       const notice=document.createElement('div');notice.style.cssText='font-size:11.5px;margin-top:7px;line-height:1.5;color:#456d52';
       notice.textContent='Simpan kredensial ini secara aman sekarang. Password tidak bisa dibuka lagi melalui menu ini; gunakan Reset Password jika hilang. Sarankan ganti password saat penggunaan pertama.';
       const close=document.createElement('button');close.type='button';close.className='ua-btn gray';close.textContent='Sembunyikan Password';
-      close.onclick=()=>{area.replaceChildren();area.style.display='none';};
-      area.append(heading,uid,credential,notice,close);area.style.display='block';
+      close.onclick=()=>{entry.remove();if(!area.children.length)area.style.display='none';};
+      entry.append(heading,uid,credential,notice,close);
+      area.append(entry);area.style.display='block';
       btn.textContent='Akun Sudah Dibuat';
       showMsg('✓ '+loginId+' aktif sebagai Management / ALL RDC. Akun lain dapat dibuat terpisah.',true);
       await loadUsers(false);
