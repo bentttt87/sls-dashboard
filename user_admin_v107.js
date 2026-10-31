@@ -30,7 +30,18 @@
       .ua-credential-result code{font:650 14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
       .ua-credential-result .ua-credential-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:7px 0}
       .ua-credential-result .ua-credential-line span{font-size:12px;font-weight:700;min-width:70px}
-      @media(max-width:900px){.ua-grid,.ua-coord-options{grid-template-columns:1fr}.ua-table{min-width:900px}.ua-wrap{overflow:auto}}
+      .ua-new-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1.4fr auto;gap:10px;align-items:end}
+      .ua-new-grid label{display:block;font-size:12px;font-weight:800;color:#4a5f79}
+      .ua-new-grid input,.ua-new-grid select{width:100%;margin-top:5px;padding:11px;border:1px solid #c9d6e5;border-radius:8px;font-size:13px;background:white;color:#213b5d}
+      .ua-new-grid button{padding:12px 15px;font-size:12px}
+      .ua-new-hint{font-size:12px;color:#667b92;line-height:1.6;margin-top:10px}
+      .ua-pw-cell{display:flex;gap:6px;align-items:center;min-width:270px}
+      .ua-pw-cell input{flex:1;min-width:145px;width:170px!important;padding:10px 8px!important;font-size:12px!important}
+      .ua-eye{border:1px solid #d3dfeb;background:#f7faff;color:#24577c;border-radius:8px;cursor:pointer;padding:8px;min-width:42px}
+      .ua-save{font-size:12px!important;padding:10px 13px!important;white-space:nowrap}
+      .ua-msg{font-size:13px!important;line-height:1.5;position:sticky;top:0;background:white;padding:8px 0;z-index:2}
+      @media(max-width:1100px){.ua-new-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      @media(max-width:900px){.ua-grid,.ua-coord-options{grid-template-columns:1fr}.ua-new-grid{grid-template-columns:1fr}.ua-table{min-width:1050px}.ua-wrap{overflow:auto}}
     `;
     document.head.appendChild(st);
   }
@@ -63,10 +74,22 @@
     const main=document.querySelector('.main'); if(!main) return;
     const pg=document.createElement('div'); pg.id='page-useradmin107'; pg.className='page';
     pg.innerHTML=`
-      <div class="topbar"><div><h1>Kelola User</h1><div class="period">Khusus Master — lihat akun aktif, reset password, dan validasi akses RDC</div></div></div>
-      <div class="ua-note"><b>Untuk trial Jakarta:</b> reset password pada STAFF.JKT.001 dan STAFF.JKT.002 melalui kolom Password Baru, lalu klik Reset Password. Password tidak disimpan di halaman ini.</div>
+      <div class="topbar"><div><h1>Kelola User</h1><div class="period">Khusus Master — buat akun seluruh RDC, kelola akses, serta simpan/reset password</div></div></div>
+      <div class="ua-note"><b>Satu akun SLS untuk semua aplikasi yang menggunakan Supabase Auth bersama.</b> Buat akun sesuai kewenangan dan lokasi. Password baru harus disimpan dengan tombol <b>Simpan Password</b> di baris akun. Tombol <b>Lihat</b> menampilkan teks yang sedang diketik; password tersimpan tidak dapat ditampilkan kembali.</div>
       <div class="ua-head"><h3>Akun SLS Aktif</h3><div class="grow"></div><button class="ua-btn gray" id="uaRefresh107">↻ Muat Ulang</button></div>
       <div id="uaMsg107" class="ua-msg"></div>
+      <section class="ua-create-coords" aria-label="Buat akun SLS semua RDC">
+        <h3>Buat Akun Baru — Semua RDC</h3>
+        <p>Akun menggunakan ID kanonis Control Tower dan Supabase Auth bersama. Pilih hak akses sesuai tugas; Management = seluruh RDC (lihat laporan); Supervisor, Admin dan Staff dibatasi pada RDC masing-masing.</p>
+        <form class="ua-new-grid" id="uaCreateAll107">
+          <label>User ID<input id="uaNewId107" required maxlength="50" autocomplete="off" placeholder="Contoh: SPV.JKT.002" pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,49}"></label>
+          <label>Hak Akses<select id="uaNewRole107"><option value="staff">Staff</option><option value="supervisor">Supervisor</option><option value="admin">Admin RDC</option><option value="management">Management / Nasional</option></select></label>
+          <label>Area / RDC<select id="uaNewRdc107"><option>Jakarta</option><option>Semarang</option><option>Surabaya</option><option>Denpasar</option><option>Palembang</option><option value="ALL RDC">ALL RDC</option></select></label>
+          <label>Password Awal<div class="ua-pw-cell"><input type="password" autocomplete="new-password" id="uaNewPw107" placeholder="Kosong = acak otomatis" minlength="9"><button class="ua-eye" type="button" id="uaNewShow107" aria-label="Lihat password awal">Lihat</button></div></label>
+          <button class="ua-btn blue" id="uaNewSubmit107" type="submit">Buat Akun</button>
+        </form>
+        <div class="ua-new-hint">Login ID wajib unik; minimal 9 karakter untuk password dengan huruf dan angka. Password kosong akan dibuat acak. Akun Master baru tidak dapat dibuat melalui menu ini. Pembuatan tidak mengubah hak akses aplikasi lain secara otomatis.</div>
+      </section>
       <section class="ua-create-coords" aria-label="Buat akun Koordinator">
         <h3>Buat Akun Koordinator Nasional</h3>
         <p>Dua ID terpisah untuk penelusuran aktivitas QW dan RDC. Role <b>MANAGEMENT</b>, cakupan <b>ALL RDC</b>, bukan Master dan tidak diberikan akses kelola user. Password awal dibuat acak dan hanya muncul setelah pembuatan berhasil; salin dan bagikan secara aman kepada pemegang akun.</p>
@@ -78,12 +101,21 @@
         </div>
         <div id="uaCoordinatorResult107" class="ua-credential-result" aria-live="polite"></div>
       </section>
-      <div class="ua-wrap"><table class="ua-table"><thead><tr><th>User ID</th><th>Role</th><th>RDC</th><th>Status</th><th>Last Login</th><th>Password Baru</th><th>Aksi</th></tr></thead><tbody id="uaBody107"><tr><td colspan="7">Memuat...</td></tr></tbody></table></div>
+      <div class="ua-wrap"><table class="ua-table"><thead><tr><th>User ID</th><th>Role</th><th>RDC</th><th>Status</th><th>Last Login</th><th>Password Baru</th><th>Konfirmasi</th></tr></thead><tbody id="uaBody107"><tr><td colspan="7">Memuat...</td></tr></tbody></table></div>
     `;
     main.appendChild(pg);
     $('uaRefresh107').onclick=loadUsers;
     $('uaCreateQw107').onclick=()=>createCoordinatorAccount('KOORD.QW','Koordinator QW','uaCreateQw107');
     $('uaCreateRdc107').onclick=()=>createCoordinatorAccount('KOORD.RDC','Koordinator RDC','uaCreateRdc107');
+    $('uaNewRole107').onchange=()=>{
+      const s=$('uaNewRdc107'),national=$('uaNewRole107').value==='management';
+      if(national)s.value='ALL RDC';else if(s.value==='ALL RDC')s.value='Jakarta';
+      [...s.options].forEach(o=>{if(o.value==='ALL RDC')o.disabled=!national;else o.disabled=national});
+      s.disabled=national;
+    };
+    $('uaNewRole107').onchange();
+    $('uaNewShow107').onclick=()=>togglePassword('uaNewPw107','uaNewShow107');
+    $('uaCreateAll107').onsubmit=e=>{e.preventDefault();createNewAccount();};
   }
 
   function showMsg(text,ok=false){const m=$('uaMsg107'); if(!m)return; m.textContent=text||''; m.className='ua-msg '+(text?(ok?'ok':'err'):'');}
@@ -144,17 +176,61 @@
     }finally{btn.disabled=false;}
   }
 
+  function togglePassword(inputId,buttonId){
+    const input=$(inputId),btn=$(buttonId);if(!input||!btn)return;
+    input.type=input.type==='password'?'text':'password';
+    btn.textContent=input.type==='password'?'Lihat':'Sembunyikan';
+    btn.setAttribute('aria-pressed',input.type==='text'?'true':'false');
+  }
+
+  async function createNewAccount(){
+    const form=$('uaCreateAll107'),submit=$('uaNewSubmit107');
+    if(!form||!submit)return;
+    const loginId=String($('uaNewId107').value||'').trim().toUpperCase();
+    const role=$('uaNewRole107').value;
+    const rdc=role==='management'?'ALL RDC':$('uaNewRdc107').value;
+    const supplied=$('uaNewPw107').value;
+    if(!/^[A-Z0-9][A-Z0-9._-]{2,49}$/.test(loginId))return showMsg('Format User ID tidak valid.');
+    if(!['management','admin','supervisor','staff'].includes(role))return showMsg('Role tidak dikenal.');
+    if(role!=='management'&&!['Jakarta','Semarang','Surabaya','Denpasar','Palembang'].includes(rdc))return showMsg('Pilih RDC valid.');
+    if(supplied && (supplied.length<9||!/[a-z]/i.test(supplied)||!/[0-9]/.test(supplied)))return showMsg('Password harus minimal 9 karakter serta mengandung huruf dan angka.');
+    submit.disabled=true;submit.textContent='Membuat…';
+    try{
+      const password=supplied||secureInitialPassword();
+      const result=await userApi('create',{login_id:loginId,role,rdc_name:rdc,password});
+      if(!result?.ok||result.login_id!==loginId)throw new Error('Server belum mengonfirmasi pembuatan user.');
+      showCredential({loginId,password,description:role.toUpperCase()+' · '+rdc});
+      $('uaNewId107').value='';$('uaNewPw107').value='';$('uaNewPw107').type='password';$('uaNewShow107').textContent='Lihat';
+      showMsg('✓ '+loginId+' berhasil dibuat; simpan password lalu uji login pada aplikasi tujuan.',true);
+      await loadUsers(false);
+    }catch(e){showMsg('Gagal membuat akun: '+String(e.message||e));}
+    finally{submit.disabled=false;submit.textContent='Buat Akun';}
+  }
+
+  function showCredential({loginId,password,description}){
+    const area=$('uaCoordinatorResult107');if(!area)return;
+    const entry=document.createElement('div');entry.style.cssText='border-bottom:1px solid #cde1d4;padding:9px 0;margin-bottom:9px';
+    const heading=document.createElement('strong');heading.textContent=loginId+' · '+description+' berhasil dibuat';
+    const line=document.createElement('div');line.className='ua-credential-line';
+    const title=document.createElement('span');title.textContent='Password';
+    const pass=document.createElement('code');pass.textContent=password;
+    const copy=document.createElement('button');copy.className='ua-btn gray';copy.type='button';copy.textContent='Salin Password';
+    copy.onclick=async()=>{try{await navigator.clipboard.writeText(password);copy.textContent='Tersalin';}catch(e){copy.textContent='Salin manual';}};
+    const hide=document.createElement('button');hide.className='ua-btn gray';hide.type='button';hide.textContent='Sembunyikan';hide.onclick=()=>{entry.remove();if(!area.children.length)area.style.display='none';};
+    line.append(title,pass,copy,hide);entry.append(heading,line);area.append(entry);area.style.display='block';
+  }
+
   async function resetPassword(userId,loginId,role,rdc,inputId){
     const inp=$(inputId); const pw=inp?.value||'';
-    if(pw.length<9){showMsg(`Password ${loginId} minimal 9 karakter.`); inp?.focus(); return;}
-    const btn=document.querySelector(`[data-ua-reset="${CSS.escape(userId)}"]`); if(btn){btn.disabled=true;btn.textContent='Memproses...';}
+    if(pw.length<9||!/[a-z]/i.test(pw)||!/[0-9]/.test(pw)){showMsg(`Password ${loginId} harus minimal 9 karakter, mengandung huruf dan angka.`); inp?.focus(); return;}
+    const btn=document.querySelector(`[data-ua-reset="${CSS.escape(userId)}"]`); if(btn){btn.disabled=true;btn.textContent='Menyimpan...';}
     try{
       await userApi('update',{user_id:userId,login_id:loginId,role,rdc_name:rdc,active:true,password:pw});
       if(inp) inp.value='';
-      showMsg(`✓ Password ${loginId} berhasil di-reset. Silakan trial login.`,true);
+      showMsg(`✓ Password ${loginId} berhasil disimpan di Supabase Auth. Gunakan password baru ini pada aplikasi SLS yang memakai Supabase yang sama.`,true);
       await loadUsers(false);
     }catch(e){showMsg(`Gagal reset ${loginId}: ${e.message}`);}
-    finally{if(btn){btn.disabled=false;btn.textContent='Reset Password';}}
+    finally{if(btn){btn.disabled=false;btn.textContent='Simpan Password';}}
   }
 
   async function loadUsers(clear=true){
@@ -174,13 +250,17 @@
           <td>${esc(r.rdc_name||'All RDC')}</td>
           <td><span class="ua-pill ${r.active?'on':'off'}">${r.active?'ACTIVE':'INACTIVE'}</span></td>
           <td>${esc(last)}</td>
-          <td><input id="${inputId}" type="password" autocomplete="new-password" placeholder="Password baru" style="width:150px"></td>
-          <td><button class="ua-btn blue" data-ua-reset="${esc(r.user_id)}" data-idx="${i}">Reset Password</button></td>
+          <td><div class="ua-pw-cell"><input id="${inputId}" type="password" minlength="9" autocomplete="new-password" placeholder="Masukkan password baru">
+          <button type="button" class="ua-eye" data-ua-show="${i}" aria-label="Lihat password ${esc(r.login_id)}">Lihat</button></div></td>
+          <td><button type="button" class="ua-btn blue ua-save" data-ua-reset="${esc(r.user_id)}" data-idx="${i}">Simpan Password</button></td>
         </tr>`;
       }).join('');
       rows.forEach((r,i)=>{
         const b=body.querySelector(`[data-idx="${i}"]`);
         if(b) b.onclick=()=>resetPassword(r.user_id,r.login_id,r.role,r.rdc_name,'uaPw107_'+i);
+        const show=body.querySelector(`[data-ua-show="${i}"]`);
+        if(show)show.onclick=()=>togglePassword('uaPw107_'+i,'uaShowPw107_'+i);
+        if(show)show.id='uaShowPw107_'+i;
       });
       showMsg(`✓ ${rows.length} akun aktif dimuat.`,true);
     }catch(e){body.innerHTML='<tr><td colspan="7">Gagal memuat user.</td></tr>';showMsg(e.message);}
