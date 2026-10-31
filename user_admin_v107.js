@@ -158,17 +158,60 @@
     line.append(title,pass,copy,hide);entry.append(heading,line);area.append(entry);area.style.display='block';
   }
 
+  // Verifies the actual Login ID → Supabase email → GoTrue password flow.
+  // No session is persisted, and the temporary test access token is revoked.
+  async function verifyPasswordLogin(loginId,password){
+    const emailResponse=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_login_email`,{
+      method:'POST',
+      headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({input_username:loginId.toLowerCase(),input_password:password})
+    });
+    if(!emailResponse.ok)return {ok:false,reason:'Pencarian ID SLS gagal'};
+    const email=await emailResponse.json();
+    if(typeof email!=='string'||!email.includes('@'))return {ok:false,reason:'User ID tidak ditemukan/aktif di pemetaan login'};
+    const tokenResponse=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
+    if(!tokenResponse.ok)return {ok:false,reason:'Autentikasi menolak password baru (HTTP '+tokenResponse.status+')'};
+    const login=await tokenResponse.json();
+    if(!login?.access_token)return {ok:false,reason:'Login tidak menghasilkan sesi yang valid'};
+    try{
+      await fetch(`${SUPABASE_URL}/auth/v1/logout`,{
+        method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+login.access_token}
+      });
+    }catch(_){/* temporary verification token is not persisted anywhere */}
+    return {ok:true};
+  }
+
   async function resetPassword(userId,loginId,role,rdc,inputId){
     const inp=$(inputId); const pw=inp?.value||'';
-    if(pw.length<9||!/[a-z]/i.test(pw)||!/[0-9]/.test(pw)){showMsg(`Password ${loginId} harus minimal 9 karakter, mengandung huruf dan angka.`); inp?.focus(); return;}
-    const btn=document.querySelector(`[data-ua-reset="${CSS.escape(userId)}"]`); if(btn){btn.disabled=true;btn.textContent='Menyimpan...';}
+    if(pw.length<9||!/[a-z]/i.test(pw)||!/[0-9]/.test(pw)){
+      showMsg(`Password ${loginId} harus minimal 9 karakter, mengandung huruf dan angka.`);inp?.focus();return;
+    }
+    const btn=document.querySelector(`[data-ua-reset="${CSS.escape(userId)}"]`);
+    if(btn){btn.disabled=true;btn.textContent='Menyimpan dan uji login…';}
+    let saved=false;
     try{
-      await userApi('update',{user_id:userId,login_id:loginId,role,rdc_name:rdc,active:true,password:pw});
-      if(inp) inp.value='';
-      showMsg(`✓ Password ${loginId} berhasil disimpan di Supabase Auth. Gunakan password baru ini pada aplikasi SLS yang memakai Supabase yang sama.`,true);
+      const result=await userApi('update',{user_id:userId,login_id:loginId,role,rdc_name:rdc,active:true,password:pw});
+      if(!result?.ok||result.login_id!==loginId||result.user_id!==userId){
+        throw new Error('Server belum mengonfirmasi perubahan password akun yang benar.');
+      }
+      saved=true;
+      let verdict;
+      try{verdict=await verifyPasswordLogin(loginId,pw);}
+      catch(e){verdict={ok:false,reason:'Uji login tidak dapat terhubung ke server autentikasi'};}
+      if(inp){inp.value='';inp.type='password';}
       await loadUsers(false);
-    }catch(e){showMsg(`Gagal reset ${loginId}: ${e.message}`);}
-    finally{if(btn){btn.disabled=false;btn.textContent='Simpan Password';}}
+      if(verdict.ok){
+        showMsg(`✓ Password ${loginId} tersimpan DAN login terverifikasi di Supabase Auth. Silakan login ulang menggunakan password baru tersebut.`,true);
+      }else{
+        showMsg(`⚠ Password ${loginId} tercatat diperbarui, tetapi uji login gagal: ${verdict.reason}. Jangan gunakan password ini sebelum berhasil diuji ulang.`);
+      }
+    }catch(e){
+      showMsg(`Gagal ${saved?'memeriksa':'menyimpan'} password ${loginId}: ${e.message}`);
+    }finally{if(btn){btn.disabled=false;btn.textContent='Simpan Password';}}
   }
 
   async function loadUsers(clear=true){
