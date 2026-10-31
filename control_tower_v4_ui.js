@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id);
 const fmt=(n,d=0)=>Number.isFinite(Number(n))?Number(n).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const names=['Jakarta','Semarang','Surabaya','Denpasar','Palembang'];
-const st={doi:[],commercial:[],occ:[],monthStocks:[],capacity:[],opname:[],breakage:[],freight:[],slaQuality:[],checks:[],loaded:false,busy:null,asof:null};
+const st={doi:[],commercial:[],occ:[],monthStocks:[],capacity:[],opname:[],breakage:[],breakageSync:null,breakageScope:null,breakageError:null,breakageSeq:0,freight:[],slaQuality:[],checks:[],loaded:false,busy:null,asof:null};
 const dc={0:'DATA REQUIRED'};
 const pct=(a,b)=>b>0?a/b*100:null;
 const dateLabel=s=>s?new Date(String(s).slice(0,10)+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -63,6 +63,23 @@ function evidence(area){
  const peopleCount=people.reduce((z,x)=>z+Number(x.total_sdm||0),0);
  const routes=st.freight.filter(x=>area==='Semua'||x.area_code===area).reduce((z,x)=>z+Number(x.route_count||0),0);
  return {op,opPct,opDate,opSystem,opVariance,opWeighted,opCoverage,opMissing,opSameDate,monthly,latest,broken,delivery,delivered,exposure,peopleCount,peopleCountValid:people.length===selectedRdc.length,routes};
+}
+function breakageArea(){const a=selected();return a==='Semua'?'ALL':names.includes(a)?a:'ALL'}
+function breakageData(){return st.breakageScope===breakageArea()?st.breakageSync:null}
+async function refreshBreakage(force=false,paintNow=true){
+ const scope=breakageArea();if(!force&&st.breakageScope===scope&&st.breakageSync)return;
+ if(IS_OFFLINE_MODE||(typeof AUTH_SESSION_OK!=='undefined'&&!AUTH_SESSION_OK))return;
+ const seq=++st.breakageSeq;st.breakageScope=scope;st.breakageSync=null;st.breakageError=null;
+ if(paintNow)draw();
+ try{
+ const payload=await sbRpc('control_tower_breakage_sync_v1',{p_rdc:scope});
+ if(seq!==st.breakageSeq||scope!==breakageArea())return;
+ if(payload?.source!=='SLS Breakage Monitoring')throw new Error('Sumber tidak valid');
+ st.breakageSync=payload;
+ }catch(err){if(seq!==st.breakageSeq||scope!==breakageArea())return;
+ st.breakageError='Gagal mengambil Breakage Monitoring; cek sesi login atau jaringan.';
+ console.warn('Breakage integration',err);
+ }finally{if(seq===st.breakageSeq&&scope===breakageArea()&&paintNow){draw();buildQuality();}}
 }
 function monthlyDoi(rows){
  const matched=[];
@@ -299,7 +316,9 @@ function draw(){
         latestDates=[...new Set(r.map(x=>x.snapshot_date))].sort(),
         issueCount=r.filter(x=>Number(x.doi_days)>75||Number(x.no_movement_3m_stock)>0).length;
   const occPeriod=occ.month?`Stok bulanan ${occ.month} / kapasitas master referensi (${dateLabel(occ.capacityDate)})`:`historis ${dateLabel(occ.date)}`;
-  const freshness=st.loaded?`DOI ${latestDates.length?latestDates.map(dateLabel).join(', '):'belum tersedia'} · Occupancy ${occPeriod} · Logistics Cost: DATA REQUIRED`:'Memuat DOI dan occupancy terbaru…';
+  const bs=breakageData(),bi=bs?.incidents||null,bk=bs?.historical_kpi||null;
+  const bFresh=bi?.month?`Breakage ${bi.month} (${bi.rdc_reported}/${bs.expected_rdc} RDC)`:'Breakage memuat / belum tersedia';
+  const freshness=st.loaded?`DOI ${latestDates.length?latestDates.map(dateLabel).join(', '):'belum tersedia'} · Occupancy ${occPeriod} · ${bFresh} · Logistics Cost: DATA REQUIRED`:'Memuat DOI dan occupancy terbaru…';
   let current=worst?Number(worst.doi_days):null;
   let title=worst?`${worst.rdc_name}: perputaran stok ${current>75?'sangat lambat':current>45?'perlu diperhatikan':'perlu dijaga'}`:'Menyiapkan ringkasan inventory';
   let action=worst?'Review SKU bersama Commercial. Evaluasi hold PR dan program sell-out. Transfer hanya setelah kecocokan SKU/series, demand tujuan, kapasitas, dan ongkos TMS tervalidasi.':'Lengkapi snapshot inventory sebelum mengusulkan transfer.';
@@ -403,6 +422,29 @@ function draw(){
        <button class="ct4-link" data-ct4-nav="occupancy">Buka laporan Occupancy →</button>
     </div></div>
 
+
+    <div class="ct4-section-head" id="ct4BreakageAnchor"><h3>04B · Breakage Monitoring</h3><span>Data insiden terkini &amp; KPI historis · sumber terpisah</span></div>
+    <div class="ct4-panel ct4-report" style="border-top:4px solid #268b8a">
+      <div class="ct4-panel-head"><b>Integrasi SLS Breakage Monitoring</b>${label(bs?'TERHUBUNG':st.breakageError?'ERROR':'MEMUAT',bs?'green':st.breakageError?'red':'blue')}</div>
+      <div class="ct4-panel-body">
+        <div class="ct4-note">Data insiden berasal langsung dari <b>Breakage Monitoring</b> dan mencakup Draft maupun Approved. Ini bukan rasio breakage nasional ketika baru sebagian RDC melapor. Rekap KPI dengan denominator tersedia terakhir disajikan secara terpisah.</div>
+        ${st.breakageError?`<div class="ct4-note" style="color:#ab3936">${safe(st.breakageError)}</div>`:''}
+        <div class="ct4-metrics four" style="margin-top:12px">
+          <div class="ct4-card tone-teal"><div class="ct4-k">Insiden ${safe(bi?.month||'terkini')}</div><div class="ct4-v">${bi?.month?fmt(bi.incident_count):'DATA REQUIRED'}</div><div class="ct4-m">${bi?.month?fmt(bi.qty_box)+' box · '+bi.rdc_reported+'/'+bs.expected_rdc+' RDC melapor':'Belum tersedia'}</div></div>
+          <div class="ct4-card tone-amber"><div class="ct4-k">Belum disetujui</div><div class="ct4-v">${bi?.month?fmt(bi.pending_count):'—'}</div><div class="ct4-m">${bi?.month?fmt(bi.approved_count)+' approved · '+fmt(bi.approved_box)+' box':'Menunggu laporan'}</div></div>
+          <div class="ct4-card tone-blue"><div class="ct4-k">Delivery KPI · ${safe(bk?.month||'—')}</div><div class="ct4-v">${bk?.month&&Number(bk.delivered_box)>0?fmt(bk.delivery_rate_10k,2)+' <small>/10rb</small>':'DATA REQUIRED'}</div><div class="ct4-m">Rekap historis · Pecah Kirim / Delivered Box</div></div>
+          <div class="ct4-card tone-blue"><div class="ct4-k">Warehouse KPI · ${safe(bk?.month||'—')}</div><div class="ct4-v">${bk?.month&&Number(bk.stock_exposure_box)>0?fmt(bk.warehouse_rate_10k,2)+' <small>/10rb</small>':'DATA REQUIRED'}</div><div class="ct4-m">Rekap legacy · Gudang / Stock Exposure</div></div>
+        </div>
+        <div class="ct4-table-wrap" style="margin-top:12px"><table class="ct4-table"><thead><tr><th>RDC</th><th class="r">Insiden</th><th class="r">Box</th><th class="r">Delivery</th><th class="r">Warehouse</th><th>Status</th></tr></thead><tbody>
+          ${(bs?.rdc_rows||[]).map(x=>`<tr><td><b>${safe(x.rdc)}</b></td><td class="r">${x.reported?fmt(x.incident_count):'—'}</td><td class="r">${x.reported?fmt(x.qty_box):'—'}</td><td class="r">${x.reported?fmt(x.delivery_box):'—'}</td><td class="r">${x.reported?fmt(x.warehouse_box):'—'}</td><td>${label(x.reported?'TERCATAT':'BELUM ADA LAPORAN',x.reported?'green':'amber')}</td></tr>`).join('')||'<tr><td colspan="6">Belum ada data yang dapat dibaca.</td></tr>'}
+        </tbody></table></div>
+        <div class="ct4-note" style="margin-top:12px">Periode insiden: <b>${safe(bi?.month||'—')}</b> · periode rekap legacy: <b>${safe(bk?.month||'—')}</b> (${fmt(bk?.rdc_count||0)} RDC). Rasio legacy bukan pengganti KPI Pecah Penyimpanan terbaru yang mensyaratkan exposure SAP dan rekonsiliasi di aplikasi Breakage.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="ct4-link" id="ct4BreakageOpen">Buka Breakage Monitoring ↗</button>
+          <button type="button" class="ct4-link" id="ct4BreakageRefresh">↻ Segarkan Breakage</button>
+        </div>
+      </div>
+    </div>
     <div class="ct4-section-head" id="ct4CostAnchor"><h3>05 · Logistics Cost Ratio</h3><span>Financial Efficiency · Warehouse + Distribution</span></div>
     <div class="ct4-metrics four">${[
       ['Logistics Cost Ratio','Σ cost ÷ Σ net sales × 100%'],
@@ -420,7 +462,7 @@ function draw(){
         ['Inventory Accuracy','20%',ev.opWeighted!=null?fmt(ev.opWeighted,2)+'% ('+ev.opCoverage+' RDC)':'DATA REQUIRED',
 ev.opWeighted!=null?'Σ |selisih| '+fmt(ev.opVariance,2)+' / Σ |stok sistem| '+fmt(ev.opSystem,2)+' BOX; tanggal '+dateLabel(ev.opDate[0])+' s.d. '+dateLabel(ev.opDate[ev.opDate.length-1])+'. INDIKATIF; bukan KPI nasional pada satu periode.':'Belum ada hasil opname BOX yang dapat dibaca untuk area ini',
 ev.opWeighted!=null?'PARTIAL':'DATA REQUIRED',ev.opWeighted!=null?'amber':'red'],
-        ['Warehouse Operational Performance','20%',ev.monthly.length?'WH Breakage: '+fmt(ev.exposure>0?10000*ev.broken/ev.exposure:null,2)+' / 10rb box':'DATA REQUIRED',ev.monthly.length?'Warehouse '+fmt(ev.broken)+' box rusak; Delivery '+fmt(ev.delivery)+' box; periode '+ev.latest+'. Produktivitas belum cukup untuk skor komposit.':'Data breakage tidak tersedia/terakses; perlu integrasi produktivitas','PARTIAL','amber'],
+        ['Warehouse Operational Performance','20%',bi?.month?fmt(bi.incident_count)+' insiden · '+fmt(bi.qty_box)+' box ('+bi.month+')':'DATA REQUIRED',bi?.month?'Breakage Monitoring '+bi.rdc_reported+'/'+bs.expected_rdc+' RDC; '+fmt(bi.pending_count)+' belum disetujui. Rasio lengkap terakhir '+(bk?.month||'—')+' (Warehouse '+fmt(bk?.warehouse_rate_10k,2)+'/10rb). Produktivitas belum lengkap.':'Sumber Breakage Monitoring belum terbaca; produktivitas juga belum lengkap.','PARTIAL','amber'],
         ['Cost Efficiency','15%',ev.routes?fmt(ev.routes)+' rute benchmark':'DATA REQUIRED','Tarif vendor adalah quotation, bukan actual WH+delivery cost / net sales. Rasio resmi belum bisa dihitung.','DATA REQUIRED','red'],
         ['SOP & K3 Compliance','15%','DATA REQUIRED','Perlu audit SOP/K3 dan corrective actions, bukan jumlah stock opname','DATA REQUIRED','red'],
         ['People Development & Team Performance','10%',ev.peopleCountValid?fmt(ev.peopleCount)+' orang (master)':'DATA REQUIRED','Headcount bukan achievement training, kompetensi maupun performa SDM','PARTIAL','amber']
@@ -443,6 +485,8 @@ ev.opWeighted!=null?'PARTIAL':'DATA REQUIRED',ev.opWeighted!=null?'amber':'red']
   }
   syncStickyOffset();
   shell.querySelectorAll('[data-ct4-nav]').forEach(b=>b.addEventListener('click',()=>{const n=$(b.dataset.ct4Nav==='occupancy'?'v3NavOccupancy':'v3NavCostRatio');n?.click()}));
+  $('ct4BreakageOpen')?.addEventListener('click',()=>window.open('https://sls-breakage.vercel.app/','_blank','noopener,noreferrer'));
+  $('ct4BreakageRefresh')?.addEventListener('click',()=>refreshBreakage(true));
   if(typeof window.renderCommercialKpiTeaser==='function')window.renderCommercialKpiTeaser();
   if($('mainTitle'))$('mainTitle').textContent='Supply Chain Control Tower';
   if($('periodLine'))$('periodLine').textContent='Dari kinerja operasional → risiko bisnis → tindakan → keputusan manajemen';
@@ -460,7 +504,8 @@ const quality=`
  <tr><td>OTIF</td><td>${st.checks.otif?'Ada baris sumber':'0 baris'}</td><td>—</td><td>${label(st.checks.otif?'VALIDATION REQUIRED':'DATA REQUIRED',st.checks.otif?'amber':'red')}</td></tr>
  <tr><td>Logistics Cost</td><td>${st.checks.cost?'Ada baris sumber':'0 baris'}</td><td>—</td><td>${label(st.checks.cost?'RECONCILE FINANCE':'DATA REQUIRED',st.checks.cost?'amber':'red')}</td></tr>
  <tr><td>Net Sales Finance</td><td>${st.checks.financial?'Ada baris sumber':'Belum terintegrasi'}</td><td>—</td><td>${label('DATA REQUIRED','red')}</td></tr>
- <tr><td>Inventory Accuracy</td><td>${evidence('Semua').opWeighted!=null?fmt(evidence('Semua').opWeighted,2)+'% (sampel '+evidence('Semua').opCoverage+' RDC)':'DATA REQUIRED'}</td><td>${evidence('Semua').opDate.length?dateLabel(evidence('Semua').opDate[0])+' – '+dateLabel(evidence('Semua').opDate[evidence('Semua').opDate.length-1]):'—'}</td><td>${label('INDIKATIF · PERIODE BEDA','amber')}</td></tr>
+ <tr><td>Breakage Monitoring</td><td>${st.breakageSync?.incidents?.month?fmt(st.breakageSync.incidents.incident_count)+' insiden / '+fmt(st.breakageSync.incidents.qty_box)+' box':'DATA REQUIRED'}</td><td>${safe(st.breakageSync?.incidents?.month||'—')} / KPI ${safe(st.breakageSync?.historical_kpi?.month||'—')}</td><td>${label(st.breakageSync?'LIVE INSIDEN · KPI HISTORIS':st.breakageError?'ERROR KONEKSI':'MEMUAT',st.breakageSync?'amber':st.breakageError?'red':'blue')}</td></tr>
+  <tr><td>Inventory Accuracy</td><td>${evidence('Semua').opWeighted!=null?fmt(evidence('Semua').opWeighted,2)+'% (sampel '+evidence('Semua').opCoverage+' RDC)':'DATA REQUIRED'}</td><td>${evidence('Semua').opDate.length?dateLabel(evidence('Semua').opDate[0])+' – '+dateLabel(evidence('Semua').opDate[evidence('Semua').opDate.length-1]):'—'}</td><td>${label('INDIKATIF · PERIODE BEDA','amber')}</td></tr>
  <tr><td>Action Tracker</td><td>${st.checks.action?'Ada record':'Belum lengkap'}</td><td>—</td><td>${label('REVIEW','amber')}</td></tr>
  </tbody></table></div></div>
  <div class="ct4-banner"><b>Aturan:</b> skor/rasio tidak boleh dianggap aktual bila numerator, denominator, periode, cakupan RDC atau validasi sumber belum memadai.</div>
@@ -499,7 +544,7 @@ async function load(){
   else if(['occ','monthStocks','capacity','opname','breakage','freight','slaQuality'].includes(k))st[k]=arr;
   else st.checks[k]=arr.length>0;
  });
- st.loaded=true;draw();buildQuality();
+ st.loaded=true;await refreshBreakage(false,false);draw();buildQuality();
  })();
  return st.busy;
 }
@@ -528,6 +573,6 @@ document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.addEventListener(
 const oldApplyRole=applyRoleUI;
 applyRoleUI=function(){const v=oldApplyRole.apply(this,arguments);qualityNav.style.display=CURRENT_RDC_SCOPE?'none':'flex';return v;};
 const oldRender=render;
-render=function(rdc){const result=oldRender(rdc);draw();if(!st.busy&&!IS_OFFLINE_MODE)load();return result};
+render=function(rdc){const result=oldRender(rdc);draw();if(!st.busy&&!IS_OFFLINE_MODE)load();else if(st.loaded&&breakageArea()!==st.breakageScope)refreshBreakage(false);return result};
 if(!CURRENT_RDC_SCOPE)draw();
 })();
