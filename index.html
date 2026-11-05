@@ -638,7 +638,8 @@
       <div class="nav-item nav-external" id="navWms" title="Buka WMS SLS pada tab baru"><span class="nav-icon">↗</span><span>WMS — Warehouse Execution ↗</span></div>
       <div class="nav-item" data-page="stockopname" id="navStockOpname" title="Upload hasil Stock Opname untuk Inventory Accuracy"><span class="nav-icon">⇧</span><span>Upload Stock Opname</span></div>
 
-      <div class="nav-admin-wrap">
+      <div class="nav-item" data-page="monthlyexcel" id="navMonthlyExcel" title="Upload rekap Excel bulanan"><span class="nav-icon">⇧</span><span>Upload Rekap Bulanan</span></div>
+       <div class="nav-admin-wrap">
         <div class="nav-item" data-page="kelola" id="navKelola" style="display:none;"><span class="nav-icon">•</span><span>Kelola RDC</span></div>
         <div class="nav-item legacy-hidden" data-page="upload" id="navUpload"><span class="nav-icon">•</span><span>Upload Data</span></div>
         <div class="nav-item legacy-hidden" data-page="manual" id="navManual"><span class="nav-icon">•</span><span>Input Manual</span></div>
@@ -979,7 +980,27 @@
       </div>
     </div>
 
-    <div id="page-upload" class="page">
+    <div id="page-monthlyexcel" class="page">
+<div class="topbar"><div><h1>Upload Rekap Excel Bulanan</h1><div class="period">Arsip data manual RDC nasional • Monthly Report, Delivery Breakdown, Stock Rata-Rata, dan Kepecahan</div></div></div>
+<div id="monthlyExcelAccess" class="warn-box warn" style="display:none;">🔒 Upload rekap bulanan khusus akun Master.</div>
+<div id="monthlyExcelMain" class="kpi-card" style="max-width:950px;display:none;gap:14px;">
+<div class="warn-box info">Upload hanya menambah arsip terkontrol. Dashboard belum menganggap isi workbook ini sebagai angka KPI hingga proses mapping/validasi data selesai. File historis tidak akan menghapus periode sebelumnya.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<label style="font-size:12px;font-weight:700;">Jenis laporan<select class="filter-select" id="monthlyExcelType" style="display:block;width:100%;margin-top:6px;">
+<option value="MONTHLY_REPORT">1. All-WH Monthly Report</option>
+<option value="DELIVERY_BREAKDOWN">2. All-WH Delivery Breakdown</option>
+<option value="STOCK_AVERAGE">4. All-WH Stock Rata-Rata</option>
+<option value="BREAKAGE_COMPARISON">6. All-WH Kepecahan 2025 VS 2026</option>
+</select></label>
+<label style="font-size:12px;font-weight:700;">Bulan laporan<input id="monthlyExcelPeriod" type="month" class="minput" style="display:block;width:100%;margin-top:6px;" required></label></div>
+<label style="font-size:12px;font-weight:700;">File Excel (.xlsx)<input id="monthlyExcelFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:block;width:100%;margin-top:8px;padding:14px;border:1px dashed var(--border);border-radius:9px;"></label>
+<div id="monthlyExcelPreview" style="font-size:12px;color:var(--stone);">Pilih file untuk melihat daftar sheet sebelum menyimpan.</div>
+<button class="btn-small btn-save" style="max-width:260px;padding:12px 16px;" id="monthlyExcelSave" type="button">⇧ Upload &amp; Simpan Arsip</button>
+<div id="monthlyExcelMsg" role="status" aria-live="polite" style="font-size:12px;"></div>
+<div class="section-label">Riwayat Upload • Buka file dari arsip</div>
+<div id="monthlyExcelHistory" style="font-size:12px;color:var(--stone);">Belum dimuat.</div>
+</div></div>
+<div id="page-upload" class="page">
       <div class="topbar"><div><h1>Upload Data</h1><div class="period">Update data dari file Excel/CSV (tarikan SAP atau laporan manual) — RDC hanya bisa upload data RDC-nya sendiri, Master bisa semua</div></div></div>
       <div id="uploadLocked" class="locked-note" style="display:none;">🔒 Halaman ini khusus untuk akses Master.</div>
       <div id="uploadScopeNote" class="warn-box info" style="display:none;margin-bottom:14px;"></div>
@@ -2595,6 +2616,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     document.getElementById('page-'+el.dataset.page).classList.add('active');
     if(el.dataset.page==='kelola') loadKelola();
     if(el.dataset.page==='stockopname') renderStockOpnameCurrentSummary();
+    if(el.dataset.page==='monthlyexcel') monthlyExcelInit();
     if(el.dataset.page==='upload') loadUploadPage();
     if(el.dataset.page==='manual') loadManualPage();
     if(el.dataset.page==='breakage') loadBreakagePage();
@@ -6139,6 +6161,73 @@ setTimeout(syncManagementStoryline,1200);
 <script src="/commercial_kpi_live_v1.js?v=20261029-v41-excess-explainer"></script>
 <script src="/master_upload_v48.js?v=20261030-v48-secure-imports"></script>
 <script src="/retail_upload_oneclick_v54.js?v=20261105-retail-autodetect"></script>
-<script src="/trip_efficiency_report_v1.js?v=20261105-trip-index-v1"></script>
+<script src="/trip_efficiency_report_v1.js?v=20261105-trip-index-v1">
+/* Monthly manual Excel files: private archive; NO automatic KPI overwrite. */
+let monthlyExcelSelectedMeta=null;
+function monthlyExcelEscape(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function monthlyExcelMessage(v,bad=false){let el=document.getElementById('monthlyExcelMsg');if(el){el.style.color=bad?'#B3261E':'#1B7F4B';el.textContent=v;}}
+async function monthlyExcelInit(){
+ const ready=CURRENT_ROLE==='master' && !!(AUTH_SESSION&&AUTH_SESSION.access_token);
+ document.getElementById('monthlyExcelMain').style.display=ready?'flex':'none';
+ document.getElementById('monthlyExcelAccess').style.display=ready?'none':'block';
+ if(!ready)return;
+ let input=document.getElementById('monthlyExcelPeriod');if(!input.value)input.value=new Date().toLocaleDateString('en-CA').slice(0,7);
+ await monthlyExcelHistory();
+}
+async function monthlyExcelInspect(){
+ monthlyExcelSelectedMeta=null;const f=document.getElementById('monthlyExcelFile').files[0], p=document.getElementById('monthlyExcelPreview');
+ if(!f){p.textContent='Pilih file .xlsx';return;}
+ if(!/\.xlsx$/i.test(f.name)||f.size>15000000||f.size===0){p.textContent='File tidak valid. Gunakan .xlsx maksimal 15 MB.';return;}
+ try{
+ const b=await f.arrayBuffer();
+ const wb=XLSX.read(new Uint8Array(b),{type:'array',bookSheets:true});
+ const sheets=wb.SheetNames||[];
+ if(!sheets.length)throw Error('Workbook tidak memiliki sheet.');
+ const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b))).map(x=>x.toString(16).padStart(2,'0')).join('');
+ monthlyExcelSelectedMeta={file:f,sheets,hash};
+ p.textContent=f.name+' • '+(f.size/1048576).toFixed(2)+' MB • '+sheets.length+' sheet: '+sheets.slice(0,8).join(', ')+(sheets.length>8?' ...':'');
+ }catch(e){p.textContent='Gagal membaca struktur workbook: '+e.message;}
+}
+async function monthlyExcelHistory(){
+ const host=document.getElementById('monthlyExcelHistory');host.textContent='Memuat riwayat...';
+ try{
+ const rows=await sbSelect('monthly_manual_report_upload_v1','&order=uploaded_at.desc&limit=30');
+ if(!rows.length){host.textContent='Belum ada file yang tersimpan.';return;}
+ host.innerHTML='<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>Periode</th><th>Laporan</th><th>File</th><th>Waktu</th><th>Status</th><th>Arsip</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+monthlyExcelEscape(r.period_month)+'</td><td>'+monthlyExcelEscape(r.report_type)+'</td><td>'+monthlyExcelEscape(r.source_filename)+'</td><td>'+monthlyExcelEscape(new Date(r.uploaded_at).toLocaleString('id-ID'))+'</td><td>'+monthlyExcelEscape(r.status)+'</td><td><button type="button" class="btn-small" data-monthlydownload="'+r.id+'">Unduh</button></td></tr>').join('')+'</tbody></table></div>';
+ host.querySelectorAll('[data-monthlydownload]').forEach(btn=>btn.onclick=()=>monthlyExcelDownload(rows.find(r=>String(r.id)===btn.dataset.monthlydownload)));
+ }catch(e){host.textContent='Riwayat gagal dimuat: '+e.message;}
+}
+async function monthlyExcelDownload(r){
+ if(!r)return;
+ try{
+ const res=await fetch(SUPABASE_URL+'/storage/v1/object/authenticated/'+r.storage_path,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+authHeader()}});
+ if(!res.ok)throw Error('HTTP '+res.status+' '+(await res.text()).slice(0,150));
+ const blob=await res.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=r.source_filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ }catch(e){monthlyExcelMessage('Unduh gagal: '+e.message,true);}
+}
+async function monthlyExcelSave(){
+ if(CURRENT_ROLE!=='master'||!AUTH_SESSION?.access_token){monthlyExcelMessage('Akses Master diperlukan.',true);return;}
+ const type=document.getElementById('monthlyExcelType').value,period=document.getElementById('monthlyExcelPeriod').value;
+ const f=document.getElementById('monthlyExcelFile').files[0],m=monthlyExcelSelectedMeta,button=document.getElementById('monthlyExcelSave');
+ if(!/^20\d\d-(0[1-9]|1[0-2])$/.test(period)||!m||f!==m.file){monthlyExcelMessage('Pilih periode dan file valid terlebih dahulu.',true);return;}
+ button.disabled=true;monthlyExcelMessage('Memeriksa arsip, mohon jangan menutup halaman...');
+ try{
+ const duplicate=await sbSelect('monthly_manual_report_upload_v1','&report_type=eq.'+type+'&period_month=eq.'+period+'&file_sha256=eq.'+m.hash+'&limit=1');
+ if(duplicate.length)throw Error('File identik sudah pernah diunggah untuk laporan dan periode ini.');
+ const path='sls-monthly-manual-reports/'+type+'/'+period+'/'+m.hash+'.xlsx';
+ const upload=await fetch(SUPABASE_URL+'/storage/v1/object/'+path,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+authHeader(),'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','x-upsert':'false'},body:f});
+ if(!upload.ok)throw Error('Penyimpanan file gagal (HTTP '+upload.status+'): '+(await upload.text()).slice(0,220));
+ const row={report_type:type,period_month:period,source_filename:f.name,file_sha256:m.hash,storage_path:path,file_size_bytes:f.size,workbook_sheets:m.sheets,status:'UPLOADED'};
+ const saved=await fetch(SUPABASE_URL+'/rest/v1/monthly_manual_report_upload_v1',{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+authHeader(),'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(row)});
+ if(!saved.ok)throw Error('File tersimpan tetapi metadata belum tercatat: '+(await saved.text()).slice(0,220));
+ monthlyExcelMessage('Berhasil: '+f.name+' tersimpan sebagai arsip '+type+' '+period+'.');
+ document.getElementById('monthlyExcelFile').value='';monthlyExcelSelectedMeta=null;document.getElementById('monthlyExcelPreview').textContent='File sudah tersimpan. Pilih file berikutnya.';
+ await monthlyExcelHistory();
+ }catch(e){monthlyExcelMessage(e.message,true);}finally{button.disabled=false;}
+}
+document.getElementById('monthlyExcelFile')?.addEventListener('change',monthlyExcelInspect);
+document.getElementById('monthlyExcelSave')?.addEventListener('click',monthlyExcelSave);
+
+</script>
 </body>
 </html>
