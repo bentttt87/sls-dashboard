@@ -983,7 +983,7 @@
     <div id="page-monthlyexcel" class="page">
 <div class="topbar"><div><h1>Upload Rekap Excel Bulanan</h1><div class="period">Arsip data manual RDC nasional • Monthly Report, Delivery Breakdown, Stock Rata-Rata, dan Kepecahan</div></div></div>
 <div id="monthlyExcelAccess" class="warn-box warn" style="display:none;">🔒 Upload rekap bulanan khusus akun Master.</div>
-<div id="monthlyExcelMain" class="kpi-card" style="max-width:950px;display:none;gap:14px;">
+<div id="monthlyExcelMain" class="kpi-card" style="max-width:950px;display:flex;flex-direction:column;gap:14px;padding:22px;margin:12px 0 30px;">
 <div class="warn-box info">Upload hanya menambah arsip terkontrol. Dashboard belum menganggap isi workbook ini sebagai angka KPI hingga proses mapping/validasi data selesai. File historis tidak akan menghapus periode sebelumnya.</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <label style="font-size:12px;font-weight:700;">Jenis laporan<select class="filter-select" id="monthlyExcelType" style="display:block;width:100%;margin-top:6px;">
@@ -6168,9 +6168,10 @@ function monthlyExcelEscape(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':
 function monthlyExcelMessage(v,bad=false){let el=document.getElementById('monthlyExcelMsg');if(el){el.style.color=bad?'#B3261E':'#1B7F4B';el.textContent=v;}}
 async function monthlyExcelInit(){
  const ready=CURRENT_ROLE==='master' && !!(AUTH_SESSION&&AUTH_SESSION.access_token);
- document.getElementById('monthlyExcelMain').style.display=ready?'flex':'none';
+ document.getElementById('monthlyExcelMain').style.display='flex';
  document.getElementById('monthlyExcelAccess').style.display=ready?'none':'block';
- if(!ready)return;
+ document.getElementById('monthlyExcelSave').disabled=!ready;
+ if(!ready){ document.getElementById('monthlyExcelHistory').textContent='Silakan login dengan akun Master aktif untuk mengakses arsip.'; return; }
  let input=document.getElementById('monthlyExcelPeriod');if(!input.value)input.value=new Date().toLocaleDateString('en-CA').slice(0,7);
  await monthlyExcelHistory();
 }
@@ -6227,6 +6228,14 @@ async function monthlyExcelSave(){
 }
 document.getElementById('monthlyExcelFile')?.addEventListener('change',monthlyExcelInspect);
 document.getElementById('monthlyExcelSave')?.addEventListener('click',monthlyExcelSave);
+/* Ensure visibility even if another redesigned navigation handler only switches pages.
+   Existing click handler continues to initialize data/history. */
+document.getElementById('navMonthlyExcel')?.addEventListener('click',()=>{
+ const panel=document.getElementById('monthlyExcelMain');
+ if(panel)panel.style.display='flex';
+ monthlyExcelInit().catch(e=>monthlyExcelMessage('Halaman siap, tetapi riwayat belum dapat dimuat: '+e.message,true));
+});
+
 
 </script>
 </body>
